@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useVideoBySlug, useAdjacentVideos } from "../hooks/useVideos";
 import { VideoPlayer } from "../components/video/VideoPlayer";
@@ -20,6 +20,7 @@ export function Video() {
   const { slug } = useParams<{ slug: string }>();
   const { data: video, isLoading, isError } = useVideoBySlug(slug);
   const { data: adjacent } = useAdjacentVideos(video?.publishedAt, video?.slug);
+  const [isTagsExpanded, setIsTagsExpanded] = useState(false);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -146,41 +147,48 @@ export function Video() {
                 </div>
               </div>
 
-              <div className="bg-neutral-900/50 rounded-xl p-4 flex flex-col gap-3">
-                <div className="flex items-center gap-2">
+              <div className="bg-neutral-900/50 rounded-xl p-4 flex flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-2">
                   <Link
                     to={`/category/${video.category
                       .toLowerCase()
                       .replace(/[^a-z0-9]+/g, "-")
                       .replace(/(^-|-$)+/g, "")}`}
                   >
-                    <span className="bg-red-500/10 text-red-500 hover:bg-red-500/20 px-3 py-1 rounded-md text-sm font-medium transition-colors cursor-pointer">
+                    <span className="bg-red-500/10 text-red-500 hover:bg-red-500/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer inline-flex">
                       {video.category}
                     </span>
                   </Link>
+
+                  {video.tags && (
+                    <>
+                      {(isTagsExpanded ? video.tags : video.tags.slice(0, 12)).map((tag) => (
+                        <Link
+                          to={`/tag/${tag
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, "-")
+                            .replace(/(^-|-$)+/g, "")}`}
+                          key={tag}
+                          className="bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors inline-flex"
+                        >
+                          #{tag}
+                        </Link>
+                      ))}
+                      {!isTagsExpanded && video.tags.length > 12 && (
+                        <button
+                          onClick={() => setIsTagsExpanded(true)}
+                          className="bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors inline-flex"
+                        >
+                          +{video.tags.length - 12} More
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
 
-                <p className="text-neutral-300 text-sm md:text-base leading-relaxed whitespace-pre-wrap">
+                <p className="text-neutral-300 text-sm md:text-base leading-relaxed whitespace-pre-wrap mt-1">
                   {video.description}
                 </p>
-
-                {video.tags && video.tags.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 mt-2 pt-3 border-t border-neutral-800/50">
-                    <Tag className="w-4 h-4 text-neutral-500" />
-                    {video.tags.map((tag) => (
-                      <Link
-                        to={`/tag/${tag
-                          .toLowerCase()
-                          .replace(/[^a-z0-9]+/g, "-")
-                          .replace(/(^-|-$)+/g, "")}`}
-                        key={tag}
-                        className="text-neutral-400 text-sm hover:text-white cursor-pointer transition-colors"
-                      >
-                        #{tag}
-                      </Link>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Prev / Next */}

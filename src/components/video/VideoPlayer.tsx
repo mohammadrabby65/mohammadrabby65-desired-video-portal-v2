@@ -36,7 +36,7 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
 
-  const [hlsLevels, setHlsLevels] = useState<Hls.Level[]>([]);
+  const [hlsLevels, setHlsLevels] = useState<any[]>([]);
   const [currentLevel, setCurrentLevel] = useState<number>(-1); // -1 is Auto
 
   // Setup HLS or Native player

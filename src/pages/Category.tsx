@@ -162,7 +162,7 @@ export function Category() {
             No videos found
           </h2>
           <p className="text-neutral-400 max-w-md mx-auto">
-            There are currently no videos in the {title} category.
+            There are currently no videos in the {categoryName} category.
           </p>
         </div>
       ) : (

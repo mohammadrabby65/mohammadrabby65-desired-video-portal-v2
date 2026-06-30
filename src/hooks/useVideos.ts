@@ -22,7 +22,7 @@ export function useFeaturedVideos() {
 export type VideoFilter = {
   category?: string;
   trending?: boolean;
-  sortBy?: 'publishedAt' | 'views';
+  sortBy?: 'publishedAt' | 'views' | 'duration' | 'featured' | 'random';
 };
 
 export function useInfiniteVideos(filter: VideoFilter, limitCount = 10) {
@@ -41,14 +41,21 @@ export function useInfiniteVideos(filter: VideoFilter, limitCount = 10) {
           constraints.push(orderBy('views', 'desc'));
         } else {
           constraints.push(where('category', '==', filter.category));
-          constraints.push(orderBy('publishedAt', 'desc'));
+          // For category filtering, order by publishedAt desc unless we have a specific sortBy
+          if (filter.sortBy && filter.sortBy !== 'random') {
+             constraints.push(orderBy(filter.sortBy, 'desc'));
+          } else {
+             constraints.push(orderBy('publishedAt', 'desc'));
+          }
         }
       } else {
         if (filter.trending) {
           constraints.push(where('trending', '==', true));
         }
-        if (filter.sortBy) {
+        if (filter.sortBy && filter.sortBy !== 'random') {
           constraints.push(orderBy(filter.sortBy, 'desc'));
+        } else if (!filter.sortBy) {
+          constraints.push(orderBy('publishedAt', 'desc'));
         }
       }
 
@@ -61,8 +68,13 @@ export function useInfiniteVideos(filter: VideoFilter, limitCount = 10) {
       const q = query(collection(db, 'posts'), ...constraints);
       const snapshot = await getDocs(q);
 
-      const videos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+      let videos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
       const lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+
+      // Client-side shuffle for "random" sort
+      if (filter.sortBy === 'random') {
+        videos = videos.sort(() => Math.random() - 0.5);
+      }
 
       return { videos, lastDoc };
     },
