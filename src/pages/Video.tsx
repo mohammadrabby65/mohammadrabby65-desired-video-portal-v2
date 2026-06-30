@@ -1,11 +1,20 @@
-import { useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useVideoBySlug, useAdjacentVideos } from '../hooks/useVideos';
-import { VideoPlayer } from '../components/video/VideoPlayer';
-import { RelatedVideos } from '../components/video/RelatedVideos';
-import { SEO } from '../components/seo/SEO';
-import { formatTimeAgo, formatViews } from '../lib/utils';
-import { ThumbsUp, Heart, Share2, Tag, Flag, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useVideoBySlug, useAdjacentVideos } from "../hooks/useVideos";
+import { VideoPlayer } from "../components/video/VideoPlayer";
+import { RelatedVideos } from "../components/video/RelatedVideos";
+import { SEO } from "../components/seo/SEO";
+import { formatTimeAgo, formatViews } from "../lib/utils";
+import {
+  ThumbsUp,
+  Heart,
+  Share2,
+  Tag,
+  Flag,
+  Copy,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 export function Video() {
   const { slug } = useParams<{ slug: string }>();
@@ -14,11 +23,11 @@ export function Video() {
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
-    alert('Link copied to clipboard!');
+    alert("Link copied to clipboard!");
   };
 
   const handleReport = () => {
-    alert('Thank you for your report. Our team will review this content.');
+    alert("Thank you for your report. Our team will review this content.");
   };
 
   if (isLoading) {
@@ -54,8 +63,12 @@ export function Video() {
     return (
       <div className="flex-1 p-4 container mx-auto flex items-center justify-center min-h-[50vh]">
         <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold text-neutral-300">Video not found</h2>
-          <p className="text-neutral-500">The video you are looking for does not exist or has been removed.</p>
+          <h2 className="text-2xl font-bold text-neutral-300">
+            Video not found
+          </h2>
+          <p className="text-neutral-500">
+            The video you are looking for does not exist or has been removed.
+          </p>
         </div>
       </div>
     );
@@ -72,44 +85,50 @@ export function Video() {
         {JSON.stringify({
           "@context": "https://schema.org",
           "@type": "VideoObject",
-          "name": video.title,
-          "description": video.description,
-          "thumbnailUrl": [video.thumbnailUrl],
-          "uploadDate": video.publishedAt?.toDate ? video.publishedAt.toDate().toISOString() : new Date().toISOString(),
-          "duration": `PT${video.duration.replace(':', 'M')}S`,
-          "contentUrl": video.videoUrl,
-          "interactionStatistic": {
+          name: video.title,
+          description: video.description,
+          thumbnailUrl: [video.thumbnailUrl],
+          uploadDate: video.publishedAt?.toDate
+            ? video.publishedAt.toDate().toISOString()
+            : new Date().toISOString(),
+          duration: `PT${video.duration.replace(":", "M")}S`,
+          contentUrl: video.videoUrl,
+          interactionStatistic: {
             "@type": "InteractionCounter",
-            "interactionType": { "@type": "WatchAction" },
-            "userInteractionCount": video.views
-          }
+            interactionType: { "@type": "WatchAction" },
+            userInteractionCount: video.views,
+          },
         })}
       </script>
       <div className="flex-1 p-4 container mx-auto pb-10">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-          
           {/* Main Video Section */}
           <div className="flex-1 max-w-[1200px]">
             <VideoPlayer videoUrl={video.videoUrl} />
-            
+
             <div className="mt-4 flex flex-col gap-4">
               <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">
                 {video.title}
               </h1>
-              
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-4">
                 <div className="flex items-center gap-2 text-sm text-neutral-400">
-                  <span className="font-medium text-neutral-300">{formatViews(video.views)} views</span>
+                  <span className="font-medium text-neutral-300">
+                    {formatViews(video.views)} views
+                  </span>
                   <span className="w-1 h-1 rounded-full bg-neutral-700" />
                   <span>{formatTimeAgo(video.publishedAt)}</span>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <button className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full text-sm font-medium transition-colors">
                     <ThumbsUp className="w-4 h-4" />
                     <span>Like</span>
                   </button>
-                  <button onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full text-sm font-medium transition-colors">
+                  <button
+                    onClick={handleCopyLink}
+                    className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full text-sm font-medium transition-colors"
+                  >
                     <Copy className="w-4 h-4" />
                     <span>Copy</span>
                   </button>
@@ -117,7 +136,10 @@ export function Video() {
                     <Share2 className="w-4 h-4" />
                     <span>Share</span>
                   </button>
-                  <button onClick={handleReport} className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full text-sm font-medium text-neutral-400 hover:text-red-500 transition-colors">
+                  <button
+                    onClick={handleReport}
+                    className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full text-sm font-medium text-neutral-400 hover:text-red-500 transition-colors"
+                  >
                     <Flag className="w-4 h-4" />
                     <span className="hidden sm:inline">Report</span>
                   </button>
@@ -126,22 +148,36 @@ export function Video() {
 
               <div className="bg-neutral-900/50 rounded-xl p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="bg-red-500/10 text-red-500 px-3 py-1 rounded-md text-sm font-medium">
-                    {video.category}
-                  </span>
+                  <Link
+                    to={`/category/${video.category
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]+/g, "-")
+                      .replace(/(^-|-$)+/g, "")}`}
+                  >
+                    <span className="bg-red-500/10 text-red-500 hover:bg-red-500/20 px-3 py-1 rounded-md text-sm font-medium transition-colors cursor-pointer">
+                      {video.category}
+                    </span>
+                  </Link>
                 </div>
-                
+
                 <p className="text-neutral-300 text-sm md:text-base leading-relaxed whitespace-pre-wrap">
                   {video.description}
                 </p>
-                
+
                 {video.tags && video.tags.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 mt-2 pt-3 border-t border-neutral-800/50">
                     <Tag className="w-4 h-4 text-neutral-500" />
-                    {video.tags.map(tag => (
-                      <span key={tag} className="text-neutral-400 text-sm hover:text-white cursor-pointer transition-colors">
+                    {video.tags.map((tag) => (
+                      <Link
+                        to={`/tag/${tag
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/(^-|-$)+/g, "")}`}
+                        key={tag}
+                        className="text-neutral-400 text-sm hover:text-white cursor-pointer transition-colors"
+                      >
                         #{tag}
-                      </span>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -151,23 +187,41 @@ export function Video() {
               {adjacent && (adjacent.prev || adjacent.next) && (
                 <div className="grid grid-cols-2 gap-4 mt-6">
                   {adjacent.next ? (
-                    <Link to={`/video/${adjacent.next.slug}`} className="flex items-center gap-3 bg-neutral-900 hover:bg-neutral-800 p-4 rounded-xl transition-colors group">
+                    <Link
+                      to={`/video/${adjacent.next.slug}`}
+                      className="flex items-center gap-3 bg-neutral-900 hover:bg-neutral-800 p-4 rounded-xl transition-colors group"
+                    >
                       <ChevronLeft className="w-5 h-5 text-neutral-500 group-hover:text-white transition-colors" />
                       <div className="min-w-0">
-                        <div className="text-xs text-neutral-500 mb-1">Previous Video</div>
-                        <div className="text-sm font-semibold text-white truncate">{adjacent.next.title}</div>
+                        <div className="text-xs text-neutral-500 mb-1">
+                          Previous Video
+                        </div>
+                        <div className="text-sm font-semibold text-white truncate">
+                          {adjacent.next.title}
+                        </div>
                       </div>
                     </Link>
-                  ) : <div></div>}
+                  ) : (
+                    <div></div>
+                  )}
                   {adjacent.prev ? (
-                    <Link to={`/video/${adjacent.prev.slug}`} className="flex items-center justify-end text-right gap-3 bg-neutral-900 hover:bg-neutral-800 p-4 rounded-xl transition-colors group">
+                    <Link
+                      to={`/video/${adjacent.prev.slug}`}
+                      className="flex items-center justify-end text-right gap-3 bg-neutral-900 hover:bg-neutral-800 p-4 rounded-xl transition-colors group"
+                    >
                       <div className="min-w-0">
-                        <div className="text-xs text-neutral-500 mb-1">Next Video</div>
-                        <div className="text-sm font-semibold text-white truncate">{adjacent.prev.title}</div>
+                        <div className="text-xs text-neutral-500 mb-1">
+                          Next Video
+                        </div>
+                        <div className="text-sm font-semibold text-white truncate">
+                          {adjacent.prev.title}
+                        </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-white transition-colors" />
                     </Link>
-                  ) : <div></div>}
+                  ) : (
+                    <div></div>
+                  )}
                 </div>
               )}
             </div>
@@ -175,9 +229,12 @@ export function Video() {
 
           {/* Sidebar / Related Videos */}
           <div className="w-full lg:w-[400px] xl:w-[450px]">
-            <RelatedVideos videoId={video.id} category={video.category} tags={video.tags} />
+            <RelatedVideos
+              videoId={video.id}
+              category={video.category}
+              tags={video.tags}
+            />
           </div>
-          
         </div>
       </div>
     </>

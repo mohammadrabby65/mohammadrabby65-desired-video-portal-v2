@@ -6,6 +6,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Edit, Trash2, Plus, X, Check } from 'lucide-react';
 import { Category } from '../../types';
 
+import { Link } from 'react-router-dom';
+
 export function Categories() {
   const { data: categories, isLoading } = useCategories();
   const queryClient = useQueryClient();
@@ -103,7 +105,9 @@ export function Categories() {
                         autoFocus
                       />
                     ) : (
-                      <span className="font-medium text-white">{cat.name}</span>
+                      <Link to={`/category/${cat.slug}`} className="font-medium text-white hover:text-red-500 transition-colors">
+                        {cat.name}
+                      </Link>
                     )}
                   </td>
                   <td className="px-5 py-3 text-neutral-500">{cat.slug}</td>

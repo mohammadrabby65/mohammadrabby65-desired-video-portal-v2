@@ -1,9 +1,17 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import Hls from 'hls.js';
-import { 
-  Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, 
-  PictureInPicture, Loader2, AlertCircle 
-} from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import Hls from "hls.js";
+import {
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Minimize,
+  Settings,
+  PictureInPicture,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -15,10 +23,9 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
   const hlsRef = useRef<Hls | null>(null);
   const progressRef = useRef<HTMLDivElement>(null);
 
-  const [playbackUrl, setPlaybackUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
@@ -28,44 +35,20 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
   const [showControls, setShowControls] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
-  
+
   const [hlsLevels, setHlsLevels] = useState<Hls.Level[]>([]);
   const [currentLevel, setCurrentLevel] = useState<number>(-1); // -1 is Auto
 
-  // Fetch secure URL
-  useEffect(() => {
-    const fetchSecureUrl = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/stream/get-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ videoUrl })
-        });
-        const data = await res.json();
-        if (data.success && data.data) {
-          const decoded = JSON.parse(atob(data.data));
-          setPlaybackUrl(decoded.url);
-        } else {
-          setError('Failed to fetch playback URL');
-        }
-      } catch (err) {
-        setError('Error fetching stream');
-      }
-    };
-    fetchSecureUrl();
-  }, [videoUrl]);
-
   // Setup HLS or Native player
   useEffect(() => {
-    if (!playbackUrl || !videoRef.current) return;
-    
+    if (!videoUrl || !videoRef.current) return;
+
     const video = videoRef.current;
-    
-    const isM3U8 = playbackUrl.includes('.m3u8') || videoUrl.includes('.m3u8');
-    const isMP4 = playbackUrl.includes('.mp4') || videoUrl.includes('.mp4');
-    
-    console.log("Final URL passed to player:", playbackUrl);
+
+    const isM3U8 = videoUrl.includes(".m3u8");
+    const isMP4 = videoUrl.includes(".mp4");
+
+    console.log("Final URL passed to player:", videoUrl);
     console.log("Format detected - isM3U8:", isM3U8, "isMP4:", isMP4);
 
     const handleLoadedMetadata = () => {
@@ -75,8 +58,13 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
     };
 
     const handleError = (e: Event) => {
-      console.error("Player Error Event:", e, video.error?.code, video.error?.message);
-      setError('Error loading video source');
+      console.error(
+        "Player Error Event:",
+        e,
+        video.error?.code,
+        video.error?.message,
+      );
+      setError("Error loading video source");
     };
 
     if (isM3U8 && Hls.isSupported()) {
@@ -86,7 +74,7 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
       });
       hlsRef.current = hls;
 
-      hls.loadSource(playbackUrl);
+      hls.loadSource(videoUrl);
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
@@ -96,7 +84,7 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
         const savedTime = localStorage.getItem(`vid_time_${videoUrl}`);
         if (savedTime) video.currentTime = parseFloat(savedTime);
       });
-      
+
       hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
         setCurrentLevel(data.level);
       });
@@ -113,17 +101,17 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
             default:
               hls.destroy();
               console.error("HLS Fatal Error:", data);
-              setError('A fatal error occurred during playback');
+              setError("A fatal error occurred during playback");
               break;
           }
         }
       });
     } else {
       // Native HLS (Safari) or standard MP4
-      video.addEventListener('loadedmetadata', handleLoadedMetadata);
-      video.addEventListener('error', handleError);
-      
-      video.src = playbackUrl;
+      video.addEventListener("loadedmetadata", handleLoadedMetadata);
+      video.addEventListener("error", handleError);
+
+      video.src = videoUrl;
       video.load();
     }
 
@@ -132,10 +120,10 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('error', handleError);
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("error", handleError);
     };
-  }, [playbackUrl, videoUrl]);
+  }, [videoUrl]);
 
   // Save progress periodically
   useEffect(() => {
@@ -174,10 +162,10 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
   };
 
   const formatTime = (time: number) => {
-    if (isNaN(time)) return '0:00';
+    if (isNaN(time)) return "0:00";
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,7 +190,7 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(err => {
+      containerRef.current.requestFullscreen().catch((err) => {
         console.error("Error attempting to enable fullscreen:", err);
       });
       setIsFullscreen(true);
@@ -260,8 +248,9 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
   if (error) {
@@ -274,7 +263,7 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-neutral-800 group"
       onMouseMove={handleMouseMove}
@@ -301,40 +290,60 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
       />
 
       {/* Controls Overlay */}
-      <div 
-        className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 cursor-none'}`}
+      <div
+        className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 cursor-none"}`}
       >
         <div className="p-4 flex flex-col gap-2 w-full">
           {/* Progress Bar */}
-          <div 
+          <div
             ref={progressRef}
             className="w-full h-1.5 bg-neutral-600/50 rounded-full cursor-pointer group/progress relative"
             onClick={handleProgressClick}
           >
-            <div 
+            <div
               className="absolute top-0 left-0 h-full bg-red-600 rounded-full group-hover/progress:bg-red-500 transition-colors"
-              style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+              style={{
+                width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
+              }}
             />
             {/* Scrubber thumb */}
-            <div 
+            <div
               className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity"
-              style={{ left: `calc(${duration > 0 ? (currentTime / duration) * 100 : 0}% - 6px)` }}
+              style={{
+                left: `calc(${duration > 0 ? (currentTime / duration) * 100 : 0}% - 6px)`,
+              }}
             />
           </div>
 
           <div className="flex items-center justify-between mt-1">
             <div className="flex items-center gap-4">
-              <button onClick={togglePlay} className="text-white hover:text-red-500 transition-colors focus:outline-none">
-                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              <button
+                onClick={togglePlay}
+                className="text-white hover:text-red-500 transition-colors focus:outline-none"
+              >
+                {isPlaying ? (
+                  <Pause className="w-5 h-5" />
+                ) : (
+                  <Play className="w-5 h-5" />
+                )}
               </button>
-              
+
               <div className="flex items-center gap-2 group/volume">
-                <button onClick={toggleMute} className="text-white hover:text-red-500 transition-colors focus:outline-none">
-                  {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                <button
+                  onClick={toggleMute}
+                  className="text-white hover:text-red-500 transition-colors focus:outline-none"
+                >
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="w-5 h-5" />
+                  ) : (
+                    <Volume2 className="w-5 h-5" />
+                  )}
                 </button>
-                <input 
-                  type="range" 
-                  min="0" max="1" step="0.05"
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
                   className="w-0 group-hover/volume:w-20 transition-all duration-300 opacity-0 group-hover/volume:opacity-100 accent-red-600 h-1"
@@ -347,48 +356,67 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
             </div>
 
             <div className="flex items-center gap-4 relative">
-              <button onClick={togglePiP} className="text-white hover:text-red-500 transition-colors focus:outline-none">
+              <button
+                onClick={togglePiP}
+                className="text-white hover:text-red-500 transition-colors focus:outline-none"
+              >
                 <PictureInPicture className="w-5 h-5" />
               </button>
-              
-              <button onClick={() => setShowSettings(!showSettings)} className="text-white hover:text-red-500 transition-colors focus:outline-none">
-                <Settings className={`w-5 h-5 ${showSettings ? 'rotate-90' : ''} transition-transform`} />
+
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="text-white hover:text-red-500 transition-colors focus:outline-none"
+              >
+                <Settings
+                  className={`w-5 h-5 ${showSettings ? "rotate-90" : ""} transition-transform`}
+                />
               </button>
 
-              <button onClick={toggleFullscreen} className="text-white hover:text-red-500 transition-colors focus:outline-none">
-                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              <button
+                onClick={toggleFullscreen}
+                className="text-white hover:text-red-500 transition-colors focus:outline-none"
+              >
+                {isFullscreen ? (
+                  <Minimize className="w-5 h-5" />
+                ) : (
+                  <Maximize className="w-5 h-5" />
+                )}
               </button>
 
               {/* Settings Menu */}
               {showSettings && (
                 <div className="absolute bottom-full right-0 mb-4 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 rounded-lg shadow-xl p-2 min-w-[160px] text-sm z-20">
                   <div className="mb-2">
-                    <div className="text-neutral-400 text-xs font-semibold px-2 mb-1 uppercase tracking-wider">Speed</div>
-                    {[0.5, 1, 1.5, 2].map(rate => (
-                      <button 
+                    <div className="text-neutral-400 text-xs font-semibold px-2 mb-1 uppercase tracking-wider">
+                      Speed
+                    </div>
+                    {[0.5, 1, 1.5, 2].map((rate) => (
+                      <button
                         key={rate}
                         onClick={() => changeSpeed(rate)}
-                        className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${playbackRate === rate ? 'text-red-500 font-medium' : 'text-white'}`}
+                        className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${playbackRate === rate ? "text-red-500 font-medium" : "text-white"}`}
                       >
-                        {rate === 1 ? 'Normal' : `${rate}x`}
+                        {rate === 1 ? "Normal" : `${rate}x`}
                       </button>
                     ))}
                   </div>
-                  
+
                   {hlsLevels.length > 0 && (
                     <div className="pt-2 border-t border-neutral-800">
-                      <div className="text-neutral-400 text-xs font-semibold px-2 mb-1 uppercase tracking-wider">Quality</div>
-                      <button 
+                      <div className="text-neutral-400 text-xs font-semibold px-2 mb-1 uppercase tracking-wider">
+                        Quality
+                      </div>
+                      <button
                         onClick={() => changeQuality(-1)}
-                        className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${currentLevel === -1 ? 'text-red-500 font-medium' : 'text-white'}`}
+                        className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${currentLevel === -1 ? "text-red-500 font-medium" : "text-white"}`}
                       >
                         Auto
                       </button>
                       {hlsLevels.map((level, index) => (
-                        <button 
+                        <button
                           key={index}
                           onClick={() => changeQuality(index)}
-                          className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${currentLevel === index ? 'text-red-500 font-medium' : 'text-white'}`}
+                          className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${currentLevel === index ? "text-red-500 font-medium" : "text-white"}`}
                         >
                           {level.height}p
                         </button>
