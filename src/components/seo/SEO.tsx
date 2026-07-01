@@ -1,4 +1,5 @@
 import { Helmet } from 'react-helmet-async';
+import { SITE_URL } from '../../config';
 
 interface SEOProps {
   title: string;
@@ -12,11 +13,11 @@ interface SEOProps {
 export function SEO({ title, description, image, url, exactTitle = false, noIndex = false }: SEOProps) {
   const siteTitle = 'Desired - Free Desi Porn & Hot Indian Sex Videos Online';
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
-  const productionDomain = 'https://desired-video-portal.vercel.app';
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-  const currentUrl = url || `${productionDomain}${currentPath}`;
+  const currentUrl = url || `${SITE_URL}${currentPath}`;
   const ogImage = image || 'https://i.ibb.co.com/fV4JS3LH/20260701-143429.png';
   const faviconUrl = 'https://i.ibb.co.com/WvbgTSjV/Desired-icon.png';
+
 
   return (
     <Helmet>

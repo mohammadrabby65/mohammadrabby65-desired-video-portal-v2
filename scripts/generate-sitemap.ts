@@ -3,11 +3,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeApp } from 'firebase/app';
 import { initializeFirestore, collection, getDocs, query, limit } from 'firebase/firestore';
+import { SITE_URL } from '../src/config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const SITE_URL = 'https://desired-video-portal.vercel.app';
 
 const firebaseConfig = {
   projectId: "gen-lang-client-0637384010",

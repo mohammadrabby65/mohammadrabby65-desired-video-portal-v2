@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
 import { initializeFirestore, collection, getDocs, query, limit } from "firebase/firestore";
+import { SITE_URL } from "./src/config";
 
 const SECRET_KEY = process.env.VITE_STREAM_SECRET || "local-dev-secret-key-12345";
 
@@ -97,7 +98,6 @@ async function startServer() {
 
   // Dynamic Robots.txt
   app.get("/robots.txt", (req, res) => {
-    const siteUrl = `https://desired-video-portal.vercel.app`;
     res.type("text/plain");
     res.send(`User-agent: *
 Allow: /
@@ -105,13 +105,12 @@ Disallow: /admin
 Disallow: /admin/*
 Disallow: /api/*
 
-Sitemap: ${siteUrl}/sitemap.xml
+Sitemap: ${SITE_URL}/sitemap.xml
 `);
   });
 
   // Dynamic Sitemap.xml
   app.get("/sitemap.xml", async (req, res) => {
-    const siteUrl = `https://desired-video-portal.vercel.app`;
     try {
       // Query categories
       const catQuery = query(collection(db, "categories"), limit(100));
@@ -145,7 +144,7 @@ Sitemap: ${siteUrl}/sitemap.xml
 
       // Home Page
       xml += `  <url>\n`;
-      xml += `    <loc>${siteUrl}/</loc>\n`;
+      xml += `    <loc>${SITE_URL}/</loc>\n`;
       xml += `    <changefreq>daily</changefreq>\n`;
       xml += `    <priority>1.0</priority>\n`;
       xml += `  </url>\n`;
@@ -154,7 +153,7 @@ Sitemap: ${siteUrl}/sitemap.xml
       const defaultCats = ["trending", "latest", "popular"];
       for (const cat of defaultCats) {
         xml += `  <url>\n`;
-        xml += `    <loc>${siteUrl}/category/${cat}</loc>\n`;
+        xml += `    <loc>${SITE_URL}/category/${cat}</loc>\n`;
         xml += `    <changefreq>daily</changefreq>\n`;
         xml += `    <priority>0.8</priority>\n`;
         xml += `  </url>\n`;
@@ -164,7 +163,7 @@ Sitemap: ${siteUrl}/sitemap.xml
       for (const slug of categoriesList) {
         if (!defaultCats.includes(slug)) {
           xml += `  <url>\n`;
-          xml += `    <loc>${siteUrl}/category/${slug}</loc>\n`;
+          xml += `    <loc>${SITE_URL}/category/${slug}</loc>\n`;
           xml += `    <changefreq>daily</changefreq>\n`;
           xml += `    <priority>0.8</priority>\n`;
           xml += `  </url>\n`;
@@ -174,7 +173,7 @@ Sitemap: ${siteUrl}/sitemap.xml
       // Posts
       for (const post of postsList) {
         xml += `  <url>\n`;
-        xml += `    <loc>${siteUrl}/video/${post.slug}</loc>\n`;
+        xml += `    <loc>${SITE_URL}/video/${post.slug}</loc>\n`;
         if (post.lastmod) {
           xml += `    <lastmod>${post.lastmod}</lastmod>\n`;
         }
@@ -193,7 +192,7 @@ Sitemap: ${siteUrl}/sitemap.xml
       let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
       xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
       xml += `  <url>\n`;
-      xml += `    <loc>${siteUrl}/</loc>\n`;
+      xml += `    <loc>${SITE_URL}/</loc>\n`;
       xml += `    <changefreq>daily</changefreq>\n`;
       xml += `    <priority>1.0</priority>\n`;
       xml += `  </url>\n`;
