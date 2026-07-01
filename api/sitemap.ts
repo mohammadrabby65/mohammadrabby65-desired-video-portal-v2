@@ -1,12 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { initializeApp } from 'firebase/app';
-import { initializeFirestore, collection, getDocs, query, limit } from 'firebase/firestore';
-import { SITE_URL } from '../src/config';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { initializeApp, getApps } from "firebase/app";
+import { initializeFirestore, collection, getDocs, query, limit } from "firebase/firestore";
+import { SITE_URL } from "../src/config";
 
 const firebaseConfig = {
   projectId: "gen-lang-client-0637384010",
@@ -18,37 +12,33 @@ const firebaseConfig = {
   measurementId: ""
 };
 
-const app = initializeApp(firebaseConfig);
+let app;
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig, "server-app");
+} else {
+  app = getApps()[0];
+}
 const db = initializeFirestore(app, {}, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2");
 
-async function generateSitemap() {
-  console.log('Generating sitemap...');
+function escapeXml(unsafe: string) {
+  return unsafe.replace(/[<>&'"]/g, function (c) {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+}
 
-  function escapeXml(unsafe: string) {
-    return unsafe.replace(/[<>&'"]/g, function (c) {
-      switch (c) {
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '&': return '&amp;';
-        case '\'': return '&apos;';
-        case '"': return '&quot;';
-        default: return c;
-      }
-    });
-  }
-
+export default async function handler(req, res) {
   try {
-    // Query categories
     const catQuery = query(collection(db, "categories"), limit(100));
     const catSnap = await getDocs(catQuery);
     const categoriesList = catSnap.docs.map(doc => doc.data().slug).filter(Boolean);
 
-    // Query tags
-    const tagQuery = query(collection(db, "tags"), limit(100));
-    const tagSnap = await getDocs(tagQuery);
-    const tagsList = tagSnap.docs.map(doc => doc.data().slug).filter(Boolean);
-
-    // Query posts
     const postQuery = query(collection(db, "posts"), limit(1000));
     const postSnap = await getDocs(postQuery);
     const postsList = postSnap.docs.map(doc => {
@@ -70,23 +60,18 @@ async function generateSitemap() {
           lastmod = dateObj.toISOString();
         }
       }
-      return {
-        slug: data.slug,
-        lastmod
-      };
+      return { slug: data.slug, lastmod };
     }).filter(p => p.slug);
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
-    // Home Page
     xml += `  <url>\n`;
     xml += `    <loc>${SITE_URL}/</loc>\n`;
     xml += `    <changefreq>daily</changefreq>\n`;
     xml += `    <priority>1.0</priority>\n`;
     xml += `  </url>\n`;
 
-    // Add default virtual categories
     const defaultCats = ["trending", "latest", "popular"];
     for (const cat of defaultCats) {
       xml += `  <url>\n`;
@@ -96,7 +81,6 @@ async function generateSitemap() {
       xml += `  </url>\n`;
     }
 
-    // Categories
     for (const slug of categoriesList) {
       if (!defaultCats.includes(slug)) {
         xml += `  <url>\n`;
@@ -107,16 +91,6 @@ async function generateSitemap() {
       }
     }
 
-    // Tags
-    for (const slug of tagsList) {
-      xml += `  <url>\n`;
-      xml += `    <loc>${escapeXml(`${SITE_URL}/tag/${slug}`)}</loc>\n`;
-      xml += `    <changefreq>weekly</changefreq>\n`;
-      xml += `    <priority>0.7</priority>\n`;
-      xml += `  </url>\n`;
-    }
-
-    // Posts
     for (const post of postsList) {
       xml += `  <url>\n`;
       xml += `    <loc>${escapeXml(`${SITE_URL}/video/${post.slug}`)}</loc>\n`;
@@ -130,25 +104,20 @@ async function generateSitemap() {
 
     xml += `</urlset>\n`;
 
-    const publicDir = path.resolve(__dirname, '../public');
-    fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), xml);
-    
-    const robotsTxt = `User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /admin/*
-Disallow: /api/*
-
-Sitemap: ${SITE_URL}/sitemap.xml
-`;
-    fs.writeFileSync(path.join(publicDir, 'robots.txt'), robotsTxt);
-
-    console.log('Sitemap and robots.txt generated successfully.');
-    process.exit(0);
-  } catch (error) {
-    console.error('Error generating sitemap:', error);
-    process.exit(1);
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
+    res.status(200).send(xml);
+  } catch (err) {
+    console.error("Error generating sitemap:", err);
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+    xml += `  <url>\n`;
+    xml += `    <loc>${SITE_URL}/</loc>\n`;
+    xml += `    <changefreq>daily</changefreq>\n`;
+    xml += `    <priority>1.0</priority>\n`;
+    xml += `  </url>\n`;
+    xml += `</urlset>\n`;
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.status(200).send(xml);
   }
 }
-
-generateSitemap();
