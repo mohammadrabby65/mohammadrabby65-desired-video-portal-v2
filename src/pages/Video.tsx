@@ -16,6 +16,19 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+const formatIsoDuration = (duration: string) => {
+  if (!duration) return undefined;
+  const parts = duration.split(':').map(Number);
+  if (parts.length === 3) {
+    return `PT${parts[0]}H${parts[1]}M${parts[2]}S`;
+  } else if (parts.length === 2) {
+    return `PT${parts[0]}M${parts[1]}S`;
+  } else if (parts.length === 1) {
+    return `PT${parts[0]}S`;
+  }
+  return undefined;
+};
+
 export function Video() {
   const { slug } = useParams<{ slug: string }>();
   const { data: video, isLoading, isError } = useVideoBySlug(slug);
@@ -126,7 +139,7 @@ export function Video() {
           uploadDate: video.publishedAt?.toDate
             ? video.publishedAt.toDate().toISOString()
             : new Date().toISOString(),
-          ...(video.duration && { duration: `PT${video.duration.replace(":", "M")}S` }),
+          ...(video.duration && { duration: formatIsoDuration(video.duration) }),
           contentUrl: video.videoUrl,
         }}
       />
