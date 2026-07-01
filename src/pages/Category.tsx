@@ -171,8 +171,9 @@ export function Category() {
   return (
     <div className="max-w-[2000px] mx-auto px-4 md:px-6 py-6 md:py-8 min-h-screen">
       <SEO
-        title={categoryData?.seoTitle || `${categoryName} Videos`}
+        title={`${categoryName} Videos - Desired`}
         description={categoryData?.seoDescription || `Watch the latest and best ${categoryName} videos.`}
+        exactTitle={true}
       />
       <Helmet>
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>

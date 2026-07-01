@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Lock } from 'lucide-react';
+import { SEO } from '../../components/seo/SEO';
 
 export function Login() {
   const [username, setUsername] = useState('');
@@ -31,6 +32,11 @@ export function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-950 px-4">
+      <SEO 
+        title="Admin Login - Desired"
+        description="Sign in to the Desired admin portal."
+        exactTitle={true}
+      />
       <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-8 shadow-2xl">
         <div className="flex flex-col items-center mb-8">
           <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center mb-4">

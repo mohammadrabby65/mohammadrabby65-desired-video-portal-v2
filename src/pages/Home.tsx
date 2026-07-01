@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { NavLink } from 'react-router-dom';
+import { SEO } from '../components/seo/SEO';
 
 type SortOption = {
   label: string;
@@ -58,6 +59,11 @@ export function Home() {
 
   return (
     <div className="flex-1 pb-16 pt-8">
+      <SEO 
+        title="Desired - Free Desi Porn & Hot Indian Sex Videos Online"
+        description="Watch the latest premium viral sex videos with fast streaming and daily updates."
+        exactTitle={true}
+      />
       <section className="container mx-auto px-4 mb-16">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">

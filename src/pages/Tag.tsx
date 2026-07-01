@@ -97,11 +97,14 @@ export function Tag() {
     },
   };
 
+  const formattedTagName = tagTitle.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
   return (
     <div className="max-w-[2000px] mx-auto px-4 md:px-6 py-6 md:py-8 min-h-screen">
       <SEO
-        title={`#${tagTitle} Videos`}
+        title={`${formattedTagName} Videos - Desired`}
         description={`Watch the latest and best videos tagged with ${tagTitle}.`}
+        exactTitle={true}
       />
       <Helmet>
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>

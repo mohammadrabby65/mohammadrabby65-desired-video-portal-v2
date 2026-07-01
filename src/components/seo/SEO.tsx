@@ -5,12 +5,13 @@ interface SEOProps {
   description: string;
   image?: string;
   url?: string;
+  exactTitle?: boolean;
 }
 
-export function SEO({ title, description, image, url }: SEOProps) {
-  const siteTitle = 'Desire - Video Streaming';
-  const fullTitle = `${title} | ${siteTitle}`;
-  const currentUrl = url || typeof window !== 'undefined' ? window.location.href : '';
+export function SEO({ title, description, image, url, exactTitle = false }: SEOProps) {
+  const siteTitle = 'Desired - Free Desi Porn & Hot Indian Sex Videos Online';
+  const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
+  const currentUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
 
   return (
     <Helmet>

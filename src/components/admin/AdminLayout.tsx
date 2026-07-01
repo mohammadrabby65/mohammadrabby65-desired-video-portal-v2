@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, FileVideo, ListVideo, FolderKanban, BarChart3, Settings, LogOut, Menu, UserCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useState } from 'react';
+import { SEO } from '../seo/SEO';
 
 const MENU_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
@@ -20,6 +21,11 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-neutral-950 flex text-neutral-200">
+      <SEO 
+        title="Admin Dashboard - Desired"
+        description="Desired admin control panel to manage categories, video uploads, posts, and settings."
+        exactTitle={true}
+      />
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 

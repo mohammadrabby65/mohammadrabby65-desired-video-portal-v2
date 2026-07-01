@@ -78,9 +78,10 @@ export function Video() {
   return (
     <>
       <SEO
-        title={video.title}
+        title={`${video.title} - Desired`}
         description={video.description}
         image={video.thumbnailUrl}
+        exactTitle={true}
       />
       <script type="application/ld+json">
         {JSON.stringify({
