@@ -17,6 +17,9 @@ export function SEO({ title, description, image, url }: SEOProps) {
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       
+      {/* Canonical URL */}
+      {currentUrl && <link rel="canonical" href={currentUrl} />}
+      
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="video.other" />
       <meta property="og:url" content={currentUrl} />

@@ -41,6 +41,9 @@ const ManagePosts = lazy(() =>
   })),
 );
 const Categories = lazy(() =>
+  import("./pages/Categories").then((module) => ({ default: module.Categories })),
+);
+const AdminCategories = lazy(() =>
   import("./pages/admin/Categories").then((module) => ({
     default: module.Categories,
   })),
@@ -76,6 +79,7 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="video/:slug" element={<Video />} />
             <Route path="category/:slug" element={<Category />} />
+            <Route path="categories" element={<Categories />} />
             <Route path="tag/:slug" element={<Tag />} />
           </Route>
 
@@ -93,7 +97,7 @@ export default function App() {
             <Route path="posts/new" element={<UploadPost />} />
             <Route path="posts" element={<ManagePosts />} />
             <Route path="posts/edit/:id" element={<UploadPost />} />
-            <Route path="categories" element={<Categories />} />
+            <Route path="categories" element={<AdminCategories />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />

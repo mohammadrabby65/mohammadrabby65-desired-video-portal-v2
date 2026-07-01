@@ -127,9 +127,9 @@ export function UploadPost() {
       // Check if category exists in fetched list. If not, we should probably add it.
       // But we shouldn't do a read. We just add it blindly if we haven't seen it in our local list
       // Or maybe check if it exists in categoriesList?
-      const catExists = categoriesList.some(c => c.name.toLowerCase() === formData.category.toLowerCase());
+      const catSlug = formData.category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      const catExists = categoriesList.some(c => c.name.toLowerCase() === formData.category.toLowerCase() || c.slug === catSlug);
       if (!catExists && formData.category.trim() !== '') {
-        const catSlug = formData.category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
         try {
           await addDoc(collection(db, 'categories'), {
             name: formData.category.trim(),
@@ -146,7 +146,7 @@ export function UploadPost() {
         description: formData.description,
         videoUrl: formData.videoUrl,
         thumbnailUrl: formData.thumbnailUrl,
-        category: formData.category,
+        category: catSlug,
         tags: tagsArray,
         duration: formData.duration,
         featured: formData.featured,

@@ -20,6 +20,11 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
+  thumbnailUrl?: string;
+  displayOrder?: number;
+  seoTitle?: string;
+  seoDescription?: string;
+  isActive?: boolean;
 }
 
 export interface SiteSettings {
