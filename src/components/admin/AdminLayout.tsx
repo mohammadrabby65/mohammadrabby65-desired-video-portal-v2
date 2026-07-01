@@ -25,6 +25,7 @@ export function AdminLayout() {
         title="Admin Dashboard - Desired"
         description="Desired admin control panel to manage categories, video uploads, posts, and settings."
         exactTitle={true}
+        noIndex={true}
       />
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (

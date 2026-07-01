@@ -6,12 +6,15 @@ interface SEOProps {
   image?: string;
   url?: string;
   exactTitle?: boolean;
+  noIndex?: boolean;
 }
 
-export function SEO({ title, description, image, url, exactTitle = false }: SEOProps) {
+export function SEO({ title, description, image, url, exactTitle = false, noIndex = false }: SEOProps) {
   const siteTitle = 'Desired - Free Desi Porn & Hot Indian Sex Videos Online';
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
-  const currentUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
+  const productionDomain = 'https://desired-video-portal.vercel.app';
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const currentUrl = url || `${productionDomain}${currentPath}`;
   const ogImage = image || 'https://i.ibb.co.com/fV4JS3LH/20260701-143429.png';
   const faviconUrl = 'https://i.ibb.co.com/WvbgTSjV/Desired-icon.png';
 
@@ -20,6 +23,7 @@ export function SEO({ title, description, image, url, exactTitle = false }: SEOP
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="theme-color" content="#000000" />
+      <meta name="robots" content={noIndex ? "noindex, nofollow" : "index, follow"} />
       
       {/* Favicons & Icons */}
       <link rel="icon" type="image/png" sizes="16x16" href={faviconUrl} />

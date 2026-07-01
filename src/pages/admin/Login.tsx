@@ -36,6 +36,7 @@ export function Login() {
         title="Admin Login - Desired"
         description="Sign in to the Desired admin portal."
         exactTitle={true}
+        noIndex={true}
       />
       <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-8 shadow-2xl">
         <div className="flex flex-col items-center mb-8">

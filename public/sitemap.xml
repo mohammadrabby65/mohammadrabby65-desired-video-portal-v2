@@ -1,13 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://desire.app/</loc>
+    <loc>https://desired-video-portal.vercel.app/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://desire.app/admin/login</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <loc>https://desired-video-portal.vercel.app/category/trending</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desired-video-portal.vercel.app/category/latest</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desired-video-portal.vercel.app/category/popular</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desired-video-portal.vercel.app/category/desi-porn</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desired-video-portal.vercel.app/category/bangla-xxx</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desired-video-portal.vercel.app/category/indian-porn</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://desired-video-portal.vercel.app/video/hot-indian-babe-cheats-before-marriage-gives-passionate-blowjobs-gets-caught</loc>
+    <lastmod>2026-07-01T05:48:16.415Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://desired-video-portal.vercel.app/video/dusky-onlyfans-girl-finally-convinces-boyfriend-for-hot-sex-videos</loc>
+    <lastmod>2026-06-30T15:04:53.760Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://desired-video-portal.vercel.app/video/elegant-indian-girlfriend-gets-fucked-and-taken-cum-on-face</loc>
+    <lastmod>2026-07-01T05:32:33.422Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>

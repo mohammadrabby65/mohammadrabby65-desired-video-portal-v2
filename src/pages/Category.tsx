@@ -185,6 +185,7 @@ export function Category() {
           <img 
             src={categoryData.thumbnailUrl} 
             alt={categoryName} 
+            loading="lazy"
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/60 to-transparent" />

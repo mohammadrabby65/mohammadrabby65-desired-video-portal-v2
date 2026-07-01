@@ -22,6 +22,43 @@ export function Video() {
   const { data: adjacent } = useAdjacentVideos(video?.publishedAt, video?.slug);
   const [isTagsExpanded, setIsTagsExpanded] = useState(false);
 
+  // Record unique view (once every 24 hours per visitor) using atomic increment
+  useEffect(() => {
+    if (video?.id) {
+      const key = `view_recorded_24h_${video.id}`;
+      const lastViewStr = localStorage.getItem(key);
+      const now = Date.now();
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+
+      let shouldIncrement = false;
+      if (!lastViewStr) {
+        shouldIncrement = true;
+      } else {
+        const lastView = parseInt(lastViewStr, 10);
+        if (isNaN(lastView) || now - lastView > twentyFourHours) {
+          shouldIncrement = true;
+        }
+      }
+
+      if (shouldIncrement) {
+        localStorage.setItem(key, now.toString());
+        const incrementViews = async () => {
+          try {
+            const { doc, updateDoc, increment } = await import("firebase/firestore");
+            const { db } = await import("../lib/firebase");
+            const videoRef = doc(db, "posts", video.id);
+            await updateDoc(videoRef, {
+              views: increment(1)
+            });
+          } catch (err) {
+            console.error("Failed to increment views:", err);
+          }
+        };
+        incrementViews();
+      }
+    }
+  }, [video?.id]);
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     alert("Link copied to clipboard!");

@@ -15,7 +15,9 @@ export function useFeaturedVideos() {
       );
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
-    }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
   });
 }
 
@@ -80,6 +82,8 @@ export function useInfiniteVideos(filter: VideoFilter, limitCount = 10) {
     },
     getNextPageParam: (lastPage) => lastPage.lastDoc,
     initialPageParam: null as DocumentSnapshot | null,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
   });
 }
 
@@ -94,7 +98,9 @@ export function useVideoBySlug(slug: string | undefined) {
       const doc = snapshot.docs[0];
       return { id: doc.id, ...doc.data() } as VideoPost;
     },
-    enabled: !!slug
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
   });
 }
 
@@ -117,7 +123,9 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
       // Filter out current video and limit to 10
       return videos.filter(v => v.id !== videoId).slice(0, 10);
     },
-    enabled: !!videoId && !!categories && categories.length > 0
+    enabled: !!videoId && !!categories && categories.length > 0,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
   });
 }
 
@@ -132,7 +140,9 @@ export function useLatestVideos(limitCount = 10) {
       );
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
-    }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
   });
 }
 
@@ -164,6 +174,8 @@ export function useAdjacentVideos(publishedAt: any, currentSlug: string | undefi
       
       return { prev, next };
     },
-    enabled: !!publishedAt && !!currentSlug
+    enabled: !!publishedAt && !!currentSlug,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
   });
 }
