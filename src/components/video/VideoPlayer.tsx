@@ -278,7 +278,7 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-neutral-800 group"
+      className="video-player-container relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-neutral-800 group"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onContextMenu={(e) => e.preventDefault()}
