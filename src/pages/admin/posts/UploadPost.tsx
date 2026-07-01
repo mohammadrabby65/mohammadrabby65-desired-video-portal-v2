@@ -70,27 +70,35 @@ export function UploadPost() {
     setIsCategoryFocused(false);
 
     // Create in Firestore if it doesn't exist
-    const catExists = categoriesList.some(c => c.slug === slug);
-    if (!catExists) {
+    const catExistsLocally = categoriesList.some(c => c.slug === slug);
+    if (!catExistsLocally) {
       try {
-        const newCat = {
-          name: trimmedName,
-          slug,
-          isActive: true,
-          videoCount: 0,
-          displayOrder: 999
-        };
-        const docRef = await addDoc(collection(db, 'categories'), {
-          ...newCat,
-          createdAt: serverTimestamp()
-        });
-        const addedCat = { id: docRef.id, ...newCat };
-        setCategoriesList(prev => [...prev, addedCat]);
-        queryClient.setQueryData(['admin-categories-suggestions'], (old: any) => {
-          return old ? [...old, addedCat] : [addedCat];
-        });
+        const qCheck = query(collection(db, 'categories'), where('slug', '==', slug), limit(1));
+        const snapCheck = await getDocs(qCheck);
+        
+        if (snapCheck.empty) {
+          const newCat = {
+            name: trimmedName,
+            slug,
+            isActive: true,
+            videoCount: 0,
+            displayOrder: 999
+          };
+          const docRef = await addDoc(collection(db, 'categories'), {
+            ...newCat,
+            createdAt: serverTimestamp()
+          });
+          const addedCat = { id: docRef.id, ...newCat };
+          setCategoriesList(prev => [...prev, addedCat]);
+          queryClient.setQueryData(['admin-categories-suggestions'], (old: any) => {
+            return old ? [...old, addedCat] : [addedCat];
+          });
+        } else {
+          const existingCat = { id: snapCheck.docs[0].id, ...snapCheck.docs[0].data() };
+          setCategoriesList(prev => [...prev, existingCat]);
+        }
       } catch (e) {
-        console.error("Error creating manual category", e);
+        console.error("Error checking/creating manual category", e);
       }
     }
   };
