@@ -1,6 +1,7 @@
 import { initializeApp, getApps } from "firebase/app";
-import { initializeFirestore, collection, getDocs, query, limit } from "firebase/firestore";
-import { SITE_URL } from "../src/config";
+import { initializeFirestore, collection, getDocs, query, limit } from "firebase/firestore/lite";
+
+const SITE_URL = process.env.VITE_SITE_URL || 'https://desired-video-portal.vercel.app';
 
 const firebaseConfig = {
   projectId: "gen-lang-client-0637384010",
@@ -33,7 +34,7 @@ function escapeXml(unsafe: string) {
   });
 }
 
-export default async function handler(req, res) {
+export default async function handler(req: any, res: any) {
   try {
     const catQuery = query(collection(db, "categories"), limit(100));
     const catSnap = await getDocs(catQuery);
@@ -107,9 +108,13 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', 'application/xml; charset=utf-8');
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
     res.status(200).send(xml);
-  } catch (err) {
+  } catch (err: any) {
     console.error("Error generating sitemap:", err);
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<!-- Error: ${escapeXml(err.message || String(err))} -->\n`;
+    if (err.stack) {
+      xml += `<!-- Stack: ${escapeXml(err.stack)} -->\n`;
+    }
     xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
     xml += `  <url>\n`;
     xml += `    <loc>${SITE_URL}/</loc>\n`;
