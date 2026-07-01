@@ -32,7 +32,7 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="theme-color" content="#000000" />
-      <meta name="robots" content={noIndex ? "noindex, nofollow" : "index, follow"} />
+      <meta name="robots" content={noIndex ? "noindex,nofollow" : "index,follow"} />
       
       {/* Favicons & Icons */}
       <link rel="icon" type="image/png" sizes="16x16" href={faviconUrl} />
