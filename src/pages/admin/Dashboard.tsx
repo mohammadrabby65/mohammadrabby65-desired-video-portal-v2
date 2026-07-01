@@ -92,7 +92,7 @@ export function Dashboard() {
                       <img src={post.thumbnailUrl} alt={post.title} loading="lazy" className="w-12 h-8 rounded object-cover bg-neutral-800" />
                       <span className="font-medium truncate max-w-[200px] md:max-w-[300px]">{post.title}</span>
                     </td>
-                    <td className="px-5 py-3">{post.category}</td>
+                    <td className="px-5 py-3">{(post.categories || []).join(', ') || (post as any).category}</td>
                     <td className="px-5 py-3">{formatViews(post.views)}</td>
                     <td className="px-5 py-3 text-neutral-400">{formatTimeAgo(post.publishedAt)}</td>
                   </tr>

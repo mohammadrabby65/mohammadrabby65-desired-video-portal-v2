@@ -54,7 +54,7 @@ export function useCategories(limitCount = 20, pageParam: DocumentSnapshot | nul
       
       for (const cat of cats) {
         try {
-          const countQ = query(collection(db, 'posts'), where('category', '==', cat.slug));
+          const countQ = query(collection(db, 'posts'), where('categories', 'array-contains', cat.slug));
           const countSnap = await getCountFromServer(countQ);
           cat.totalVideos = countSnap.data().count;
         } catch (e) {

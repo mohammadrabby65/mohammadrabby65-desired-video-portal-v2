@@ -40,7 +40,7 @@ export function useInfiniteVideos(filter: VideoFilter, limitCount = 10) {
         } else if (filter.category === 'Popular') {
           constraints.push(orderBy('views', 'desc'));
         } else {
-          constraints.push(where('category', '==', filter.category));
+          constraints.push(where('categories', 'array-contains', filter.category));
           // For category filtering, order by publishedAt desc unless we have a specific sortBy
           if (filter.sortBy && filter.sortBy !== 'random') {
              constraints.push(orderBy(filter.sortBy, 'desc'));
@@ -98,15 +98,15 @@ export function useVideoBySlug(slug: string | undefined) {
   });
 }
 
-export function useRelatedVideos(videoId: string | undefined, category: string | undefined, tags: string[] | undefined) {
+export function useRelatedVideos(videoId: string | undefined, categories: string[] | undefined, tags: string[] | undefined) {
   return useQuery({
     queryKey: ['videos', 'related', videoId],
     queryFn: async () => {
-      if (!videoId || !category) return [];
+      if (!videoId || !categories || categories.length === 0) return [];
       
       const q = query(
         collection(db, 'posts'),
-        where('category', '==', category),
+        where('categories', 'array-contains-any', categories.slice(0, 10)),
         orderBy('publishedAt', 'desc'),
         limit(11) // Fetch 11 in case one of them is the current video
       );
@@ -117,7 +117,7 @@ export function useRelatedVideos(videoId: string | undefined, category: string |
       // Filter out current video and limit to 10
       return videos.filter(v => v.id !== videoId).slice(0, 10);
     },
-    enabled: !!videoId && !!category
+    enabled: !!videoId && !!categories && categories.length > 0
   });
 }
 

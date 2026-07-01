@@ -149,16 +149,19 @@ export function Video() {
 
               <div className="bg-neutral-900/50 rounded-xl p-4 flex flex-col gap-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Link
-                    to={`/category/${video.category
-                      .toLowerCase()
-                      .replace(/[^a-z0-9]+/g, "-")
-                      .replace(/(^-|-$)+/g, "")}`}
-                  >
-                    <span className="bg-red-500/10 text-red-500 hover:bg-red-500/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer inline-flex">
-                      {video.category}
-                    </span>
-                  </Link>
+                  {(video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])).map(cat => (
+                    <Link
+                      key={cat}
+                      to={`/category/${cat
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/(^-|-$)+/g, "")}`}
+                    >
+                      <span className="bg-red-500/10 text-red-500 hover:bg-red-500/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer inline-flex">
+                        {cat}
+                      </span>
+                    </Link>
+                  ))}
 
                   {video.tags && (
                     <>
@@ -239,7 +242,7 @@ export function Video() {
           <div className="w-full lg:w-[400px] xl:w-[450px]">
             <RelatedVideos
               videoId={video.id}
-              category={video.category}
+              categories={video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])}
               tags={video.tags}
             />
           </div>

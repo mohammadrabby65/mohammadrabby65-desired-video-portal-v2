@@ -123,16 +123,21 @@ export function ManagePosts() {
                       </div>
                     </td>
                     <td className="px-5 py-3">
-                      <Link
-                        to={`/category/${post.category
-                          .toLowerCase()
-                          .replace(/[^a-z0-9]+/g, "-")
-                          .replace(/(^-|-$)+/g, "")}`}
-                      >
-                        <span className="bg-neutral-800 text-neutral-300 hover:text-white hover:bg-neutral-700 px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors">
-                          {post.category}
-                        </span>
-                      </Link>
+                      <div className="flex flex-wrap gap-1">
+                        {(post.categories ? post.categories : ((post as any).category ? [(post as any).category] : [])).map(cat => (
+                          <Link
+                            key={cat}
+                            to={`/category/${cat
+                              .toLowerCase()
+                              .replace(/[^a-z0-9]+/g, "-")
+                              .replace(/(^-|-$)+/g, "")}`}
+                          >
+                            <span className="bg-neutral-800 text-neutral-300 hover:text-white hover:bg-neutral-700 px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors">
+                              {cat}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-col">

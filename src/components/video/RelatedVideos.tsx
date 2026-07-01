@@ -5,12 +5,12 @@ import { SkeletonCard } from '../ui/SkeletonCard';
 
 interface RelatedVideosProps {
   videoId: string;
-  category: string;
+  categories: string[];
   tags: string[];
 }
 
-export function RelatedVideos({ videoId, category, tags }: RelatedVideosProps) {
-  const { data: relatedVideos, isLoading: isRelatedLoading } = useRelatedVideos(videoId, category, tags);
+export function RelatedVideos({ videoId, categories, tags }: RelatedVideosProps) {
+  const { data: relatedVideos, isLoading: isRelatedLoading } = useRelatedVideos(videoId, categories, tags);
   const { data: latestVideos, isLoading: isLatestLoading } = useLatestVideos(10);
 
   const displayVideos = relatedVideos && relatedVideos.length > 0 ? relatedVideos : (latestVideos || []);

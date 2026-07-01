@@ -17,7 +17,7 @@ export function UploadPost() {
     description: '',
     videoUrl: '',
     thumbnailUrl: '',
-    category: '',
+    categories: [] as string[],
     tags: '',
     duration: '',
     featured: false,
@@ -31,12 +31,22 @@ export function UploadPost() {
   const [error, setError] = useState('');
 
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
-  const [isCategoryFocused, setIsCategoryFocused] = useState(false);
-  const [fetchedCategories, setFetchedCategories] = useState(false);
   
   const availableBadges = ['HD', 'SD', 'NEW', 'TRENDING', 'HOT', 'PREMIUM'];
 
   useEffect(() => {
+    // Fetch categories for the multi-select
+    const fetchCategories = async () => {
+      try {
+        const q = query(collection(db, 'categories'), where('isActive', '!=', false), limit(100));
+        const snap = await getDocs(q);
+        setCategoriesList(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0)));
+      } catch (e) {
+        console.error("Error fetching categories", e);
+      }
+    };
+    fetchCategories();
+
     if (isEditMode && id) {
       const fetchPost = async () => {
         try {
@@ -50,7 +60,7 @@ export function UploadPost() {
               description: data.description,
               videoUrl: data.videoUrl,
               thumbnailUrl: data.thumbnailUrl,
-              category: data.category,
+              categories: data.categories ? data.categories : ((data as any).category ? [(data as any).category] : []),
               tags: data.tags.join(', '),
               duration: data.duration,
               featured: data.featured,
@@ -70,25 +80,6 @@ export function UploadPost() {
       fetchPost();
     }
   }, [id, isEditMode, navigate]);
-
-  const handleCategoryFocus = async () => {
-    setIsCategoryFocused(true);
-    if (!fetchedCategories) {
-      try {
-        const q = query(collection(db, 'categories'), limit(20));
-        const snap = await getDocs(q);
-        setCategoriesList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        setFetchedCategories(true);
-      } catch (e) {
-        console.error("Error fetching categories", e);
-      }
-    }
-  };
-
-  const handleCategorySelect = (catName: string) => {
-    setFormData({ ...formData, category: catName });
-    setIsCategoryFocused(false);
-  };
 
   const handleTitleChange = (e: import('react').ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
@@ -122,23 +113,13 @@ export function UploadPost() {
         return;
       }
 
-      const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
-      
-      // Check if category exists in fetched list. If not, we should probably add it.
-      // But we shouldn't do a read. We just add it blindly if we haven't seen it in our local list
-      // Or maybe check if it exists in categoriesList?
-      const catSlug = formData.category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      const catExists = categoriesList.some(c => c.name.toLowerCase() === formData.category.toLowerCase() || c.slug === catSlug);
-      if (!catExists && formData.category.trim() !== '') {
-        try {
-          await addDoc(collection(db, 'categories'), {
-            name: formData.category.trim(),
-            slug: catSlug
-          });
-        } catch (e) {
-          console.error("Error creating category", e);
-        }
+      if (formData.categories.length === 0) {
+        setError('Please select at least one category.');
+        setLoading(false);
+        return;
       }
+
+      const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
 
       const postData = {
         title: formData.title,
@@ -146,7 +127,7 @@ export function UploadPost() {
         description: formData.description,
         videoUrl: formData.videoUrl,
         thumbnailUrl: formData.thumbnailUrl,
-        category: catSlug,
+        categories: formData.categories,
         tags: tagsArray,
         duration: formData.duration,
         featured: formData.featured,
@@ -223,34 +204,32 @@ export function UploadPost() {
               />
             </div>
             
-            <div className="relative">
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Category *</label>
-              <input
-                type="text"
-                required
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                onFocus={handleCategoryFocus}
-                onBlur={() => setTimeout(() => setIsCategoryFocused(false), 200)}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
-                placeholder="Type or select category..."
-              />
-              {isCategoryFocused && categoriesList.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
-                  {categoriesList
-                    .filter(cat => cat.name.toLowerCase().includes(formData.category.toLowerCase()))
-                    .map(cat => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => handleCategorySelect(cat.name)}
-                        className="w-full text-left px-4 py-2 hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors"
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
-                </div>
-              )}
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Categories *</label>
+              <div className="flex flex-wrap gap-2">
+                {categoriesList.map(cat => (
+                  <button
+                    type="button"
+                    key={cat.id}
+                    onClick={() => {
+                      const newCategories = formData.categories.includes(cat.slug)
+                        ? formData.categories.filter(c => c !== cat.slug)
+                        : [...formData.categories, cat.slug];
+                      setFormData({ ...formData, categories: newCategories });
+                    }}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                      formData.categories.includes(cat.slug)
+                        ? 'bg-red-500/20 border-red-500/50 text-red-500'
+                        : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+                {categoriesList.length === 0 && (
+                  <span className="text-sm text-neutral-500">Loading categories...</span>
+                )}
+              </div>
             </div>
             
             <div>

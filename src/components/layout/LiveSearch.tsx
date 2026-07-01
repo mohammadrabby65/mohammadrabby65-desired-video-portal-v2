@@ -36,7 +36,8 @@ export function LiveSearch() {
       const filtered = allPosts.filter(p => 
         p.title.toLowerCase().includes(lowerQ) || 
         p.tags?.some(t => t.toLowerCase().includes(lowerQ)) ||
-        p.category?.toLowerCase().includes(lowerQ)
+        (p.categories || []).some(c => c.toLowerCase().includes(lowerQ)) ||
+        ((p as any).category && (p as any).category.toLowerCase().includes(lowerQ))
       );
       
       return filtered.slice(0, 5);
@@ -84,7 +85,7 @@ export function LiveSearch() {
                   <img src={video.thumbnailUrl} alt={video.title} loading="lazy" className="w-16 h-10 object-cover rounded bg-neutral-950" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{video.title}</p>
-                    <p className="text-xs text-neutral-500">{video.category}</p>
+                    <p className="text-xs text-neutral-500">{(video.categories || []).join(', ') || (video as any).category}</p>
                   </div>
                 </Link>
               ))}

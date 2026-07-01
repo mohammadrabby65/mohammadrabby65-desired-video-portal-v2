@@ -5,7 +5,7 @@ export interface VideoPost {
   thumbnailUrl: string;
   videoUrl: string;
   description: string;
-  category: string;
+  categories: string[];
   tags: string[];
   duration: string;
   quality?: "SD" | "HD" | "Full HD" | "2K" | "4K";

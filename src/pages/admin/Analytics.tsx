@@ -104,7 +104,7 @@ export function Analytics() {
                   <tr key={post.id} className="hover:bg-neutral-800/50 transition-colors">
                     <td className="px-5 py-3 font-medium text-neutral-500">#{idx + 1}</td>
                     <td className="px-5 py-3 font-medium text-white truncate max-w-[200px] lg:max-w-[400px]">{post.title}</td>
-                    <td className="px-5 py-3">{post.category}</td>
+                    <td className="px-5 py-3">{(post.categories || []).join(', ') || (post as any).category}</td>
                     <td className="px-5 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5 font-medium text-emerald-400">
                         <Eye className="w-4 h-4" />

@@ -71,7 +71,7 @@ export function Category() {
       } else if (categoryName === "Popular") {
         return undefined; // Don't need total count for Popular
       } else {
-        q = query(collection(db, "posts"), where("category", "==", slug));
+        q = query(collection(db, "posts"), where("categories", "array-contains", slug));
       }
       
       if (!q) return undefined;
@@ -98,7 +98,7 @@ export function Category() {
            // If categoryName is Popular, perhaps default to views if random is not selected
            if (sortBy === 'publishedAt') constraints.push(orderBy("views", "desc"));
         } else {
-          constraints.push(where("category", "==", slug));
+          constraints.push(where("categories", "array-contains", slug));
         }
 
         if (sortBy !== 'random') {
