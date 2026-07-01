@@ -21,23 +21,23 @@ export function VideoCard({ video }: VideoCardProps) {
         />
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center">
           <div className="bg-red-600 rounded-full p-3 shadow-md">
-            <Play className="w-5 h-5 text-white fill-white" />
+            <Play className="w-5 h-5 text-pure-white fill-pure-white" />
           </div>
         </div>
-        <div className="absolute bottom-2 right-2 bg-black/90 px-2 py-0.5 rounded text-[11px] font-medium text-white tracking-wide">
+        <div className="absolute bottom-[6px] right-[6px] z-20 bg-black/80 px-2 py-0.5 rounded text-[11px] font-medium text-pure-white tracking-wide whitespace-nowrap select-none">
           {video.duration}
         </div>
         {video.badges && video.badges.length > 0 && (
           <div className="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[calc(100%-40px)]">
             {video.badges.map(badge => (
-              <div key={badge} className="bg-red-600/90 px-2 py-0.5 rounded text-[10px] font-bold text-white tracking-wider shadow-sm">
+              <div key={badge} className="bg-red-600/90 px-2 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider shadow-sm">
                 {badge}
               </div>
             ))}
           </div>
         )}
         {video.quality && (
-          <div className="absolute top-2 right-2 bg-red-600/90 px-2 py-0.5 rounded text-[10px] font-bold text-white tracking-wider shadow-sm">
+          <div className="absolute top-2 right-2 bg-red-600/90 px-2 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider shadow-sm">
             {video.quality}
           </div>
         )}

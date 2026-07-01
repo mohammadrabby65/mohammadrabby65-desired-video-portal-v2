@@ -13,7 +13,7 @@ export function SEO({ title, description, image, url, exactTitle = false }: SEOP
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
   const currentUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
   const ogImage = image || 'https://i.ibb.co.com/fV4JS3LH/20260701-143429.png';
-  const faviconUrl = 'https://i.ibb.co.com/J0FbCSB/Icon-desired.png';
+  const faviconUrl = 'https://i.ibb.co.com/WvbgTSjV/Desired-icon.png';
 
   return (
     <Helmet>
@@ -22,8 +22,12 @@ export function SEO({ title, description, image, url, exactTitle = false }: SEOP
       <meta name="theme-color" content="#000000" />
       
       {/* Favicons & Icons */}
-      <link rel="icon" type="image/png" href={faviconUrl} />
-      <link rel="apple-touch-icon" href={faviconUrl} />
+      <link rel="icon" type="image/png" sizes="16x16" href={faviconUrl} />
+      <link rel="icon" type="image/png" sizes="32x32" href={faviconUrl} />
+      <link rel="icon" type="image/png" sizes="48x48" href={faviconUrl} />
+      <link rel="icon" type="image/png" sizes="192x192" href={faviconUrl} />
+      <link rel="icon" type="image/png" sizes="512x512" href={faviconUrl} />
+      <link rel="apple-touch-icon" sizes="180x180" href={faviconUrl} />
       <link rel="manifest" href="/manifest.json" />
       
       {/* Canonical URL */}

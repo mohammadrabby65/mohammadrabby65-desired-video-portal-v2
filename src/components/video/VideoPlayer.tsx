@@ -54,7 +54,12 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
     const handleLoadedMetadata = () => {
       setLoading(false);
       const savedTime = localStorage.getItem(`vid_time_${videoUrl}`);
-      if (savedTime) video.currentTime = parseFloat(savedTime);
+      if (savedTime) {
+        const parsed = parseFloat(savedTime);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          video.currentTime = parsed;
+        }
+      }
     };
 
     const handleError = (e: Event) => {
@@ -82,7 +87,12 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
         setLoading(false);
         // Load saved time
         const savedTime = localStorage.getItem(`vid_time_${videoUrl}`);
-        if (savedTime) video.currentTime = parseFloat(savedTime);
+        if (savedTime) {
+          const parsed = parseFloat(savedTime);
+          if (Number.isFinite(parsed) && parsed >= 0) {
+            video.currentTime = parsed;
+          }
+        }
       });
 
       hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
@@ -157,7 +167,10 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
     if (progressRef.current && videoRef.current) {
       const rect = progressRef.current.getBoundingClientRect();
       const pos = (e.clientX - rect.left) / rect.width;
-      videoRef.current.currentTime = pos * duration;
+      const targetTime = pos * duration;
+      if (Number.isFinite(targetTime) && targetTime >= 0) {
+        videoRef.current.currentTime = targetTime;
+      }
     }
   };
 

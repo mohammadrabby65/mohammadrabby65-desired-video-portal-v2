@@ -4,7 +4,7 @@
  */
 
 import { Routes, Route } from "react-router-dom";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -65,6 +65,53 @@ const Profile = lazy(() =>
 );
 
 export default function App() {
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    
+    const applyTheme = (theme: "dark" | "light") => {
+      document.documentElement.classList.remove("light", "dark");
+      document.documentElement.classList.add(theme);
+      document.documentElement.style.colorScheme = theme;
+      
+      // Sync immediate background to prevent flickering
+      document.documentElement.style.backgroundColor = theme === "dark" ? "#0a0a0a" : "#f9fafb";
+      
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) {
+        meta.setAttribute("content", theme === "dark" ? "#0a0a0a" : "#f9fafb");
+      }
+      
+      sessionStorage.setItem("theme", theme);
+    };
+
+    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      applyTheme(e.matches ? "dark" : "light");
+    };
+
+    // Initial check on mount
+    const storedTheme = sessionStorage.getItem("theme");
+    if (storedTheme === "dark" || storedTheme === "light") {
+      applyTheme(storedTheme);
+    } else {
+      handleChange(mediaQuery);
+    }
+
+    // Register real-time change listener
+    try {
+      mediaQuery.addEventListener("change", handleChange);
+    } catch (err) {
+      mediaQuery.addListener(handleChange);
+    }
+
+    return () => {
+      try {
+        mediaQuery.removeEventListener("change", handleChange);
+      } catch (err) {
+        mediaQuery.removeListener(handleChange);
+      }
+    };
+  }, []);
+
   return (
     <AuthProvider>
       <Suspense

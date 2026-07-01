@@ -22,7 +22,7 @@ export function Layout() {
               <img 
                 src="https://i.ibb.co.com/fV4JS3LH/20260701-143429.png" 
                 alt="DESIRED" 
-                className="h-12 md:h-8 w-auto object-contain"
+                className="h-[58px] md:h-8 w-auto object-contain"
                 referrerPolicy="no-referrer"
               />
             </Link>
