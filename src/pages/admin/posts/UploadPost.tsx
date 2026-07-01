@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { collection, doc, setDoc, getDoc, serverTimestamp, updateDoc, query, where, getDocs, limit, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, serverTimestamp, updateDoc, query, where, getDocs, limit, addDoc, deleteField } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { VideoPost } from '../../../types';
 import { ArrowLeft, Save, Loader2, Image as ImageIcon } from 'lucide-react';
@@ -23,7 +23,7 @@ export function UploadPost() {
     duration: '',
     featured: false,
     trending: false,
-    quality: 'HD' as "HD" | "4K" | "SD" | "Full HD" | "2K",
+    quality: '',
     badges: [] as string[]
   });
 
@@ -131,7 +131,7 @@ export function UploadPost() {
               duration: data.duration,
               featured: data.featured,
               trending: data.trending,
-              quality: data.quality || 'HD',
+              quality: data.quality || '',
               badges: data.badges || []
             });
           } else {
@@ -187,7 +187,7 @@ export function UploadPost() {
 
       const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
 
-      const postData = {
+      const postData: any = {
         title: formData.title,
         slug: formData.slug,
         description: formData.description,
@@ -198,9 +198,14 @@ export function UploadPost() {
         duration: formData.duration,
         featured: formData.featured,
         trending: formData.trending,
-        quality: formData.quality,
         badges: formData.badges
       };
+
+      if (formData.quality.trim()) {
+        postData.quality = formData.quality.trim();
+      } else if (isEditMode) {
+        postData.quality = deleteField();
+      }
 
       if (isEditMode && id) {
         await updateDoc(doc(db, 'posts', id), postData);
@@ -413,17 +418,13 @@ export function UploadPost() {
 
             <div>
               <label className="block text-sm font-medium text-neutral-300 mb-1.5">Quality</label>
-              <select
+              <input
+                type="text"
                 value={formData.quality}
-                onChange={(e) => setFormData({ ...formData, quality: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, quality: e.target.value })}
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
-              >
-                <option value="SD">SD</option>
-                <option value="HD">HD</option>
-                <option value="Full HD">Full HD</option>
-                <option value="2K">2K</option>
-                <option value="4K">4K</option>
-              </select>
+                placeholder="HD, 4K, CAM, etc. (Optional)"
+              />
             </div>
             
             <div>

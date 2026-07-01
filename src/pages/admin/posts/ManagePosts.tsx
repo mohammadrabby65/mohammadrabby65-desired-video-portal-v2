@@ -117,7 +117,7 @@ export function ManagePosts() {
                             {post.title}
                           </span>
                           <span className="text-xs text-neutral-500">
-                            {post.duration} • {post.quality || "HD"}
+                            {post.duration}{post.quality ? ` • ${post.quality}` : ''}
                           </span>
                         </div>
                       </div>

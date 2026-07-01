@@ -8,7 +8,7 @@ export interface VideoPost {
   categories: string[];
   tags: string[];
   duration: string;
-  quality?: "SD" | "HD" | "Full HD" | "2K" | "4K";
+  quality?: string;
   badges?: string[];
   publishedAt: any;
   views: number;

@@ -149,6 +149,16 @@ export function Video() {
 
               <div className="bg-neutral-900/50 rounded-xl p-4 flex flex-col gap-4">
                 <div className="flex flex-wrap items-center gap-2">
+                  {video.quality && (
+                    <span className="bg-red-600/90 text-white px-3 py-1.5 rounded-full text-xs font-bold tracking-wider shadow-sm">
+                      {video.quality}
+                    </span>
+                  )}
+                  {video.badges?.map(badge => (
+                    <span key={badge} className="bg-red-600/90 text-white px-3 py-1.5 rounded-full text-xs font-bold tracking-wider shadow-sm">
+                      {badge}
+                    </span>
+                  ))}
                   {(video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])).map(cat => (
                     <Link
                       key={cat}
