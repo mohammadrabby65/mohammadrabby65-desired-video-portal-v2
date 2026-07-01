@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { CategoryBar } from '../components/home/CategoryBar';
 import { useInfiniteVideos, VideoFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { ChevronDown } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { NavLink } from 'react-router-dom';
 
 type SortOption = {
   label: string;
@@ -19,12 +22,10 @@ const SORT_OPTIONS: SortOption[] = [
 ];
 
 export function Home() {
-  const [activeCategory, setActiveCategory] = useState('All');
   const [sortBy, setSortBy] = useState<VideoFilter['sortBy']>('publishedAt');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   const filter: VideoFilter = {
-    category: activeCategory,
     sortBy,
   };
 
@@ -37,54 +38,90 @@ export function Home() {
     isFetchingNextPage
   } = useInfiniteVideos(filter, 20);
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['public-categories-nav'],
+    queryFn: async () => {
+      const q = query(
+        collection(db, 'categories'),
+        orderBy('displayOrder', 'asc'),
+        limit(20)
+      );
+      const snap = await getDocs(q);
+      let cats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as { id: string, name: string, slug: string, isActive?: boolean, displayOrder?: number }[];
+      cats = cats.filter(c => c.isActive !== false);
+      return cats;
+    },
+    staleTime: 1000 * 60 * 30 // 30 minutes
+  });
+
   const videos = data?.pages.flatMap(page => page.videos) || [];
 
   return (
-    <div className="flex-1 pb-16">
-      <CategoryBar activeCategory={activeCategory} onSelectCategory={setActiveCategory} />
-
+    <div className="flex-1 pb-16 pt-8">
       <section className="container mx-auto px-4 mb-16">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-            {activeCategory === 'All' ? 'All Videos' : `${activeCategory} Videos`}
-          </h2>
-          
-          <div className="relative">
-            <button
-              onClick={() => setIsSortOpen(!isSortOpen)}
-              className="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-sm font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors"
-            >
-              Sort by: {SORT_OPTIONS.find(opt => opt.value === sortBy)?.label}
-              <ChevronDown className="w-4 h-4" />
-            </button>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+              Newest
+            </h2>
+            
+            <div className="relative">
+              <button
+                onClick={() => setIsSortOpen(!isSortOpen)}
+                className="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-sm font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors"
+              >
+                Sort by: {SORT_OPTIONS.find(opt => opt.value === sortBy)?.label}
+                <ChevronDown className="w-4 h-4" />
+              </button>
 
-            {isSortOpen && (
-              <>
-                <div 
-                  className="fixed inset-0 z-10" 
-                  onClick={() => setIsSortOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-20 py-1">
-                  {SORT_OPTIONS.map((option) => (
-                    <button
-                      key={option.value || 'none'}
-                      onClick={() => {
-                        setSortBy(option.value);
-                        setIsSortOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                        sortBy === option.value
-                          ? 'bg-neutral-800 text-white'
-                          : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-white'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+              {isSortOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsSortOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-20 py-1">
+                    {SORT_OPTIONS.map((option) => (
+                      <button
+                        key={option.value || 'none'}
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setIsSortOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                          sortBy === option.value
+                            ? 'bg-neutral-800 text-white'
+                            : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-white'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
+          
+          {categories.length > 0 && (
+            <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide text-sm font-medium items-center">
+              {categories.map((cat, index) => (
+                <div key={cat.id} className="flex items-center gap-4">
+                  <NavLink 
+                    to={`/category/${cat.slug}`} 
+                    className={({ isActive }) => 
+                      `whitespace-nowrap transition-colors ${isActive ? 'text-red-500' : 'text-neutral-400 hover:text-neutral-200'}`
+                    }
+                  >
+                    {cat.name}
+                  </NavLink>
+                  {index < categories.length - 1 && (
+                    <span className="text-neutral-800 select-none">|</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {isError ? (

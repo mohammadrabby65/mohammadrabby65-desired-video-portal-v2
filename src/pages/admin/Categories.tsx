@@ -1,13 +1,37 @@
 import { useState, FormEvent } from 'react';
 import { useCategories } from '../../hooks/useAdmin';
-import { collection, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, updateDoc, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useQueryClient } from '@tanstack/react-query';
 import { Edit, Trash2, Plus, X, Save } from 'lucide-react';
 import { Category } from '../../types';
 
 export function Categories() {
-  const { data: categories, isLoading } = useCategories();
+  const [pageParams, setPageParams] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const currentParam = currentPage > 0 ? pageParams[currentPage - 1] : null;
+  const { data, isLoading } = useCategories(20, currentParam);
+  const categories = data?.categories;
+  const lastDoc = data?.lastDoc;
+
+  const handleNextPage = () => {
+    if (lastDoc) {
+      setPageParams(prev => {
+        const next = [...prev];
+        next[currentPage] = lastDoc;
+        return next;
+      });
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
+
   const queryClient = useQueryClient();
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -45,12 +69,13 @@ export function Categories() {
 
     try {
       const slug = formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      const dataToSave = { ...formData, slug };
+      const dataToSave: any = { ...formData, slug };
       
       if (formData.id) {
         await updateDoc(doc(db, 'categories', formData.id), dataToSave);
       } else {
         const newRef = doc(collection(db, 'categories'));
+        dataToSave.createdAt = new Date().toISOString();
         await setDoc(newRef, dataToSave);
       }
       
@@ -61,14 +86,25 @@ export function Categories() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Delete category?')) {
-      try {
-        await deleteDoc(doc(db, 'categories', id));
-        queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
-      } catch (err) {
-        console.error(err);
-      }
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; cat?: Category & { totalVideos?: number } }>({ isOpen: false });
+
+  const handleDeleteRequest = async (cat: Category & { totalVideos?: number }) => {
+    setDeleteDialog({ isOpen: true, cat });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.cat) return;
+    const cat = deleteDialog.cat;
+    
+    // Prevent deletion if category contains videos
+    if (cat.totalVideos && cat.totalVideos > 0) return;
+    
+    try {
+      await deleteDoc(doc(db, 'categories', cat.id));
+      queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      setDeleteDialog({ isOpen: false });
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -203,17 +239,19 @@ export function Categories() {
               <th className="px-5 py-4 font-medium">Order</th>
               <th className="px-5 py-4 font-medium">Category Name</th>
               <th className="px-5 py-4 font-medium">Slug</th>
+              <th className="px-5 py-4 font-medium">Total Videos</th>
               <th className="px-5 py-4 font-medium">Status</th>
+              <th className="px-5 py-4 font-medium">Created Date</th>
               <th className="px-5 py-4 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-800 text-neutral-300">
             {isLoading ? (
-              <tr><td colSpan={5} className="px-5 py-8 text-center text-neutral-500">Loading...</td></tr>
+              <tr><td colSpan={7} className="px-5 py-8 text-center text-neutral-500">Loading...</td></tr>
             ) : categories?.length === 0 ? (
-              <tr><td colSpan={5} className="px-5 py-8 text-center text-neutral-500">No categories found</td></tr>
+              <tr><td colSpan={7} className="px-5 py-8 text-center text-neutral-500">No categories found</td></tr>
             ) : (
-              categories?.map(cat => (
+              categories?.map((cat: any) => (
                 <tr key={cat.id} className="hover:bg-neutral-800/30 transition-colors">
                   <td className="px-5 py-3 text-neutral-500">{cat.displayOrder || 0}</td>
                   <td className="px-5 py-3 font-medium text-white">
@@ -225,10 +263,14 @@ export function Categories() {
                     </div>
                   </td>
                   <td className="px-5 py-3 text-neutral-500">{cat.slug}</td>
+                  <td className="px-5 py-3 text-neutral-500">{cat.totalVideos || 0}</td>
                   <td className="px-5 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${cat.isActive !== false ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                       {cat.isActive !== false ? 'Active' : 'Inactive'}
                     </span>
+                  </td>
+                  <td className="px-5 py-3 text-neutral-500">
+                    {cat.createdAt ? new Date(cat.createdAt).toLocaleDateString() : '-'}
                   </td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -237,8 +279,10 @@ export function Categories() {
                         className="p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded transition-colors"
                       ><Edit className="w-4 h-4" /></button>
                       <button 
-                        onClick={() => handleDelete(cat.id)}
-                        className="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                        onClick={() => handleDeleteRequest(cat)}
+                        disabled={cat.totalVideos > 0}
+                        title={cat.totalVideos > 0 ? "Cannot delete this category because it still contains videos." : "Delete category"}
+                        className="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-neutral-400"
                       ><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
@@ -248,6 +292,68 @@ export function Categories() {
           </tbody>
         </table>
       </div>
+
+      <div className="flex justify-between items-center px-4 py-3 border-t border-neutral-800">
+        <div className="text-sm text-neutral-400">
+          Page {currentPage + 1}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handlePrevPage}
+            disabled={currentPage === 0}
+            className="px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-sm font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <button
+            onClick={handleNextPage}
+            disabled={!categories || categories.length < 20}
+            className="px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-sm font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
+      {deleteDialog.isOpen && deleteDialog.cat && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-white mb-2">Delete Category</h3>
+            
+            {deleteDialog.cat.totalVideos && deleteDialog.cat.totalVideos > 0 ? (
+              <div className="space-y-4">
+                <p className="text-neutral-300">
+                  This category contains <span className="font-bold text-white">{deleteDialog.cat.totalVideos}</span> videos and cannot be deleted.
+                </p>
+                <p className="text-sm text-neutral-400">
+                  Please move these videos to another category manually before deleting this category.
+                </p>
+              </div>
+            ) : (
+              <p className="text-neutral-300 mb-6">
+                Are you sure you want to delete <span className="font-bold text-white">{deleteDialog.cat.name}</span>? This action cannot be undone.
+              </p>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setDeleteDialog({ isOpen: false })}
+                className="px-4 py-2 text-neutral-400 font-medium hover:text-white transition-colors"
+              >
+                {deleteDialog.cat.totalVideos && deleteDialog.cat.totalVideos > 0 ? 'Close' : 'Cancel'}
+              </button>
+              {(!deleteDialog.cat.totalVideos || deleteDialog.cat.totalVideos === 0) && (
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

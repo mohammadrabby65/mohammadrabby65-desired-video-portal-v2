@@ -19,13 +19,16 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       const q = query(
         collection(db, 'categories'),
         orderBy('name', 'asc'),
-        limit(50)
+        limit(100)
       );
       const snap = await getDocs(q);
-      return snap.docs.map((doc) => ({
+      let cats = snap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data()
-      })) as { id: string; name: string; slug: string }[];
+      })) as { id: string; name: string; slug: string; isActive?: boolean; displayOrder?: number }[];
+      
+      cats = cats.filter(c => c.isActive !== false).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+      return cats;
     },
     staleTime: 1000 * 60 * 60 // 1 hour
   });

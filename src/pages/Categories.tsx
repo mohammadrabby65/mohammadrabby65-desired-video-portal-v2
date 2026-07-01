@@ -18,14 +18,13 @@ export function Categories() {
     queryFn: async () => {
       const q = query(
         collection(db, 'categories'),
-        where('isActive', '!=', false),
-        orderBy('isActive'),
-        orderBy('displayOrder', 'asc'),
-        limit(50)
+        orderBy('name', 'asc'),
+        limit(100)
       );
       const snap = await getDocs(q);
       
-      const cats: CategoryWithCount[] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CategoryWithCount));
+      let cats: CategoryWithCount[] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CategoryWithCount));
+      cats = cats.filter(c => c.isActive !== false).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
       
       // Fetch total counts for each category
       for (const cat of cats) {
