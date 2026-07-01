@@ -8,9 +8,17 @@ interface SEOProps {
   url?: string;
   exactTitle?: boolean;
   noIndex?: boolean;
+  video?: {
+    name: string;
+    description: string;
+    thumbnailUrl: string;
+    uploadDate: string;
+    duration?: string;
+    contentUrl: string;
+  };
 }
 
-export function SEO({ title, description, image, url, exactTitle = false, noIndex = false }: SEOProps) {
+export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, video }: SEOProps) {
   const siteTitle = 'Desired - Free Desi Porn & Hot Indian Sex Videos Online';
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
@@ -52,6 +60,22 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />
+
+      {/* JSON-LD for Video */}
+      {video && (
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "VideoObject",
+            name: video.name,
+            description: video.description,
+            thumbnailUrl: [video.thumbnailUrl],
+            uploadDate: video.uploadDate,
+            ...(video.duration && { duration: video.duration }),
+            contentUrl: video.contentUrl,
+          })}
+        </script>
+      )}
     </Helmet>
   );
 }

@@ -119,26 +119,17 @@ export function Video() {
         description={video.description}
         image={video.thumbnailUrl}
         exactTitle={true}
-      />
-      <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "VideoObject",
+        video={{
           name: video.title,
           description: video.description,
-          thumbnailUrl: [video.thumbnailUrl],
+          thumbnailUrl: video.thumbnailUrl,
           uploadDate: video.publishedAt?.toDate
             ? video.publishedAt.toDate().toISOString()
             : new Date().toISOString(),
-          duration: `PT${video.duration.replace(":", "M")}S`,
+          ...(video.duration && { duration: `PT${video.duration.replace(":", "M")}S` }),
           contentUrl: video.videoUrl,
-          interactionStatistic: {
-            "@type": "InteractionCounter",
-            interactionType: { "@type": "WatchAction" },
-            userInteractionCount: video.views,
-          },
-        })}
-      </script>
+        }}
+      />
       <div className="flex-1 p-4 container mx-auto pb-10">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Main Video Section */}
