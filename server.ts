@@ -111,6 +111,19 @@ Sitemap: ${SITE_URL}/sitemap.xml
 
   // Dynamic Sitemap.xml
   app.get("/sitemap.xml", async (req, res) => {
+    function escapeXml(unsafe: string) {
+      return unsafe.replace(/[<>&'"]/g, function (c) {
+        switch (c) {
+          case '<': return '&lt;';
+          case '>': return '&gt;';
+          case '&': return '&amp;';
+          case '\'': return '&apos;';
+          case '"': return '&quot;';
+          default: return c;
+        }
+      });
+    }
+
     try {
       // Query categories
       const catQuery = query(collection(db, "categories"), limit(100));
@@ -124,12 +137,19 @@ Sitemap: ${SITE_URL}/sitemap.xml
         const data = doc.data();
         let lastmod = "";
         if (data.publishedAt) {
+          let dateObj;
           if (typeof data.publishedAt.toDate === "function") {
-            lastmod = data.publishedAt.toDate().toISOString();
+            dateObj = data.publishedAt.toDate();
           } else if (data.publishedAt.seconds) {
-            lastmod = new Date(data.publishedAt.seconds * 1000).toISOString();
+            dateObj = new Date(data.publishedAt.seconds * 1000);
           } else {
-            lastmod = new Date(data.publishedAt).toISOString();
+            dateObj = new Date(data.publishedAt);
+          }
+          if (dateObj && !isNaN(dateObj.getTime())) {
+            if (dateObj > new Date()) {
+              dateObj = new Date();
+            }
+            lastmod = dateObj.toISOString();
           }
         }
         return {
@@ -153,7 +173,7 @@ Sitemap: ${SITE_URL}/sitemap.xml
       const defaultCats = ["trending", "latest", "popular"];
       for (const cat of defaultCats) {
         xml += `  <url>\n`;
-        xml += `    <loc>${SITE_URL}/category/${cat}</loc>\n`;
+        xml += `    <loc>${escapeXml(`${SITE_URL}/category/${cat}`)}</loc>\n`;
         xml += `    <changefreq>daily</changefreq>\n`;
         xml += `    <priority>0.8</priority>\n`;
         xml += `  </url>\n`;
@@ -163,7 +183,7 @@ Sitemap: ${SITE_URL}/sitemap.xml
       for (const slug of categoriesList) {
         if (!defaultCats.includes(slug)) {
           xml += `  <url>\n`;
-          xml += `    <loc>${SITE_URL}/category/${slug}</loc>\n`;
+          xml += `    <loc>${escapeXml(`${SITE_URL}/category/${slug}`)}</loc>\n`;
           xml += `    <changefreq>daily</changefreq>\n`;
           xml += `    <priority>0.8</priority>\n`;
           xml += `  </url>\n`;
@@ -173,7 +193,7 @@ Sitemap: ${SITE_URL}/sitemap.xml
       // Posts
       for (const post of postsList) {
         xml += `  <url>\n`;
-        xml += `    <loc>${SITE_URL}/video/${post.slug}</loc>\n`;
+        xml += `    <loc>${escapeXml(`${SITE_URL}/video/${post.slug}`)}</loc>\n`;
         if (post.lastmod) {
           xml += `    <lastmod>${post.lastmod}</lastmod>\n`;
         }
@@ -184,7 +204,7 @@ Sitemap: ${SITE_URL}/sitemap.xml
 
       xml += `</urlset>\n`;
 
-      res.type("application/xml");
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
       res.send(xml);
     } catch (err) {
       console.error("Error generating sitemap:", err);
@@ -197,7 +217,7 @@ Sitemap: ${SITE_URL}/sitemap.xml
       xml += `    <priority>1.0</priority>\n`;
       xml += `  </url>\n`;
       xml += `</urlset>\n`;
-      res.type("application/xml");
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
       res.send(xml);
     }
   });

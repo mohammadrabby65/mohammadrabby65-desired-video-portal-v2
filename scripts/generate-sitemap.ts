@@ -23,6 +23,20 @@ const db = initializeFirestore(app, {}, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd
 
 async function generateSitemap() {
   console.log('Generating sitemap...');
+
+  function escapeXml(unsafe: string) {
+    return unsafe.replace(/[<>&'"]/g, function (c) {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
+  }
+
   try {
     // Query categories
     const catQuery = query(collection(db, "categories"), limit(100));
@@ -41,12 +55,19 @@ async function generateSitemap() {
       const data = doc.data();
       let lastmod = "";
       if (data.publishedAt) {
+        let dateObj;
         if (typeof data.publishedAt.toDate === "function") {
-          lastmod = data.publishedAt.toDate().toISOString();
+          dateObj = data.publishedAt.toDate();
         } else if (data.publishedAt.seconds) {
-          lastmod = new Date(data.publishedAt.seconds * 1000).toISOString();
+          dateObj = new Date(data.publishedAt.seconds * 1000);
         } else {
-          lastmod = new Date(data.publishedAt).toISOString();
+          dateObj = new Date(data.publishedAt);
+        }
+        if (dateObj && !isNaN(dateObj.getTime())) {
+          if (dateObj > new Date()) {
+            dateObj = new Date();
+          }
+          lastmod = dateObj.toISOString();
         }
       }
       return {
@@ -69,7 +90,7 @@ async function generateSitemap() {
     const defaultCats = ["trending", "latest", "popular"];
     for (const cat of defaultCats) {
       xml += `  <url>\n`;
-      xml += `    <loc>${SITE_URL}/category/${cat}</loc>\n`;
+      xml += `    <loc>${escapeXml(`${SITE_URL}/category/${cat}`)}</loc>\n`;
       xml += `    <changefreq>daily</changefreq>\n`;
       xml += `    <priority>0.8</priority>\n`;
       xml += `  </url>\n`;
@@ -79,7 +100,7 @@ async function generateSitemap() {
     for (const slug of categoriesList) {
       if (!defaultCats.includes(slug)) {
         xml += `  <url>\n`;
-        xml += `    <loc>${SITE_URL}/category/${slug}</loc>\n`;
+        xml += `    <loc>${escapeXml(`${SITE_URL}/category/${slug}`)}</loc>\n`;
         xml += `    <changefreq>daily</changefreq>\n`;
         xml += `    <priority>0.8</priority>\n`;
         xml += `  </url>\n`;
@@ -89,7 +110,7 @@ async function generateSitemap() {
     // Tags
     for (const slug of tagsList) {
       xml += `  <url>\n`;
-      xml += `    <loc>${SITE_URL}/tag/${slug}</loc>\n`;
+      xml += `    <loc>${escapeXml(`${SITE_URL}/tag/${slug}`)}</loc>\n`;
       xml += `    <changefreq>weekly</changefreq>\n`;
       xml += `    <priority>0.7</priority>\n`;
       xml += `  </url>\n`;
@@ -98,7 +119,7 @@ async function generateSitemap() {
     // Posts
     for (const post of postsList) {
       xml += `  <url>\n`;
-      xml += `    <loc>${SITE_URL}/video/${post.slug}</loc>\n`;
+      xml += `    <loc>${escapeXml(`${SITE_URL}/video/${post.slug}`)}</loc>\n`;
       if (post.lastmod) {
         xml += `    <lastmod>${post.lastmod}</lastmod>\n`;
       }
