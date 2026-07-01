@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { collection, doc, setDoc, getDoc, serverTimestamp, updateDoc, query, where, getDocs, limit, addDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { VideoPost } from '../../../types';
@@ -29,24 +30,81 @@ export function UploadPost() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditMode);
   const [error, setError] = useState('');
+  const [categoryInput, setCategoryInput] = useState('');
+  const [isCategoryFocused, setIsCategoryFocused] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: cachedCategories = [] } = useQuery({
+    queryKey: ['admin-categories-suggestions'],
+    queryFn: async () => {
+      const q = query(
+        collection(db, 'categories'),
+        where('isActive', '!=', false),
+        limit(20)
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }) as any).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    },
+    staleTime: 1000 * 60 * 30
+  });
 
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
+
+  useEffect(() => {
+    setCategoriesList(cachedCategories);
+  }, [cachedCategories]);
   
   const availableBadges = ['HD', 'SD', 'NEW', 'TRENDING', 'HOT', 'PREMIUM'];
 
-  useEffect(() => {
-    // Fetch categories for the multi-select
-    const fetchCategories = async () => {
-      try {
-        const q = query(collection(db, 'categories'), where('isActive', '!=', false), limit(100));
-        const snap = await getDocs(q);
-        setCategoriesList(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0)));
-      } catch (e) {
-        console.error("Error fetching categories", e);
-      }
-    };
-    fetchCategories();
+  const handleAddManualCategory = async (name: string) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    
+    const slug = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    
+    if (!formData.categories.includes(slug)) {
+      setFormData(prev => ({ ...prev, categories: [...prev.categories, slug] }));
+    }
+    
+    setCategoryInput('');
+    setIsCategoryFocused(false);
 
+    // Create in Firestore if it doesn't exist
+    const catExists = categoriesList.some(c => c.slug === slug);
+    if (!catExists) {
+      try {
+        const newCat = {
+          name: trimmedName,
+          slug,
+          isActive: true,
+          videoCount: 0,
+          displayOrder: 999
+        };
+        const docRef = await addDoc(collection(db, 'categories'), {
+          ...newCat,
+          createdAt: serverTimestamp()
+        });
+        const addedCat = { id: docRef.id, ...newCat };
+        setCategoriesList(prev => [...prev, addedCat]);
+        queryClient.setQueryData(['admin-categories-suggestions'], (old: any) => {
+          return old ? [...old, addedCat] : [addedCat];
+        });
+      } catch (e) {
+        console.error("Error creating manual category", e);
+      }
+    }
+  };
+
+  const handleCategoryKeyDown = (e: import('react').KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent form submission
+      if (categoryInput.trim()) {
+        handleAddManualCategory(categoryInput);
+      }
+    }
+  };
+
+  useEffect(() => {
     if (isEditMode && id) {
       const fetchPost = async () => {
         try {
@@ -204,32 +262,82 @@ export function UploadPost() {
               />
             </div>
             
-            <div>
+            <div className="relative">
               <label className="block text-sm font-medium text-neutral-300 mb-1.5">Categories *</label>
-              <div className="flex flex-wrap gap-2">
-                {categoriesList.map(cat => (
-                  <button
-                    type="button"
-                    key={cat.id}
-                    onClick={() => {
-                      const newCategories = formData.categories.includes(cat.slug)
-                        ? formData.categories.filter(c => c !== cat.slug)
-                        : [...formData.categories, cat.slug];
-                      setFormData({ ...formData, categories: newCategories });
-                    }}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
-                      formData.categories.includes(cat.slug)
-                        ? 'bg-red-500/20 border-red-500/50 text-red-500'
-                        : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-                {categoriesList.length === 0 && (
-                  <span className="text-sm text-neutral-500">Loading categories...</span>
-                )}
+              
+              <div className="flex flex-wrap gap-2 mb-3">
+                {formData.categories.map(catSlug => {
+                  const catName = categoriesList.find(c => c.slug === catSlug)?.name || catSlug;
+                  return (
+                    <span
+                      key={catSlug}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/20 text-red-500 border border-red-500/30 rounded-full text-sm font-medium"
+                    >
+                      {catName}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, categories: formData.categories.filter(c => c !== catSlug) });
+                        }}
+                        className="hover:text-red-400 focus:outline-none flex items-center justify-center h-4 w-4 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors"
+                      >
+                        <span className="text-xs leading-none">&times;</span>
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
+
+              <input
+                type="text"
+                value={categoryInput}
+                onChange={(e) => setCategoryInput(e.target.value)}
+                onKeyDown={handleCategoryKeyDown}
+                onFocus={() => setIsCategoryFocused(true)}
+                onBlur={() => setTimeout(() => setIsCategoryFocused(false), 200)}
+                placeholder="Type to search or add new category..."
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
+              />
+
+              {isCategoryFocused && (categoryInput.trim() !== '' || categoriesList.length > 0) && (
+                <div className="absolute z-10 w-full mt-1 bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                  {categoriesList
+                    .filter(cat => cat.name.toLowerCase().includes(categoryInput.toLowerCase()) && !formData.categories.includes(cat.slug))
+                    .map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          // use onMouseDown instead of onClick to prevent onBlur firing first
+                          e.preventDefault(); 
+                          if (!formData.categories.includes(cat.slug)) {
+                            setFormData({ ...formData, categories: [...formData.categories, cat.slug] });
+                          }
+                          setCategoryInput('');
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors"
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  
+                  {categoryInput.trim() !== '' && !categoriesList.some(c => c.name.toLowerCase() === categoryInput.trim().toLowerCase()) && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleAddManualCategory(categoryInput);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-neutral-800 text-red-400 hover:text-red-300 transition-colors font-medium"
+                    >
+                      + Add "{categoryInput.trim()}"
+                    </button>
+                  )}
+                  {categoriesList.length === 0 && categoryInput.trim() === '' && (
+                    <div className="px-4 py-2 text-sm text-neutral-500">Loading categories...</div>
+                  )}
+                </div>
+              )}
             </div>
             
             <div>
