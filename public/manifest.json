@@ -1,0 +1,16 @@
+{
+  "short_name": "DESIRED",
+  "name": "Desired - Free Desi Porn & Hot Indian Sex Videos Online",
+  "icons": [
+    {
+      "src": "https://i.ibb.co.com/J0FbCSB/Icon-desired.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "display": "standalone"
+}

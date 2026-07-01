@@ -37,8 +37,16 @@ export function AdminLayout() {
       {/* Sidebar */}
       <aside className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="h-16 flex items-center px-6 border-b border-neutral-800">
-          <Link to="/" className="text-xl font-bold text-red-500 uppercase tracking-wider">
-            Desire Admin
+          <Link to="/" className="flex items-center gap-2">
+            <img 
+              src="https://i.ibb.co.com/fV4JS3LH/20260701-143429.png" 
+              alt="DESIRED" 
+              className="h-6 w-auto object-contain"
+              referrerPolicy="no-referrer"
+            />
+            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-neutral-800 rounded text-neutral-400">
+              Admin
+            </span>
           </Link>
         </div>
         
@@ -81,7 +89,17 @@ export function AdminLayout() {
           >
             <Menu className="w-6 h-6" />
           </button>
-          <span className="ml-2 font-bold text-lg text-white">Desire Admin</span>
+          <div className="ml-3 flex items-center gap-2">
+            <img 
+              src="https://i.ibb.co.com/fV4JS3LH/20260701-143429.png" 
+              alt="DESIRED" 
+              className="h-6 w-auto object-contain"
+              referrerPolicy="no-referrer"
+            />
+            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-neutral-800 rounded text-neutral-400">
+              Admin
+            </span>
+          </div>
         </header>
         
         <div className="p-4 md:p-8 flex-1 overflow-y-auto">

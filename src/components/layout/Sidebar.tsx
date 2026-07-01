@@ -50,8 +50,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         } overflow-y-auto`}
       >
         <div className="p-4 flex items-center justify-between border-b border-neutral-800">
-          <Link to="/" onClick={onClose} className="text-xl font-bold tracking-tight text-red-500 uppercase">
-            Desire
+          <Link to="/" onClick={onClose} className="flex items-center">
+            <img 
+              src="https://i.ibb.co.com/fV4JS3LH/20260701-143429.png" 
+              alt="DESIRED" 
+              className="h-10 w-auto object-contain"
+              referrerPolicy="no-referrer"
+            />
           </Link>
           <button
             onClick={onClose}

@@ -10,7 +10,7 @@ export function Layout() {
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col">
       <header className="sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-4 h-20 md:h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsSidebarOpen(true)}
@@ -18,8 +18,13 @@ export function Layout() {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <Link to="/" className="text-xl font-bold tracking-tight text-red-500 uppercase">
-              Desire
+            <Link to="/" className="flex items-center">
+              <img 
+                src="https://i.ibb.co.com/fV4JS3LH/20260701-143429.png" 
+                alt="DESIRED" 
+                className="h-12 md:h-8 w-auto object-contain"
+                referrerPolicy="no-referrer"
+              />
             </Link>
           </div>
           <div className="flex items-center gap-2">
