@@ -15,9 +15,10 @@ import {
 
 interface VideoPlayerProps {
   videoUrl: string;
+  thumbnailUrl?: string;
 }
 
-export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
+export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -35,6 +36,9 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
   const [showControls, setShowControls] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
+
+  const [showPoster, setShowPoster] = useState(true);
+  const [playError, setPlayError] = useState(false);
 
   const [hlsLevels, setHlsLevels] = useState<any[]>([]);
   const [currentLevel, setCurrentLevel] = useState<number>(-1); // -1 is Auto
@@ -295,6 +299,10 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
         onTimeUpdate={handleTimeUpdate}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setShowPoster(true);
+        }}
         onWaiting={() => setLoading(true)}
         onPlaying={() => setLoading(false)}
         onClick={togglePlay}
@@ -302,146 +310,191 @@ export function VideoPlayer({ videoUrl }: VideoPlayerProps) {
         disablePictureInPicture={false}
       />
 
-      {/* Controls Overlay */}
-      <div
-        className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 cursor-none"}`}
-      >
-        <div className="p-4 flex flex-col gap-2 w-full">
-          {/* Progress Bar */}
-          <div
-            ref={progressRef}
-            className="w-full h-1.5 bg-neutral-600/50 rounded-full cursor-pointer group/progress relative"
-            onClick={handleProgressClick}
-          >
-            <div
-              className="absolute top-0 left-0 h-full bg-red-600 rounded-full group-hover/progress:bg-red-500 transition-colors"
-              style={{
-                width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
-              }}
+      {showPoster && (
+        <div 
+          className="absolute inset-0 z-30 cursor-pointer group/poster overflow-hidden bg-neutral-900"
+          onClick={async () => {
+            if (videoRef.current) {
+              try {
+                setPlayError(false);
+                const playPromise = videoRef.current.play();
+                if (playPromise !== undefined) {
+                  await playPromise;
+                }
+                setShowPoster(false);
+                setIsPlaying(true);
+              } catch (err) {
+                console.error("Playback failed:", err);
+                setPlayError(true);
+              }
+            }
+          }}
+        >
+          {thumbnailUrl && (
+            <img 
+              src={thumbnailUrl} 
+              alt="Video poster" 
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover/poster:scale-105"
+              referrerPolicy="no-referrer"
             />
-            {/* Scrubber thumb */}
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity"
-              style={{
-                left: `calc(${duration > 0 ? (currentTime / duration) * 100 : 0}% - 6px)`,
-              }}
-            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
+          
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <div className="w-20 h-20 bg-red-600/90 text-white rounded-full flex items-center justify-center shadow-2xl shadow-red-600/50 transform transition-all duration-300 group-hover/poster:scale-110 group-hover/poster:bg-red-500 backdrop-blur-sm border-2 border-red-500/50">
+              <Play className="w-10 h-10 ml-2" fill="currentColor" />
+            </div>
+            {playError && (
+              <div className="mt-4 px-4 py-2 bg-black/60 backdrop-blur-md text-white rounded-lg font-medium border border-red-500/50 animate-pulse">
+                Tap to Play Again
+              </div>
+            )}
           </div>
+        </div>
+      )}
 
-          <div className="flex items-center justify-between mt-1">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={togglePlay}
-                className="text-white hover:text-red-500 transition-colors focus:outline-none"
-              >
-                {isPlaying ? (
-                  <Pause className="w-5 h-5" />
-                ) : (
-                  <Play className="w-5 h-5" />
-                )}
-              </button>
-
-              <div className="flex items-center gap-2 group/volume">
-                <button
-                  onClick={toggleMute}
-                  className="text-white hover:text-red-500 transition-colors focus:outline-none"
-                >
-                  {isMuted || volume === 0 ? (
-                    <VolumeX className="w-5 h-5" />
-                  ) : (
-                    <Volume2 className="w-5 h-5" />
-                  )}
-                </button>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={isMuted ? 0 : volume}
-                  onChange={handleVolumeChange}
-                  className="w-0 group-hover/volume:w-20 transition-all duration-300 opacity-0 group-hover/volume:opacity-100 accent-red-600 h-1"
-                />
-              </div>
-
-              <div className="text-white text-xs font-medium font-mono">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </div>
+      {/* Controls Overlay */}
+      {!showPoster && (
+        <div
+          className={`absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 cursor-none"}`}
+        >
+          <div className="p-4 flex flex-col gap-2 w-full">
+            {/* Progress Bar */}
+            <div
+              ref={progressRef}
+              className="w-full h-1.5 bg-neutral-600/50 rounded-full cursor-pointer group/progress relative"
+              onClick={handleProgressClick}
+            >
+              <div
+                className="absolute top-0 left-0 h-full bg-red-600 rounded-full group-hover/progress:bg-red-500 transition-colors"
+                style={{
+                  width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
+                }}
+              />
+              {/* Scrubber thumb */}
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover/progress:opacity-100 transition-opacity"
+                style={{
+                  left: `calc(${duration > 0 ? (currentTime / duration) * 100 : 0}% - 6px)`,
+                }}
+              />
             </div>
 
-            <div className="flex items-center gap-4 relative">
-              <button
-                onClick={togglePiP}
-                className="text-white hover:text-red-500 transition-colors focus:outline-none"
-              >
-                <PictureInPicture className="w-5 h-5" />
-              </button>
+            <div className="flex items-center justify-between mt-1">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={togglePlay}
+                  className="text-white hover:text-red-500 transition-colors focus:outline-none"
+                >
+                  {isPlaying ? (
+                    <Pause className="w-5 h-5" />
+                  ) : (
+                    <Play className="w-5 h-5" />
+                  )}
+                </button>
 
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="text-white hover:text-red-500 transition-colors focus:outline-none"
-              >
-                <Settings
-                  className={`w-5 h-5 ${showSettings ? "rotate-90" : ""} transition-transform`}
-                />
-              </button>
+                <div className="flex items-center gap-2 group/volume">
+                  <button
+                    onClick={toggleMute}
+                    className="text-white hover:text-red-500 transition-colors focus:outline-none"
+                  >
+                    {isMuted || volume === 0 ? (
+                      <VolumeX className="w-5 h-5" />
+                    ) : (
+                      <Volume2 className="w-5 h-5" />
+                    )}
+                  </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={isMuted ? 0 : volume}
+                    onChange={handleVolumeChange}
+                    className="w-0 group-hover/volume:w-20 transition-all duration-300 opacity-0 group-hover/volume:opacity-100 accent-red-600 h-1"
+                  />
+                </div>
 
-              <button
-                onClick={toggleFullscreen}
-                className="text-white hover:text-red-500 transition-colors focus:outline-none"
-              >
-                {isFullscreen ? (
-                  <Minimize className="w-5 h-5" />
-                ) : (
-                  <Maximize className="w-5 h-5" />
-                )}
-              </button>
+                <div className="text-white text-xs font-medium font-mono">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </div>
+              </div>
 
-              {/* Settings Menu */}
-              {showSettings && (
-                <div className="absolute bottom-full right-0 mb-4 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 rounded-lg shadow-xl p-2 min-w-[160px] text-sm z-20">
-                  <div className="mb-2">
-                    <div className="text-neutral-400 text-xs font-semibold px-2 mb-1 uppercase tracking-wider">
-                      Speed
-                    </div>
-                    {[0.5, 1, 1.5, 2].map((rate) => (
-                      <button
-                        key={rate}
-                        onClick={() => changeSpeed(rate)}
-                        className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${playbackRate === rate ? "text-red-500 font-medium" : "text-white"}`}
-                      >
-                        {rate === 1 ? "Normal" : `${rate}x`}
-                      </button>
-                    ))}
-                  </div>
+              <div className="flex items-center gap-4 relative">
+                <button
+                  onClick={togglePiP}
+                  className="text-white hover:text-red-500 transition-colors focus:outline-none"
+                >
+                  <PictureInPicture className="w-5 h-5" />
+                </button>
 
-                  {hlsLevels.length > 0 && (
-                    <div className="pt-2 border-t border-neutral-800">
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="text-white hover:text-red-500 transition-colors focus:outline-none"
+                >
+                  <Settings
+                    className={`w-5 h-5 ${showSettings ? "rotate-90" : ""} transition-transform`}
+                  />
+                </button>
+
+                <button
+                  onClick={toggleFullscreen}
+                  className="text-white hover:text-red-500 transition-colors focus:outline-none"
+                >
+                  {isFullscreen ? (
+                    <Minimize className="w-5 h-5" />
+                  ) : (
+                    <Maximize className="w-5 h-5" />
+                  )}
+                </button>
+
+                {/* Settings Menu */}
+                {showSettings && (
+                  <div className="absolute bottom-full right-0 mb-4 bg-neutral-900/95 backdrop-blur-md border border-neutral-800 rounded-lg shadow-xl p-2 min-w-[160px] text-sm z-20">
+                    <div className="mb-2">
                       <div className="text-neutral-400 text-xs font-semibold px-2 mb-1 uppercase tracking-wider">
-                        Quality
+                        Speed
                       </div>
-                      <button
-                        onClick={() => changeQuality(-1)}
-                        className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${currentLevel === -1 ? "text-red-500 font-medium" : "text-white"}`}
-                      >
-                        Auto
-                      </button>
-                      {hlsLevels.map((level, index) => (
+                      {[0.5, 1, 1.5, 2].map((rate) => (
                         <button
-                          key={index}
-                          onClick={() => changeQuality(index)}
-                          className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${currentLevel === index ? "text-red-500 font-medium" : "text-white"}`}
+                          key={rate}
+                          onClick={() => changeSpeed(rate)}
+                          className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${playbackRate === rate ? "text-red-500 font-medium" : "text-white"}`}
                         >
-                          {level.height}p
+                          {rate === 1 ? "Normal" : `${rate}x`}
                         </button>
                       ))}
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {hlsLevels.length > 0 && (
+                      <div className="pt-2 border-t border-neutral-800">
+                        <div className="text-neutral-400 text-xs font-semibold px-2 mb-1 uppercase tracking-wider">
+                          Quality
+                        </div>
+                        <button
+                          onClick={() => changeQuality(-1)}
+                          className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${currentLevel === -1 ? "text-red-500 font-medium" : "text-white"}`}
+                        >
+                          Auto
+                        </button>
+                        {hlsLevels.map((level, index) => (
+                          <button
+                            key={index}
+                            onClick={() => changeQuality(index)}
+                            className={`w-full text-left px-2 py-1.5 rounded hover:bg-neutral-800 transition-colors ${currentLevel === index ? "text-red-500 font-medium" : "text-white"}`}
+                          >
+                            {level.height}p
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
