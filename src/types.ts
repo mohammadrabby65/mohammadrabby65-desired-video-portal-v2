@@ -7,6 +7,7 @@ export interface VideoPost {
   description: string;
   categories: string[];
   tags: string[];
+  searchTerms?: string[];
   duration: string;
   quality?: string;
   badges?: string[];

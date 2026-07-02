@@ -194,7 +194,7 @@ export function buildQueryConstraints(filter: PaginationFilter) {
     const q = filter.searchQuery.trim().toLowerCase();
     const searchWord = q.split(' ')[0];
     if (searchWord) {
-      constraints.push(where('tags', 'array-contains', searchWord));
+      constraints.push(where('searchTerms', 'array-contains', searchWord));
     }
   } else if (filter.category && filter.category !== 'All') {
     constraints.push(where('categories', 'array-contains', filter.category));

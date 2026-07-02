@@ -189,6 +189,24 @@ export function UploadPost() {
 
       const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
 
+      const generateSearchTerms = (title: string, tags: string[], categories: string[]) => {
+        const words = new Set<string>();
+        
+        const addWords = (text: string) => {
+          if (!text) return;
+          text.toLowerCase()
+            .split(/[\s,.-]+/)
+            .filter(w => w.length > 0)
+            .forEach(w => words.add(w));
+        };
+
+        addWords(title);
+        tags.forEach(addWords);
+        categories.forEach(addWords);
+
+        return Array.from(words);
+      };
+
       const postData: any = {
         title: formData.title,
         slug: formData.slug,
@@ -197,6 +215,7 @@ export function UploadPost() {
         thumbnailUrl: formData.thumbnailUrl,
         categories: formData.categories,
         tags: tagsArray,
+        searchTerms: generateSearchTerms(formData.title, tagsArray, formData.categories),
         duration: formData.duration,
         featured: formData.featured,
         trending: formData.trending,
