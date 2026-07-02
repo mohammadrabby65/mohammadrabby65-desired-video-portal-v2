@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { collection, query, where, orderBy, limit, getDocs, startAfter, QueryConstraint, DocumentSnapshot, getCountFromServer } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, startAfter, QueryConstraint, DocumentSnapshot, getCountFromServer, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { VideoPost } from '../types';
 
@@ -248,10 +248,23 @@ export function usePaginationVideos(filter: PaginationFilter, page: number, limi
         cursorCache[filterKey] = {};
       }
 
+      let prevCursor = cursorCache[filterKey][page - 1];
+
+      // Recover cursor from sessionStorage if missing
+      if (page > 1 && !prevCursor) {
+        const storedId = sessionStorage.getItem(`cursor_${filterKey}_${page - 1}`);
+        if (storedId) {
+          const snap = await getDoc(doc(db, 'posts', storedId));
+          if (snap.exists()) {
+            prevCursor = snap;
+            cursorCache[filterKey][page - 1] = snap;
+          }
+        }
+      }
+
       // If we are on page > 1, we must have the cursor from the previous page
       // to do true cursor pagination without over-fetching.
       if (page > 1) {
-        const prevCursor = cursorCache[filterKey][page - 1];
         if (prevCursor) {
           constraints.push(startAfter(prevCursor));
         } else {
@@ -269,23 +282,12 @@ export function usePaginationVideos(filter: PaginationFilter, page: number, limi
       
       // Save the last document as the cursor for the next page
       if (snapshot.docs.length > 0) {
-        cursorCache[filterKey][page] = snapshot.docs[snapshot.docs.length - 1];
+        const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+        cursorCache[filterKey][page] = lastDoc;
+        sessionStorage.setItem(`cursor_${filterKey}_${page}`, lastDoc.id);
       }
       
       let videos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
-      
-      if (filter.searchQuery) {
-        const lowerQ = filter.searchQuery.toLowerCase();
-        videos = videos.filter(p => 
-          p.title.toLowerCase().includes(lowerQ) || 
-          p.tags?.some(t => t.toLowerCase().includes(lowerQ))
-        );
-        videos.sort((a, b) => {
-           const timeA = a.publishedAt ? (a.publishedAt.toMillis ? a.publishedAt.toMillis() : 0) : 0;
-           const timeB = b.publishedAt ? (b.publishedAt.toMillis ? b.publishedAt.toMillis() : 0) : 0;
-           return timeB - timeA;
-        });
-      }
       
       if (filter.sortBy === 'random') {
         videos = videos.sort(() => Math.random() - 0.5);
