@@ -22,6 +22,9 @@ const Category = lazy(() =>
 const Tag = lazy(() =>
   import("./pages/Tag").then((module) => ({ default: module.Tag })),
 );
+const Search = lazy(() =>
+  import("./pages/Search").then((module) => ({ default: module.Search })),
+);
 const Login = lazy(() =>
   import("./pages/admin/Login").then((module) => ({ default: module.Login })),
 );
@@ -140,10 +143,12 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
+            <Route path="page/:page" element={<Home />} />
             <Route path="video/:slug" element={<Video />} />
             <Route path="category/:slug" element={<Category />} />
             <Route path="categories" element={<Categories />} />
             <Route path="tag/:slug" element={<Tag />} />
+            <Route path="search" element={<Search />} />
           </Route>
 
           <Route path="/admin/login" element={<Login />} />

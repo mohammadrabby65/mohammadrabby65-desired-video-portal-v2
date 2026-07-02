@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useInfiniteVideos, VideoFilter } from '../hooks/useVideos';
+import { useParams } from 'react-router-dom';
+import { usePaginationVideos, usePaginationCount, PaginationFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { ChevronDown } from 'lucide-react';
@@ -8,10 +9,12 @@ import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { NavLink } from 'react-router-dom';
 import { SEO } from '../components/seo/SEO';
+import { Pagination } from '../components/ui/Pagination';
+import { getPageUrl } from '../lib/pagination';
 
 type SortOption = {
   label: string;
-  value: VideoFilter['sortBy'];
+  value: PaginationFilter['sortBy'];
 };
 
 const SORT_OPTIONS: SortOption[] = [
@@ -23,21 +26,23 @@ const SORT_OPTIONS: SortOption[] = [
 ];
 
 export function Home() {
-  const [sortBy, setSortBy] = useState<VideoFilter['sortBy']>('publishedAt');
+  const { page } = useParams<{ page?: string }>();
+  const currentPage = parseInt(page || '1', 10);
+  const [sortBy, setSortBy] = useState<PaginationFilter['sortBy']>('publishedAt');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
-  const filter: VideoFilter = {
+  const filter: PaginationFilter = {
     sortBy,
   };
 
+  const { data: totalCount = 0 } = usePaginationCount(filter);
+  const totalPages = Math.ceil(totalCount / 20);
+
   const {
-    data,
+    data: videos = [],
     isLoading,
-    isError,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage
-  } = useInfiniteVideos(filter, 20);
+    isError
+  } = usePaginationVideos(filter, currentPage, 20);
 
   const { data: categories = [] } = useQuery({
     queryKey: ['public-categories-nav'],
@@ -55,14 +60,14 @@ export function Home() {
     staleTime: 1000 * 60 * 30 // 30 minutes
   });
 
-  const videos = data?.pages.flatMap(page => page.videos) || [];
-
   return (
     <div className="flex-1 pb-16 pt-8">
       <SEO 
-        title="Desired - Free Desi Porn & Hot Indian Sex Videos Online"
+        title={currentPage > 1 ? `Page ${currentPage} - Desired` : "Desired - Free Desi Porn & Hot Indian Sex Videos Online"}
         description="Watch the latest premium viral sex videos with fast streaming and daily updates."
-        exactTitle={true}
+        exactTitle={currentPage === 1}
+        prevUrl={currentPage > 1 ? getPageUrl('/', currentPage - 1) : undefined}
+        nextUrl={currentPage < totalPages ? getPageUrl('/', currentPage + 1) : undefined}
       />
       <section className="container mx-auto px-4 mb-16">
         <div className="mb-8">
@@ -156,16 +161,12 @@ export function Home() {
               )}
             </div>
 
-            {hasNextPage && (
-              <div className="mt-10 flex justify-center">
-                <button
-                  onClick={() => fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                  className="px-8 py-3 rounded-full border border-neutral-800 text-neutral-300 text-sm font-medium hover:bg-neutral-900 transition-colors disabled:opacity-50"
-                >
-                  {isFetchingNextPage ? 'Loading...' : 'Load More'}
-                </button>
-              </div>
+            {!isLoading && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                basePath="/"
+              />
             )}
           </>
         )}

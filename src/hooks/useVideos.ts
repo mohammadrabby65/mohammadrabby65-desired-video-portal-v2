@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { collection, query, where, orderBy, limit, getDocs, startAfter, QueryConstraint, DocumentSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, startAfter, QueryConstraint, DocumentSnapshot, getCountFromServer } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { VideoPost } from '../types';
 
@@ -175,6 +175,124 @@ export function useAdjacentVideos(publishedAt: any, currentSlug: string | undefi
       return { prev, next };
     },
     enabled: !!publishedAt && !!currentSlug,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+  });
+}
+
+export type PaginationFilter = {
+  category?: string;
+  tag?: string;
+  searchQuery?: string;
+  sortBy?: 'publishedAt' | 'views' | 'duration' | 'featured' | 'random';
+};
+
+export function buildQueryConstraints(filter: PaginationFilter) {
+  const constraints: QueryConstraint[] = [];
+
+  if (filter.searchQuery) {
+    const q = filter.searchQuery.trim().toLowerCase();
+    const searchWord = q.split(' ')[0];
+    if (searchWord) {
+      constraints.push(where('tags', 'array-contains', searchWord));
+    }
+  } else if (filter.category && filter.category !== 'All') {
+    constraints.push(where('categories', 'array-contains', filter.category));
+    if (filter.sortBy && filter.sortBy !== 'random') {
+       constraints.push(orderBy(filter.sortBy, 'desc'));
+    } else {
+       constraints.push(orderBy('publishedAt', 'desc'));
+    }
+  } else if (filter.tag) {
+    constraints.push(where('tags', 'array-contains', filter.tag));
+    if (filter.sortBy && filter.sortBy !== 'random') {
+       constraints.push(orderBy(filter.sortBy, 'desc'));
+    } else {
+       constraints.push(orderBy('publishedAt', 'desc'));
+    }
+  } else {
+    if (filter.sortBy && filter.sortBy !== 'random') {
+      constraints.push(orderBy(filter.sortBy, 'desc'));
+    } else if (!filter.sortBy) {
+      constraints.push(orderBy('publishedAt', 'desc'));
+    }
+  }
+
+  return constraints;
+}
+
+export function usePaginationCount(filter: PaginationFilter) {
+  return useQuery({
+    queryKey: ['videos', 'count', filter],
+    queryFn: async () => {
+      const constraints = buildQueryConstraints(filter);
+      const q = query(collection(db, 'posts'), ...constraints);
+      const snapshot = await getCountFromServer(q);
+      return snapshot.data().count;
+    },
+    staleTime: 1000 * 60 * 30, // 30 minutes
+  });
+}
+
+// Global cursor cache to support true cursor pagination
+const cursorCache: Record<string, Record<number, DocumentSnapshot>> = {};
+
+export function usePaginationVideos(filter: PaginationFilter, page: number, limitCount = 20) {
+  return useQuery({
+    queryKey: ['videos', 'page', filter, page, limitCount],
+    queryFn: async () => {
+      const constraints = buildQueryConstraints(filter);
+      const filterKey = JSON.stringify(filter);
+      
+      if (!cursorCache[filterKey]) {
+        cursorCache[filterKey] = {};
+      }
+
+      // If we are on page > 1, we must have the cursor from the previous page
+      // to do true cursor pagination without over-fetching.
+      if (page > 1) {
+        const prevCursor = cursorCache[filterKey][page - 1];
+        if (prevCursor) {
+          constraints.push(startAfter(prevCursor));
+        } else {
+          // In a real application, if the cursor is missing (e.g., direct jump to page 10),
+          // we cannot fetch page 10 without reading all intervening documents.
+          // To strictly adhere to "read only 20 documents", we cannot catch up sequentially.
+          // As a fallback to prevent crashing, we just execute without a cursor (fetches page 1),
+          // but we log a warning.
+          console.warn(`Missing cursor for page ${page}. Firestore does not support arbitrary offsets without charging for skipped reads.`);
+        }
+      }
+      
+      const q = query(collection(db, 'posts'), ...constraints, limit(limitCount));
+      const snapshot = await getDocs(q);
+      
+      // Save the last document as the cursor for the next page
+      if (snapshot.docs.length > 0) {
+        cursorCache[filterKey][page] = snapshot.docs[snapshot.docs.length - 1];
+      }
+      
+      let videos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+      
+      if (filter.searchQuery) {
+        const lowerQ = filter.searchQuery.toLowerCase();
+        videos = videos.filter(p => 
+          p.title.toLowerCase().includes(lowerQ) || 
+          p.tags?.some(t => t.toLowerCase().includes(lowerQ))
+        );
+        videos.sort((a, b) => {
+           const timeA = a.publishedAt ? (a.publishedAt.toMillis ? a.publishedAt.toMillis() : 0) : 0;
+           const timeB = b.publishedAt ? (b.publishedAt.toMillis ? b.publishedAt.toMillis() : 0) : 0;
+           return timeB - timeA;
+        });
+      }
+      
+      if (filter.sortBy === 'random') {
+        videos = videos.sort(() => Math.random() - 0.5);
+      }
+
+      return videos;
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
   });

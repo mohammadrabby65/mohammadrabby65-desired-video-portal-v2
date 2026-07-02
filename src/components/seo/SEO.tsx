@@ -8,6 +8,9 @@ interface SEOProps {
   url?: string;
   exactTitle?: boolean;
   noIndex?: boolean;
+  prevUrl?: string;
+  nextUrl?: string;
+  jsonLd?: any;
   video?: {
     name: string;
     description: string;
@@ -18,7 +21,7 @@ interface SEOProps {
   };
 }
 
-export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, video }: SEOProps) {
+export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, prevUrl, nextUrl, jsonLd, video }: SEOProps) {
   const siteTitle = 'Desired - Free Desi Porn & Hot Indian Sex Videos Online';
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
@@ -45,6 +48,10 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
       
       {/* Canonical URL */}
       {currentUrl && <link rel="canonical" href={currentUrl} />}
+      {prevUrl && <link rel="prev" href={prevUrl} />}
+      {nextUrl && <link rel="next" href={nextUrl} />}
+      {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
+
       
       {/* Open Graph / Facebook */}
       <meta property="og:site_name" content="DESIRED" />

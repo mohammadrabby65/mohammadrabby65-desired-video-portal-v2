@@ -1,76 +1,33 @@
-import { useParams } from "react-router-dom";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-  startAfter,
-  getCountFromServer,
-} from "firebase/firestore";
-import { db } from "../lib/firebase";
-import { VideoPost } from "../types";
+import { useParams, useSearchParams } from "react-router-dom";
+import { SEO } from "../components/seo/SEO";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
-import { SEO } from "../components/seo/SEO";
-import { Loader2 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { usePaginationVideos, usePaginationCount, PaginationFilter } from '../hooks/useVideos';
+import { Pagination } from "../components/ui/Pagination";
+import { getPageUrl } from '../lib/pagination';
 
 export function Tag() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const pageParam = searchParams.get('page');
+  const currentPage = parseInt(pageParam || '1', 10);
 
   // Tag slug to normal string (e.g., action-movies -> action movies)
   const tagTitle = slug ? slug.replace(/-/g, " ") : "Tag";
 
-  const { data: totalCount } = useQuery({
-    queryKey: ["tag-count", tagTitle],
-    queryFn: async () => {
-      const q = query(
-        collection(db, "posts"),
-        where("tags", "array-contains", tagTitle),
-      );
-      const snapshot = await getCountFromServer(q);
-      return snapshot.data().count;
-    },
-    staleTime: 1000 * 60 * 5,
-    enabled: !!tagTitle,
-  });
+  const filter: PaginationFilter = {
+    tag: tagTitle,
+  };
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
-    useInfiniteQuery({
-      queryKey: ["tag-videos", tagTitle],
-      queryFn: async ({ pageParam = null }) => {
-        let q = query(
-          collection(db, "posts"),
-          where("tags", "array-contains", tagTitle),
-          orderBy("publishedAt", "desc"),
-          limit(12),
-        );
+  const { data: totalCount = 0 } = usePaginationCount(filter);
+  const totalPages = Math.ceil(totalCount / 20);
 
-        if (pageParam) {
-          q = query(q, startAfter(pageParam));
-        }
-
-        const snapshot = await getDocs(q);
-        const lastVisible = snapshot.docs[snapshot.docs.length - 1];
-        const videos = snapshot.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() }) as VideoPost,
-        );
-
-        return {
-          videos,
-          lastVisible,
-        };
-      },
-      initialPageParam: null as any,
-      getNextPageParam: (lastPage) => lastPage.lastVisible || undefined,
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      enabled: !!tagTitle,
-    });
-
-  const videos = data?.pages.flatMap((page) => page.videos) || [];
+  const {
+    data: videos = [],
+    isLoading,
+    isError
+  } = usePaginationVideos(filter, currentPage, 20);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -102,9 +59,11 @@ export function Tag() {
   return (
     <div className="max-w-[2000px] mx-auto px-4 md:px-6 py-6 md:py-8 min-h-screen">
       <SEO
-        title={`${formattedTagName} Videos - Desired`}
+        title={`${formattedTagName} Videos${currentPage > 1 ? ` - Page ${currentPage}` : ''} - Desired`}
         description={`Watch the latest and best videos tagged with ${tagTitle}.`}
-        exactTitle={true}
+        exactTitle={currentPage === 1}
+        prevUrl={currentPage > 1 ? getPageUrl(`/tag/${slug}`, currentPage - 1, searchParams) : undefined}
+        nextUrl={currentPage < totalPages ? getPageUrl(`/tag/${slug}`, currentPage + 1, searchParams) : undefined}
       />
       <Helmet>
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
@@ -114,24 +73,18 @@ export function Tag() {
         <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
           #{tagTitle}
         </h1>
-        {totalCount !== undefined && (
+        {totalCount > 0 && (
           <p className="text-neutral-400">{totalCount} videos with this tag</p>
         )}
       </div>
 
-      {status === "pending" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-8">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      ) : status === "error" ? (
+      {isError ? (
         <div className="text-center py-12">
           <p className="text-red-500">
             Error loading videos. Please try again later.
           </p>
         </div>
-      ) : videos.length === 0 ? (
+      ) : !isLoading && videos.length === 0 ? (
         <div className="text-center py-20 bg-neutral-900/30 rounded-2xl border border-neutral-800/50">
           <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-2xl">🏷️</span>
@@ -145,29 +98,23 @@ export function Tag() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-8">
-            {videos.map((video) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+            {isLoading ? (
+               Array.from({ length: 20 }).map((_, i) => (
+                 <SkeletonCard key={i} />
+               ))
+            ) : videos.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
           </div>
 
-          {hasNextPage && (
-            <div className="mt-12 flex justify-center">
-              <button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="bg-neutral-800 hover:bg-neutral-700 text-white px-8 py-3 rounded-full font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
-              >
-                {isFetchingNextPage ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Loading more...
-                  </>
-                ) : (
-                  "Load More"
-                )}
-              </button>
-            </div>
+          {!isLoading && (
+             <Pagination
+               currentPage={currentPage}
+               totalPages={totalPages}
+               basePath={`/tag/${slug}`}
+               searchParams={searchParams}
+             />
           )}
         </>
       )}
