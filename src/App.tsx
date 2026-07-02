@@ -48,6 +48,11 @@ const AdminCategories = lazy(() =>
     default: module.Categories,
   })),
 );
+const DeadUrls = lazy(() =>
+  import("./pages/admin/DeadUrls").then((module) => ({
+    default: module.DeadUrls,
+  })),
+);
 const Analytics = lazy(() =>
   import("./pages/admin/Analytics").then((module) => ({
     default: module.Analytics,
@@ -74,7 +79,7 @@ export default function App() {
         page_path: location.pathname + location.search,
       });
     }
-  }, [location]);
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -156,6 +161,7 @@ export default function App() {
             <Route path="posts" element={<ManagePosts />} />
             <Route path="posts/edit/:id" element={<UploadPost />} />
             <Route path="categories" element={<AdminCategories />} />
+            <Route path="dead-urls" element={<DeadUrls />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />

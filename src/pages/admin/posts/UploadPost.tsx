@@ -34,7 +34,7 @@ export function UploadPost() {
   const [isCategoryFocused, setIsCategoryFocused] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: cachedCategories = [] } = useQuery({
+  const { data: cachedCategories } = useQuery({
     queryKey: ['admin-categories-suggestions'],
     queryFn: async () => {
       const q = query(
@@ -51,7 +51,9 @@ export function UploadPost() {
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
 
   useEffect(() => {
-    setCategoriesList(cachedCategories);
+    if (cachedCategories) {
+      setCategoriesList(cachedCategories);
+    }
   }, [cachedCategories]);
   
   const availableBadges = ['HD', 'SD', 'NEW', 'TRENDING', 'HOT', 'PREMIUM'];

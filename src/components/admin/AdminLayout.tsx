@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileVideo, ListVideo, FolderKanban, BarChart3, Settings, LogOut, Menu, UserCircle } from 'lucide-react';
+import { LayoutDashboard, FileVideo, ListVideo, FolderKanban, BarChart3, Settings, LogOut, Menu, UserCircle, Link as LinkIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useState } from 'react';
 import { SEO } from '../seo/SEO';
@@ -10,6 +10,7 @@ const MENU_ITEMS = [
   { icon: ListVideo, label: 'Manage Posts', path: '/admin/posts' },
   { icon: FolderKanban, label: 'Categories', path: '/admin/categories' },
   { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
+  { icon: LinkIcon, label: 'Dead URLs', path: '/admin/dead-urls' },
   { icon: Settings, label: 'Settings', path: '/admin/settings' },
   { icon: UserCircle, label: 'Profile', path: '/admin/profile' },
 ];
