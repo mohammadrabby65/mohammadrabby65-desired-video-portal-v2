@@ -41,6 +41,27 @@ export function Layout() {
       <main className="flex-1 flex flex-col">
         <Outlet />
       </main>
+
+      <footer className="border-t border-neutral-800 bg-neutral-950 py-8 mt-auto">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-neutral-500 text-sm mb-4">
+            &copy; {new Date().getFullYear()} DESIRED. All rights reserved.
+          </p>
+          <div className="flex justify-center items-center gap-4 text-sm text-neutral-400">
+            <Link to="/2257" className="hover:text-white transition-colors">
+              18 U.S.C. § 2257 Compliance
+            </Link>
+            <span className="text-neutral-700">|</span>
+            <Link to="/dmca" className="hover:text-white transition-colors">
+              DMCA Policy
+            </Link>
+            <span className="text-neutral-700">|</span>
+            <Link to="/privacy-policy" className="hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

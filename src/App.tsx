@@ -25,6 +25,15 @@ const Tag = lazy(() =>
 const Search = lazy(() =>
   import("./pages/Search").then((module) => ({ default: module.Search })),
 );
+const DMCA = lazy(() =>
+  import("./pages/DMCA").then((module) => ({ default: module.DMCA })),
+);
+const Compliance2257 = lazy(() =>
+  import("./pages/Compliance2257").then((module) => ({ default: module.Compliance2257 })),
+);
+const PrivacyPolicy = lazy(() =>
+  import("./pages/PrivacyPolicy").then((module) => ({ default: module.PrivacyPolicy })),
+);
 const Login = lazy(() =>
   import("./pages/admin/Login").then((module) => ({ default: module.Login })),
 );
@@ -149,6 +158,9 @@ export default function App() {
             <Route path="categories" element={<Categories />} />
             <Route path="tag/:slug" element={<Tag />} />
             <Route path="search" element={<Search />} />
+            <Route path="dmca" element={<DMCA />} />
+            <Route path="2257" element={<Compliance2257 />} />
+            <Route path="privacy-policy" element={<PrivacyPolicy />} />
           </Route>
 
           <Route path="/admin/login" element={<Login />} />
