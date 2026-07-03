@@ -1,6 +1,6 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
+
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
 import { initializeFirestore, collection, getDocs, query, limit, where } from "firebase/firestore";
@@ -22,8 +22,8 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig, "server-app");
 const db = initializeFirestore(fbApp, {}, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2");
 
+export const app = express();
 async function startServer() {
-  const app = express();
   const PORT = 3000;
 
   app.use(express.json());
@@ -225,6 +225,7 @@ Sitemap: ${SITE_URL}/sitemap.xml
 
   let vite: any = null;
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -340,9 +341,13 @@ Sitemap: ${SITE_URL}/sitemap.xml
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
 startServer();
+
+export default app;

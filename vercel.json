@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/server.ts": {
+      "includeFiles": "dist/index.html"
+    }
+  },
   "headers": [
     {
       "source": "/sitemap.xml",
@@ -13,11 +18,15 @@
   "rewrites": [
     {
       "source": "/sitemap.xml",
-      "destination": "/api/sitemap"
+      "destination": "/api/server"
     },
     {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "/api/server"
+    },
+    {
+      "source": "/video/:slug",
+      "destination": "/api/server"
     },
     {
       "source": "/(.*)",
