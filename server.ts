@@ -3,8 +3,9 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, query, limit } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, query, limit, where } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
+import fs from "fs";
 
 const SECRET_KEY = process.env.VITE_STREAM_SECRET || "local-dev-secret-key-12345";
 
@@ -222,11 +223,114 @@ Sitemap: ${SITE_URL}/sitemap.xml
     }
   });
 
+  let vite: any = null;
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
+    vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
+  }
+
+  function escapeHtml(unsafe: string) {
+    return unsafe.replace(/[<>&'"]/g, function (c) {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
+  }
+
+  function formatIsoDuration(duration: string) {
+    if (!duration) return "";
+    const parts = duration.split(':');
+    if (parts.length === 2) {
+      return `PT${parts[0]}M${parts[1]}S`;
+    } else if (parts.length === 3) {
+      return `PT${parts[0]}H${parts[1]}M${parts[2]}S`;
+    }
+    return duration;
+  }
+
+  app.get("/video/:slug", async (req, res, next) => {
+    try {
+      const slug = req.params.slug;
+      
+      const q = query(collection(db, "posts"), where("slug", "==", slug), limit(1));
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        return next();
+      }
+      
+      const video = snap.docs[0].data();
+      
+      let template = "";
+      if (process.env.NODE_ENV !== "production") {
+        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
+        template = await vite.transformIndexHtml(req.originalUrl, template);
+      } else {
+        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
+      }
+      
+      const title = escapeHtml(`${video.title} - Desired`);
+      const description = escapeHtml(video.description || "");
+      const image = escapeHtml(video.thumbnailUrl || "");
+      const currentUrl = escapeHtml(`${SITE_URL}/video/${slug}`);
+      
+      let uploadDate = new Date().toISOString();
+      if (video.publishedAt) {
+        if (typeof video.publishedAt.toDate === "function") {
+          uploadDate = video.publishedAt.toDate().toISOString();
+        } else if (video.publishedAt.seconds) {
+          uploadDate = new Date(video.publishedAt.seconds * 1000).toISOString();
+        } else {
+          uploadDate = new Date(video.publishedAt).toISOString();
+        }
+      }
+      
+      const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        name: video.title,
+        description: video.description,
+        thumbnailUrl: [video.thumbnailUrl],
+        uploadDate: uploadDate,
+        ...(video.duration && { duration: formatIsoDuration(video.duration) }),
+        contentUrl: video.videoUrl,
+      };
+
+      const seoTags = `
+        <title>${title}</title>
+        <meta name="description" content="${description}" />
+        <link rel="canonical" href="${currentUrl}" />
+        <meta property="og:site_name" content="DESIRED" />
+        <meta property="og:type" content="video.other" />
+        <meta property="og:url" content="${currentUrl}" />
+        <meta property="og:title" content="${title}" />
+        <meta property="og:description" content="${description}" />
+        <meta property="og:image" content="${image}" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="${currentUrl}" />
+        <meta name="twitter:title" content="${title}" />
+        <meta name="twitter:description" content="${description}" />
+        <meta name="twitter:image" content="${image}" />
+        <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+      `;
+
+      const html = template.replace("<title>DESIRED</title>", seoTags);
+      
+      res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+    } catch (e) {
+      console.error("SEO Injection Error:", e);
+      next();
+    }
+  });
+
+  if (process.env.NODE_ENV !== "production") {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
