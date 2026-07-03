@@ -1,7 +1,7 @@
 {
   "functions": {
-    "api/server.ts": {
-      "includeFiles": "dist/index.html"
+    "api/server.js": {
+      "includeFiles": "dist/**"
     }
   },
   "headers": [
