@@ -98,7 +98,7 @@ export function Category() {
   return (
     <div className="flex-1 pb-16 pt-8">
       <SEO
-        title={`${categoryName} Porn Videos${currentPage > 1 ? ` - Page ${currentPage}` : ''} - Desired`}
+        title={`${categoryName} Porn Videos${currentPage > 1 ? ` - Page ${currentPage}` : ''} - DesiredHub`}
         description={`Watch the best ${categoryName} sex videos on DesiredHub. Premium free porn updated daily.`}
         jsonLd={jsonLd}
         prevUrl={currentPage > 1 ? getPageUrl(`/category/${slug}`, currentPage - 1, searchParams) : undefined}

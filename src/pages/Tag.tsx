@@ -59,7 +59,7 @@ export function Tag() {
   return (
     <div className="max-w-[2000px] mx-auto px-4 md:px-6 py-6 md:py-8 min-h-screen">
       <SEO
-        title={`${formattedTagName} Videos${currentPage > 1 ? ` - Page ${currentPage}` : ''} - Desired`}
+        title={`${formattedTagName} Videos${currentPage > 1 ? ` - Page ${currentPage}` : ''} - DesiredHub`}
         description={`Watch the latest and best videos tagged with ${tagTitle}.`}
         exactTitle={currentPage === 1}
         prevUrl={currentPage > 1 ? getPageUrl(`/tag/${slug}`, currentPage - 1, searchParams) : undefined}

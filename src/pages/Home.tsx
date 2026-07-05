@@ -63,7 +63,7 @@ export function Home() {
   return (
     <div className="flex-1 pb-16 pt-8">
       <SEO 
-        title={currentPage > 1 ? `Page ${currentPage} - Desired` : "Desired - Free Desi Porn & Hot Indian Sex Videos Online"}
+        title={currentPage > 1 ? `Page ${currentPage} - DesiredHub` : "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online"}
         description="Watch the latest premium viral sex videos with fast streaming and daily updates."
         exactTitle={currentPage === 1}
         prevUrl={currentPage > 1 ? getPageUrl('/', currentPage - 1) : undefined}

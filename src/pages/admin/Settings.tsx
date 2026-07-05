@@ -8,7 +8,7 @@ export function Settings() {
     siteName: 'DesiredHub',
     logoUrl: 'https://i.ibb.co.com/fV4JS3LH/20260701-143429.png',
     heroBannerUrl: '',
-    seoTitle: 'Desired - Free Desi Porn & Hot Indian Sex Videos Online',
+    seoTitle: 'DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online',
     seoDescription: 'Premium Viral sex Video Streaming Platform built with React, Firebase and Vercel.'
   });
   const [loading, setLoading] = useState(false);
@@ -93,7 +93,7 @@ export function Settings() {
                 value={formData.seoTitle}
                 onChange={(e) => setFormData({ ...formData, seoTitle: e.target.value })}
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
-                placeholder="Desired - Free Desi Porn & Hot Indian Sex Videos Online"
+                placeholder="DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online"
               />
             </div>
             

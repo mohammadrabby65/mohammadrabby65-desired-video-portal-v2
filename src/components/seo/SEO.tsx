@@ -27,7 +27,6 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
   const currentUrl = url || `${SITE_URL}${currentPath}`;
   const ogImage = image || 'https://i.ibb.co.com/fV4JS3LH/20260701-143429.png';
-  const faviconUrl = 'https://i.ibb.co.com/qYJWw9xy/Desired-Hub-Favicon.jpg';
 
 
   return (

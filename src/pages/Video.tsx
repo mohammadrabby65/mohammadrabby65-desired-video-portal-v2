@@ -128,7 +128,7 @@ export function Video() {
   return (
     <>
       <SEO
-        title={`${video.title} - Desired`}
+        title={`${video.title} - DesiredHub`}
         description={video.description}
         image={video.thumbnailUrl}
         exactTitle={true}
