@@ -277,7 +277,7 @@ Sitemap: ${SITE_URL}/sitemap.xml
         template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
       
-      const title = escapeHtml(`${video.title} - Desired`);
+      const title = escapeHtml(`${video.title} - DesiredHub`);
       const description = escapeHtml(video.description || "");
       const image = escapeHtml(video.thumbnailUrl || "");
       const currentUrl = escapeHtml(`${SITE_URL}/video/${slug}`);
@@ -305,24 +305,24 @@ Sitemap: ${SITE_URL}/sitemap.xml
       };
 
       const seoTags = `
-        <title>${title}</title>
-        <meta name="description" content="${description}" />
-        <link rel="canonical" href="${currentUrl}" />
-        <meta property="og:site_name" content="DESIRED" />
-        <meta property="og:type" content="video.other" />
-        <meta property="og:url" content="${currentUrl}" />
-        <meta property="og:title" content="${title}" />
-        <meta property="og:description" content="${description}" />
-        <meta property="og:image" content="${image}" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:url" content="${currentUrl}" />
-        <meta name="twitter:title" content="${title}" />
-        <meta name="twitter:description" content="${description}" />
-        <meta name="twitter:image" content="${image}" />
-        <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+        <title data-rh="true">${title}</title>
+        <meta data-rh="true" name="description" content="${description}" />
+        <link data-rh="true" rel="canonical" href="${currentUrl}" />
+        <meta data-rh="true" property="og:site_name" content="DesiredHub" />
+        <meta data-rh="true" property="og:type" content="video.other" />
+        <meta data-rh="true" property="og:url" content="${currentUrl}" />
+        <meta data-rh="true" property="og:title" content="${title}" />
+        <meta data-rh="true" property="og:description" content="${description}" />
+        <meta data-rh="true" property="og:image" content="${image}" />
+        <meta data-rh="true" name="twitter:card" content="summary_large_image" />
+        <meta data-rh="true" name="twitter:url" content="${currentUrl}" />
+        <meta data-rh="true" name="twitter:title" content="${title}" />
+        <meta data-rh="true" name="twitter:description" content="${description}" />
+        <meta data-rh="true" name="twitter:image" content="${image}" />
+        <script data-rh="true" type="application/ld+json">${JSON.stringify(jsonLd)}</script>
       `;
 
-      const html = template.replace("<title>DESIRED</title>", seoTags);
+      const html = template.replace("<title>DesiredHub</title>", seoTags);
       
       res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
     } catch (e) {

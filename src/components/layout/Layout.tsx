@@ -20,9 +20,15 @@ export function Layout() {
             </button>
             <Link to="/" className="flex items-center">
               <img 
-                src="https://i.ibb.co.com/fV4JS3LH/20260701-143429.png" 
-                alt="DESIRED" 
-                className="h-[58px] md:h-8 w-auto object-contain"
+                src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
+                alt="DesiredHub" 
+                className="h-10 md:h-[52px] w-auto object-contain dark:hidden"
+                referrerPolicy="no-referrer"
+              />
+              <img 
+                src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
+                alt="DesiredHub" 
+                className="h-10 md:h-[52px] w-auto object-contain hidden dark:block"
                 referrerPolicy="no-referrer"
               />
             </Link>
@@ -45,7 +51,7 @@ export function Layout() {
       <footer className="border-t border-neutral-800 bg-neutral-950 py-8 mt-auto">
         <div className="container mx-auto px-4 text-center">
           <p className="text-neutral-500 text-sm mb-4">
-            &copy; {new Date().getFullYear()} DESIRED. All rights reserved.
+            &copy; {new Date().getFullYear()} DesiredHub. All rights reserved.
           </p>
           <div className="flex justify-center items-center gap-4 text-sm text-neutral-400">
             <Link to="/2257" className="hover:text-white transition-colors">

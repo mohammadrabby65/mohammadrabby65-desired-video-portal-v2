@@ -33,7 +33,7 @@ export function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-950 px-4">
       <SEO 
-        title="Admin Login - Desired"
+        title="Admin Login - DesiredHub"
         description="Sign in to the Desired admin portal."
         exactTitle={true}
         noIndex={true}

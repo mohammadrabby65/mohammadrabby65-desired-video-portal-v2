@@ -52,9 +52,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="p-4 flex items-center justify-between border-b border-neutral-800">
           <Link to="/" onClick={onClose} className="flex items-center">
             <img 
-              src="https://i.ibb.co.com/fV4JS3LH/20260701-143429.png" 
-              alt="DESIRED" 
-              className="h-10 w-auto object-contain"
+              src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
+              alt="DesiredHub" 
+              className="h-10 w-auto object-contain dark:hidden"
+              referrerPolicy="no-referrer"
+            />
+            <img 
+              src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
+              alt="DesiredHub" 
+              className="h-10 w-auto object-contain hidden dark:block"
               referrerPolicy="no-referrer"
             />
           </Link>

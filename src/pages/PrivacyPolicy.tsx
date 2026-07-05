@@ -4,8 +4,8 @@ export function PrivacyPolicy() {
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16 min-h-screen">
       <SEO
-        title="Privacy Policy - DESIRED"
-        description="Privacy Policy of DESIRED."
+        title="Privacy Policy - DesiredHub"
+        description="Privacy Policy of DesiredHub."
         exactTitle={true}
       />
       <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-neutral-300">

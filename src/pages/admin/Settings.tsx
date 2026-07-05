@@ -5,7 +5,7 @@ import { Save, Loader2 } from 'lucide-react';
 
 export function Settings() {
   const [formData, setFormData] = useState({
-    siteName: 'DESIRED',
+    siteName: 'DesiredHub',
     logoUrl: 'https://i.ibb.co.com/fV4JS3LH/20260701-143429.png',
     heroBannerUrl: '',
     seoTitle: 'Desired - Free Desi Porn & Hot Indian Sex Videos Online',

@@ -29,7 +29,7 @@ export function Search() {
     <div className="flex-1 pb-16 pt-8">
       <SEO 
         title={`Search results for "${queryText}"${currentPage > 1 ? ` - Page ${currentPage}` : ''} - Desired`}
-        description={`Search results for "${queryText}" on Desired.`}
+        description={`Search results for "${queryText}" on DesiredHub.`}
         prevUrl={currentPage > 1 ? getPageUrl('/search', currentPage - 1, searchParams) : undefined}
         nextUrl={currentPage < totalPages ? getPageUrl('/search', currentPage + 1, searchParams) : undefined}
       />

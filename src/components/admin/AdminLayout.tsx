@@ -23,8 +23,8 @@ export function AdminLayout() {
   return (
     <div className="min-h-screen bg-neutral-950 flex text-neutral-200">
       <SEO 
-        title="Admin Dashboard - Desired"
-        description="Desired admin control panel to manage categories, video uploads, posts, and settings."
+        title="Admin Dashboard - DesiredHub"
+        description="DesiredHub admin control panel to manage categories, video uploads, posts, and settings."
         exactTitle={true}
         noIndex={true}
       />
@@ -41,9 +41,15 @@ export function AdminLayout() {
         <div className="h-16 flex items-center px-6 border-b border-neutral-800">
           <Link to="/" className="flex items-center gap-2">
             <img 
-              src="https://i.ibb.co.com/fV4JS3LH/20260701-143429.png" 
-              alt="DESIRED" 
-              className="h-6 w-auto object-contain"
+              src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
+              alt="DesiredHub" 
+              className="h-10 md:h-[52px] w-auto object-contain dark:hidden"
+              referrerPolicy="no-referrer"
+            />
+            <img 
+              src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
+              alt="DesiredHub" 
+              className="h-10 md:h-[52px] w-auto object-contain hidden dark:block"
               referrerPolicy="no-referrer"
             />
             <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-neutral-800 rounded text-neutral-400">
@@ -93,9 +99,15 @@ export function AdminLayout() {
           </button>
           <div className="ml-3 flex items-center gap-2">
             <img 
-              src="https://i.ibb.co.com/fV4JS3LH/20260701-143429.png" 
-              alt="DESIRED" 
-              className="h-6 w-auto object-contain"
+              src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
+              alt="DesiredHub" 
+              className="h-10 md:h-[52px] w-auto object-contain dark:hidden"
+              referrerPolicy="no-referrer"
+            />
+            <img 
+              src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
+              alt="DesiredHub" 
+              className="h-10 md:h-[52px] w-auto object-contain hidden dark:block"
               referrerPolicy="no-referrer"
             />
             <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-neutral-800 rounded text-neutral-400">
