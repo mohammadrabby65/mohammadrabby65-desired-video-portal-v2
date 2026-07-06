@@ -161,8 +161,8 @@ Sitemap: ${SITE_URL}/sitemap.xml
       }).filter(p => p.slug);
 
       // Build XML
-      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-      xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>';
+      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
       // Home Page
       xml += `  <url>\n`;
@@ -230,8 +230,8 @@ Sitemap: ${SITE_URL}/sitemap.xml
     } catch (err) {
       console.error("Error generating sitemap:", err);
       // Fallback sitemap
-      let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
-      xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>';
+      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
       xml += `  <url>\n`;
       xml += `    <loc>${SITE_URL}/</loc>\n`;
       xml += `    <changefreq>daily</changefreq>\n`;
