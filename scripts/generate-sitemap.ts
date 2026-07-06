@@ -100,7 +100,8 @@ async function generateSitemap() {
         xml += `  </url>\n`;
       }
     }
-    
+
+    /*
     // Query tags
     const tagsSet = new Set<string>();
     postsList.forEach(post => {
@@ -118,6 +119,7 @@ async function generateSitemap() {
       xml += `    <priority>0.6</priority>\n`;
       xml += `  </url>\n`;
     }
+    */
 
     // Posts
     for (const post of postsList) {
