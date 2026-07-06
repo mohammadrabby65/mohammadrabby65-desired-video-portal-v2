@@ -24,7 +24,19 @@ interface SEOProps {
 export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, prevUrl, nextUrl, jsonLd, video }: SEOProps) {
   const siteTitle = 'DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online';
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  let currentPath = '';
+  if (typeof window !== 'undefined') {
+    currentPath = window.location.pathname;
+    if (currentPath === '/search') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const q = searchParams.get('q');
+      if (q) {
+        const canonicalParams = new URLSearchParams();
+        canonicalParams.set('q', q);
+        currentPath += `?${canonicalParams.toString()}`;
+      }
+    }
+  }
   const currentUrl = url || `${SITE_URL}${currentPath}`;
   const ogImage = image || 'https://i.ibb.co.com/fV4JS3LH/20260701-143429.png';
 
@@ -44,11 +56,14 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
       
       {/* Open Graph / Facebook */}
       <meta property="og:site_name" content="DesiredHub" />
-      <meta property="og:type" content="video.other" />
+      <meta property="og:locale" content="en_US" />
+      <meta property="og:type" content="website" />
       <meta property="og:url" content={currentUrl} />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={ogImage} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />

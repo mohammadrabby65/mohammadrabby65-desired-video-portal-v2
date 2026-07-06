@@ -12,7 +12,7 @@ export function Compliance2257() {
         <h1 className="text-3xl md:text-4xl font-bold mb-8">18 U.S.C. § 2257 Record-Keeping Requirements Compliance Statement</h1>
         
         <p>
-          <strong>DesiredHub</strong> (the "Website"), located at <a href="https://desired-video-portal.vercel.app/" target="_blank" rel="noopener noreferrer">https://desired-video-portal.vercel.app/</a>, is in full compliance with the record-keeping and labeling requirements set forth in 18 U.S.C. § 2257 and 28 C.F.R. Part 75.
+          <strong>DesiredHub</strong> (the "Website"), located at <a href="https://desiredhub.xyz/" target="_blank" rel="noopener noreferrer">https://desiredhub.xyz/</a>, is in full compliance with the record-keeping and labeling requirements set forth in 18 U.S.C. § 2257 and 28 C.F.R. Part 75.
         </p>
 
         <p>

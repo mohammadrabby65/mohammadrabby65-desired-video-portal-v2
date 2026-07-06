@@ -155,6 +155,7 @@ Sitemap: ${SITE_URL}/sitemap.xml
         }
         return {
           slug: data.slug,
+          tags: data.tags || [],
           lastmod
         };
       }).filter(p => p.slug);
@@ -189,6 +190,25 @@ Sitemap: ${SITE_URL}/sitemap.xml
           xml += `    <priority>0.8</priority>\n`;
           xml += `  </url>\n`;
         }
+      }
+
+      
+      // Query tags
+      const tagsSet = new Set<string>();
+      postsList.forEach(post => {
+        if (post.tags && Array.isArray(post.tags)) {
+          post.tags.forEach(tag => tagsSet.add(tag));
+        }
+      });
+      const tagsList = Array.from(tagsSet);
+      
+      // Tags
+      for (const tag of tagsList) {
+        xml += `  <url>\n`;
+        xml += `    <loc>${escapeXml(`${SITE_URL}/tag/${encodeURIComponent(tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''))}`)}</loc>\n`;
+        xml += `    <changefreq>weekly</changefreq>\n`;
+        xml += `    <priority>0.6</priority>\n`;
+        xml += `  </url>\n`;
       }
 
       // Posts
@@ -309,11 +329,14 @@ Sitemap: ${SITE_URL}/sitemap.xml
         <meta data-rh="true" name="description" content="${description}" />
         <link data-rh="true" rel="canonical" href="${currentUrl}" />
         <meta data-rh="true" property="og:site_name" content="DesiredHub" />
-        <meta data-rh="true" property="og:type" content="video.other" />
+        <meta data-rh="true" property="og:locale" content="en_US" />
+        <meta data-rh="true" property="og:type" content="website" />
         <meta data-rh="true" property="og:url" content="${currentUrl}" />
         <meta data-rh="true" property="og:title" content="${title}" />
         <meta data-rh="true" property="og:description" content="${description}" />
         <meta data-rh="true" property="og:image" content="${image}" />
+        <meta data-rh="true" property="og:image:width" content="1200" />
+        <meta data-rh="true" property="og:image:height" content="630" />
         <meta data-rh="true" name="twitter:card" content="summary_large_image" />
         <meta data-rh="true" name="twitter:url" content="${currentUrl}" />
         <meta data-rh="true" name="twitter:title" content="${title}" />
