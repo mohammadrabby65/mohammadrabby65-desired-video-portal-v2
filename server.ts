@@ -225,8 +225,8 @@ Sitemap: ${SITE_URL}/sitemap.xml
 
       xml += `</urlset>\n`;
 
-      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-      res.send(xml);
+      res.setHeader('Content-Type', 'text/xml; charset=UTF-8');
+      res.end(xml);
     } catch (err) {
       console.error("Error generating sitemap:", err);
       // Fallback sitemap
@@ -238,8 +238,8 @@ Sitemap: ${SITE_URL}/sitemap.xml
       xml += `    <priority>1.0</priority>\n`;
       xml += `  </url>\n`;
       xml += `</urlset>\n`;
-      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-      res.send(xml);
+      res.setHeader('Content-Type', 'text/xml; charset=UTF-8');
+      res.end(xml);
     }
   });
 
