@@ -14,7 +14,7 @@
       "destination": "/api/server"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!sitemap\\.xml|robots\\.txt).*)",
       "destination": "/index.html"
     }
   ]
