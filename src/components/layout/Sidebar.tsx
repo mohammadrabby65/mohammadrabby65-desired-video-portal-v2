@@ -53,13 +53,21 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link to="/" onClick={onClose} className="flex items-center">
             <img 
               src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
-              alt="DesiredHub" 
+              alt="DesiredHub Logo" 
+              loading="eager"
+              decoding="async"
+              width="200"
+              height="40"
               className="h-10 w-auto object-contain dark:hidden"
               referrerPolicy="no-referrer"
             />
             <img 
               src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
-              alt="DesiredHub" 
+              alt="DesiredHub Logo" 
+              loading="eager"
+              decoding="async"
+              width="200"
+              height="40"
               className="h-10 w-auto object-contain hidden dark:block"
               referrerPolicy="no-referrer"
             />

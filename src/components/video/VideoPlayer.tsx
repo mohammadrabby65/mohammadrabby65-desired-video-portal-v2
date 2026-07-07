@@ -16,9 +16,10 @@ import {
 interface VideoPlayerProps {
   videoUrl: string;
   thumbnailUrl?: string;
+  title?: string;
 }
 
-export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
+export function VideoPlayer({ videoUrl, thumbnailUrl, title }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -333,7 +334,11 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
           {thumbnailUrl && (
             <img 
               src={thumbnailUrl} 
-              alt="Video poster" 
+              alt={title || "Video poster"} 
+              loading="eager"
+              decoding="async"
+              width="1280"
+              height="720"
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover/poster:scale-105"
               referrerPolicy="no-referrer"
             />

@@ -21,7 +21,7 @@ export function RelatedVideos({ videoId, categories, tags }: RelatedVideosProps)
       <div className="grid grid-cols-2 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-1 2xl:grid-cols-2 gap-3 md:gap-4">
         {isLoading
           ? Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
-          : displayVideos.map(video => <VideoCard key={video.id} video={video} />)}
+          : displayVideos.map((video, index) => <VideoCard key={video.id} video={video}  />)}
       </div>
     </div>
   );

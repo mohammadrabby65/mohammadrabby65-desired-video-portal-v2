@@ -17,6 +17,9 @@ export function VideoCard({ video }: VideoCardProps) {
           src={video.thumbnailUrl || "https://placehold.co/600x400/171717/333333?text=No+Thumbnail"}
           alt={video.title}
           loading="lazy"
+          decoding="async"
+          width="640"
+          height="360"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center">
