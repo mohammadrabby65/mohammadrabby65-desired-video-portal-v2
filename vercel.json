@@ -14,7 +14,19 @@
       "destination": "/api/server"
     },
     {
-      "source": "/((?!sitemap\\.xml|robots\\.txt).*)",
+      "source": "/sitemap.xml",
+      "destination": "/sitemap.xml"
+    },
+    {
+      "source": "/sitemap-test.xml",
+      "destination": "/sitemap-test.xml"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/robots.txt"
+    },
+    {
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
