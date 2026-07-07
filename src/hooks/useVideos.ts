@@ -108,22 +108,46 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
   return useQuery({
     queryKey: ['videos', 'related', videoId],
     queryFn: async () => {
-      if (!videoId || !categories || categories.length === 0) return [];
+      if (!videoId) return [];
       
-      const q = query(
-        collection(db, 'posts'),
-        where('categories', 'array-contains-any', categories.slice(0, 10)),
-        orderBy('publishedAt', 'desc'),
-        limit(11) // Fetch 11 in case one of them is the current video
-      );
+      let relatedVideos: VideoPost[] = [];
       
-      const snapshot = await getDocs(q);
-      const videos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+      if (categories && categories.length > 0) {
+        const q = query(
+          collection(db, 'posts'),
+          where('categories', 'array-contains-any', categories.slice(0, 10)),
+          orderBy('publishedAt', 'desc'),
+          limit(21) // Fetch 21 in case one of them is the current video
+        );
+        
+        const snapshot = await getDocs(q);
+        const fetchedVideos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+        
+        // Filter out current video and limit to 20
+        relatedVideos = fetchedVideos.filter(v => v.id !== videoId).slice(0, 20);
+      }
       
-      // Filter out current video and limit to 10
-      return videos.filter(v => v.id !== videoId).slice(0, 10);
+      if (relatedVideos.length < 20) {
+        const remaining = 20 - relatedVideos.length;
+        // Fetch remaining videos from latest, getting enough to account for duplicates and the current video
+        const latestQ = query(
+          collection(db, 'posts'),
+          orderBy('publishedAt', 'desc'),
+          limit(remaining + 20) // Provide a buffer for overlap
+        );
+        const latestSnapshot = await getDocs(latestQ);
+        const latestVideos = latestSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+        
+        const existingIds = new Set(relatedVideos.map(v => v.id));
+        existingIds.add(videoId);
+        
+        const additionalVideos = latestVideos.filter(v => !existingIds.has(v.id)).slice(0, remaining);
+        relatedVideos = [...relatedVideos, ...additionalVideos];
+      }
+      
+      return relatedVideos;
     },
-    enabled: !!videoId && !!categories && categories.length > 0,
+    enabled: !!videoId,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
   });
