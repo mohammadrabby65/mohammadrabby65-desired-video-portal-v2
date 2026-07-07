@@ -18,8 +18,8 @@
       "destination": "/sitemap.xml"
     },
     {
-      "source": "/sitemap-test.xml",
-      "destination": "/sitemap-test.xml"
+      "source": "/sitemap-old.xml",
+      "destination": "/sitemap-old.xml"
     },
     {
       "source": "/robots.txt",
