@@ -1,4 +1,4 @@
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { collection, query, where, limit, getDocs } from "firebase/firestore";
@@ -105,6 +105,15 @@ export function Category() {
         nextUrl={currentPage < totalPages ? getPageUrl(`/category/${slug}`, currentPage + 1, searchParams) : undefined}
       />
       <section className="container mx-auto px-4 mb-16">
+        <nav className="flex text-neutral-400 text-sm mb-4">
+          <ol className="flex items-center space-x-2">
+            <li>
+              <Link to="/" className="hover:text-white transition-colors">Home</Link>
+            </li>
+            <li>/</li>
+            <li className="text-neutral-200 truncate" aria-current="page">{categoryName}</li>
+          </ol>
+        </nav>
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4">
             <div>

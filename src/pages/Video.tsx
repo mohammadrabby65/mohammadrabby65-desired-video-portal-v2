@@ -125,6 +125,34 @@ export function Video() {
     );
   }
 
+  const categoryName = video.categories?.[0] || (video as any).category;
+  const categorySlug = categoryName ? categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : null;
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: typeof window !== "undefined" ? window.location.origin : "",
+      },
+      ...(categoryName && categorySlug ? [{
+        "@type": "ListItem",
+        position: 2,
+        name: categoryName,
+        item: typeof window !== "undefined" ? `${window.location.origin}/category/${categorySlug}` : "",
+      }] : []),
+      {
+        "@type": "ListItem",
+        position: categoryName && categorySlug ? 3 : 2,
+        name: video.title,
+        item: typeof window !== "undefined" ? window.location.href : "",
+      },
+    ],
+  };
+
   return (
     <>
       <SEO
@@ -132,6 +160,7 @@ export function Video() {
         description={video.description}
         image={video.thumbnailUrl}
         exactTitle={true}
+        jsonLd={breadcrumbJsonLd}
         video={{
           name: video.title,
           description: video.description,
@@ -144,6 +173,23 @@ export function Video() {
         }}
       />
       <div className="flex-1 p-4 container mx-auto pb-10">
+        <nav className="flex text-neutral-400 text-sm mb-4">
+          <ol className="flex items-center space-x-2">
+            <li>
+              <Link to="/" className="hover:text-white transition-colors">Home</Link>
+            </li>
+            {categoryName && categorySlug && (
+              <>
+                <li>/</li>
+                <li>
+                  <Link to={`/category/${categorySlug}`} className="hover:text-white transition-colors">{categoryName}</Link>
+                </li>
+              </>
+            )}
+            <li>/</li>
+            <li className="text-neutral-200 truncate" aria-current="page">{video.title}</li>
+          </ol>
+        </nav>
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Main Video Section */}
           <div className="flex-1 max-w-[1200px]">
