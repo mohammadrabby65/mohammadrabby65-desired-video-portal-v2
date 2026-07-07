@@ -35,6 +35,7 @@ function escapeXml(unsafe: string) {
 async function generateSitemap() {
   try {
     console.log("Generating static sitemap...");
+
     // Query categories
     const catQuery = query(collection(db, "categories"), limit(100));
     const catSnap = await getDocs(catQuery);
@@ -43,6 +44,19 @@ async function generateSitemap() {
     // Query posts
     const postQuery = query(collection(db, "posts"), limit(1000));
     const postSnap = await getDocs(postQuery);
+    
+    // Read old sitemap to filter out old videos
+    let oldUrls = new Set<string>();
+    try {
+      const oldSitemapPath = path.join(process.cwd(), "public", "sitemap-old.xml");
+      const oldSitemapContent = fs.readFileSync(oldSitemapPath, "utf-8");
+      const urlMatches = oldSitemapContent.matchAll(/<loc>(.*?)<\/loc>/g);
+      for (const match of urlMatches) {
+        oldUrls.add(match[1]);
+      }
+    } catch (err) {
+      console.log("Could not read sitemap-old.xml, maybe it doesn't exist yet.");
+    }
     
     const postsList = postSnap.docs.map(doc => {
       const data = doc.data();
@@ -56,6 +70,7 @@ async function generateSitemap() {
         } else {
           dateObj = new Date(data.publishedAt);
         }
+        
         if (dateObj && !isNaN(dateObj.getTime())) {
           if (dateObj > new Date()) {
             dateObj = new Date();
@@ -68,10 +83,10 @@ async function generateSitemap() {
         tags: data.tags || [],
         lastmod
       };
-    }).filter(p => p.slug);
+    }).filter(p => p.slug && !oldUrls.has(`${SITE_URL}/video/${p.slug}`));
 
     // Build XML
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     
     // Home Page
@@ -84,8 +99,9 @@ async function generateSitemap() {
     // Add default virtual categories
     const defaultCats = ["trending", "latest", "popular"];
     for (const cat of defaultCats) {
+      const loc = `${SITE_URL}/category/${cat}`;
       xml += `  <url>\n`;
-      xml += `    <loc>${escapeXml(`${SITE_URL}/category/${cat}`)}</loc>\n`;
+      xml += `    <loc>${escapeXml(loc)}</loc>\n`;
       xml += `    <changefreq>daily</changefreq>\n`;
       xml += `    <priority>0.8</priority>\n`;
       xml += `  </url>\n`;
@@ -94,33 +110,14 @@ async function generateSitemap() {
     // Categories
     for (const slug of categoriesList) {
       if (!defaultCats.includes(slug)) {
+        const loc = `${SITE_URL}/category/${slug}`;
         xml += `  <url>\n`;
-        xml += `    <loc>${escapeXml(`${SITE_URL}/category/${slug}`)}</loc>\n`;
+        xml += `    <loc>${escapeXml(loc)}</loc>\n`;
         xml += `    <changefreq>daily</changefreq>\n`;
         xml += `    <priority>0.8</priority>\n`;
         xml += `  </url>\n`;
       }
     }
-
-    /*
-    // Query tags
-    const tagsSet = new Set<string>();
-    postsList.forEach(post => {
-      if (post.tags && Array.isArray(post.tags)) {
-        post.tags.forEach((tag: string) => tagsSet.add(tag));
-      }
-    });
-    const tagsList = Array.from(tagsSet);
-    
-    // Tags
-    for (const tag of tagsList) {
-      xml += `  <url>\n`;
-      xml += `    <loc>${escapeXml(`${SITE_URL}/tag/${encodeURIComponent(tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''))}`)}</loc>\n`;
-      xml += `    <changefreq>weekly</changefreq>\n`;
-      xml += `    <priority>0.6</priority>\n`;
-      xml += `  </url>\n`;
-    }
-    */
 
     // Posts
     for (const post of postsList) {
