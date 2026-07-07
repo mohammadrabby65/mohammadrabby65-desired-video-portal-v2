@@ -35,7 +35,6 @@ function escapeXml(unsafe: string) {
 async function generateSitemap() {
   try {
     console.log("Generating static sitemap...");
-
     // Query categories
     const catQuery = query(collection(db, "categories"), limit(100));
     const catSnap = await getDocs(catQuery);
@@ -70,7 +69,6 @@ async function generateSitemap() {
         } else {
           dateObj = new Date(data.publishedAt);
         }
-        
         if (dateObj && !isNaN(dateObj.getTime())) {
           if (dateObj > new Date()) {
             dateObj = new Date();
@@ -86,7 +84,7 @@ async function generateSitemap() {
     }).filter(p => p.slug && !oldUrls.has(`${SITE_URL}/video/${p.slug}`));
 
     // Build XML
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>';
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     
     // Home Page
@@ -100,6 +98,7 @@ async function generateSitemap() {
     const defaultCats = ["trending", "latest", "popular"];
     for (const cat of defaultCats) {
       const loc = `${SITE_URL}/category/${cat}`;
+      if (oldUrls.has(loc)) continue;
       xml += `  <url>\n`;
       xml += `    <loc>${escapeXml(loc)}</loc>\n`;
       xml += `    <changefreq>daily</changefreq>\n`;
@@ -111,6 +110,7 @@ async function generateSitemap() {
     for (const slug of categoriesList) {
       if (!defaultCats.includes(slug)) {
         const loc = `${SITE_URL}/category/${slug}`;
+        if (oldUrls.has(loc)) continue;
         xml += `  <url>\n`;
         xml += `    <loc>${escapeXml(loc)}</loc>\n`;
         xml += `    <changefreq>daily</changefreq>\n`;
@@ -118,6 +118,26 @@ async function generateSitemap() {
         xml += `  </url>\n`;
       }
     }
+
+    /*
+    // Query tags
+    const tagsSet = new Set<string>();
+    postsList.forEach(post => {
+      if (post.tags && Array.isArray(post.tags)) {
+        post.tags.forEach((tag: string) => tagsSet.add(tag));
+      }
+    });
+    const tagsList = Array.from(tagsSet);
+    
+    // Tags
+    for (const tag of tagsList) {
+      xml += `  <url>\n`;
+      xml += `    <loc>${escapeXml(`${SITE_URL}/tag/${encodeURIComponent(tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''))}`)}</loc>\n`;
+      xml += `    <changefreq>weekly</changefreq>\n`;
+      xml += `    <priority>0.6</priority>\n`;
+      xml += `  </url>\n`;
+    }
+    */
 
     // Posts
     for (const post of postsList) {
@@ -133,9 +153,9 @@ async function generateSitemap() {
 
     xml += `</urlset>\n`;
 
-    const outputPath = path.join(process.cwd(), "public", "sitemap-main.xml");
+    const outputPath = path.join(process.cwd(), "public", "sitemap.xml");
     fs.writeFileSync(outputPath, xml, "utf-8");
-    console.log(`Successfully generated sitemap-main.xml at ${outputPath}`);
+    console.log(`Successfully generated sitemap.xml at ${outputPath}`);
     process.exit(0);
   } catch (err) {
     console.error("Error generating sitemap:", err);
