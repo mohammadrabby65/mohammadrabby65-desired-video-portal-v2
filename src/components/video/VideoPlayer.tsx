@@ -336,6 +336,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, title }: VideoPlayerProps)
               src={thumbnailUrl} 
               alt={title || "Video poster"} 
               loading="eager"
+              fetchPriority="high"
               decoding="async"
               width="1280"
               height="720"

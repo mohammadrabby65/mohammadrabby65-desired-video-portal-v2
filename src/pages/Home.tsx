@@ -155,8 +155,8 @@ export function Home() {
               {isLoading ? (
                 Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
               ) : (
-                videos.map(video => (
-                  <VideoCard key={video.id} video={video}  />
+                videos.map((video, index) => (
+                  <VideoCard key={video.id} video={video} priority={index === 0} />
                 ))
               )}
             </div>
