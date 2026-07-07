@@ -44,19 +44,6 @@ async function generateSitemap() {
     const postQuery = query(collection(db, "posts"), limit(1000));
     const postSnap = await getDocs(postQuery);
     
-    // Read old sitemap to filter out old videos
-    let oldUrls = new Set<string>();
-    try {
-      const oldSitemapPath = path.join(process.cwd(), "public", "sitemap-old.xml");
-      const oldSitemapContent = fs.readFileSync(oldSitemapPath, "utf-8");
-      const urlMatches = oldSitemapContent.matchAll(/<loc>(.*?)<\/loc>/g);
-      for (const match of urlMatches) {
-        oldUrls.add(match[1]);
-      }
-    } catch (err) {
-      console.log("Could not read sitemap-old.xml, maybe it doesn't exist yet.");
-    }
-    
     const postsList = postSnap.docs.map(doc => {
       const data = doc.data();
       let lastmod = "";
@@ -81,7 +68,7 @@ async function generateSitemap() {
         tags: data.tags || [],
         lastmod
       };
-    }).filter(p => p.slug && !oldUrls.has(`${SITE_URL}/video/${p.slug}`));
+    }).filter(p => p.slug);
 
     // Build XML
     let xml = '<?xml version="1.0" encoding="UTF-8"?>';
@@ -97,10 +84,8 @@ async function generateSitemap() {
     // Add default virtual categories
     const defaultCats = ["trending", "latest", "popular"];
     for (const cat of defaultCats) {
-      const loc = `${SITE_URL}/category/${cat}`;
-      if (oldUrls.has(loc)) continue;
       xml += `  <url>\n`;
-      xml += `    <loc>${escapeXml(loc)}</loc>\n`;
+      xml += `    <loc>${escapeXml(`${SITE_URL}/category/${cat}`)}</loc>\n`;
       xml += `    <changefreq>daily</changefreq>\n`;
       xml += `    <priority>0.8</priority>\n`;
       xml += `  </url>\n`;
@@ -109,10 +94,8 @@ async function generateSitemap() {
     // Categories
     for (const slug of categoriesList) {
       if (!defaultCats.includes(slug)) {
-        const loc = `${SITE_URL}/category/${slug}`;
-        if (oldUrls.has(loc)) continue;
         xml += `  <url>\n`;
-        xml += `    <loc>${escapeXml(loc)}</loc>\n`;
+        xml += `    <loc>${escapeXml(`${SITE_URL}/category/${slug}`)}</loc>\n`;
         xml += `    <changefreq>daily</changefreq>\n`;
         xml += `    <priority>0.8</priority>\n`;
         xml += `  </url>\n`;
@@ -153,9 +136,9 @@ async function generateSitemap() {
 
     xml += `</urlset>\n`;
 
-    const outputPath = path.join(process.cwd(), "public", "sitemap.xml");
+    const outputPath = path.join(process.cwd(), "public", "sitemap-main.xml");
     fs.writeFileSync(outputPath, xml, "utf-8");
-    console.log(`Successfully generated sitemap.xml at ${outputPath}`);
+    console.log(`Successfully generated sitemap-main.xml at ${outputPath}`);
     process.exit(0);
   } catch (err) {
     console.error("Error generating sitemap:", err);
