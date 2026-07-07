@@ -105,7 +105,7 @@ Allow: /
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /api/*
-Sitemap: ${SITE_URL}/sitemap.xml`);
+Sitemap: ${SITE_URL}/sitemap-main.xml`);
   });
 
   let vite: any = null;

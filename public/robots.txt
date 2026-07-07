@@ -3,5 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /api/*
-
-Sitemap: https://desiredhub.xyz/sitemap.xml
+Sitemap: https://desiredhub.xyz/sitemap-main.xml

@@ -14,8 +14,8 @@
       "destination": "/api/server"
     },
     {
-      "source": "/sitemap.xml",
-      "destination": "/sitemap.xml"
+      "source": "/sitemap-main.xml",
+      "destination": "/sitemap-main.xml"
     },
     {
       "source": "/sitemap-old.xml",
