@@ -1,4 +1,15 @@
 {
+  "headers": [
+    {
+      "source": "/feed.xml",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/rss+xml; charset=utf-8"
+        }
+      ]
+    }
+  ],
   "functions": {
     "api/server.js": {
       "includeFiles": "dist/**"
@@ -16,6 +27,10 @@
     {
       "source": "/sitemap-main.xml",
       "destination": "/sitemap-main.xml"
+    },
+    {
+      "source": "/feed.xml",
+      "destination": "/feed.xml"
     },
     {
       "source": "/sitemap-old.xml",

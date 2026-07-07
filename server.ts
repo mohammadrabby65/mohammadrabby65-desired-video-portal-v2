@@ -141,68 +141,6 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
     return duration;
   }
 
-  // RSS Feed
-  app.get("/feed.xml", async (req, res) => {
-    try {
-      const q = query(collection(db, "posts"), orderBy("publishedAt", "desc"), limit(100));
-      const snap = await getDocs(q);
-      
-      let itemsXml = "";
-      snap.forEach(doc => {
-        const video = doc.data();
-        if (video.isActive === false) return;
-        
-        let uploadDate = new Date().toUTCString();
-        if (video.publishedAt) {
-          if (typeof video.publishedAt.toDate === "function") {
-            uploadDate = video.publishedAt.toDate().toUTCString();
-          } else if (video.publishedAt.seconds) {
-            uploadDate = new Date(video.publishedAt.seconds * 1000).toUTCString();
-          } else {
-            uploadDate = new Date(video.publishedAt).toUTCString();
-          }
-        }
-        
-        const videoUrl = `${SITE_URL}/video/${video.slug}`;
-        const title = escapeHtml(video.title || "");
-        const description = escapeHtml(video.description || "");
-        let categoryStr = "";
-        if (video.categories && video.categories.length > 0) {
-          categoryStr = escapeHtml(video.categories[0]);
-        } else if (video.category) {
-          categoryStr = escapeHtml(video.category);
-        }
-        
-        itemsXml += `
-    <item>
-      <title>${title}</title>
-      <link>${videoUrl}</link>
-      <description>${description}</description>
-      <pubDate>${uploadDate}</pubDate>
-      <guid isPermaLink="true">${videoUrl}</guid>
-      ${categoryStr ? `<category>${categoryStr}</category>` : ""}
-    </item>`;
-      });
-
-      const rss = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-  <channel>
-    <title>DesiredHub</title>
-    <description>DesiredHub - Free Desi Porn &amp; Hot Indian Sex Videos Online</description>
-    <link>${SITE_URL}</link>
-    <language>en-US</language>
-    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
-    <atom:link href="${SITE_URL}/feed.xml" rel="self" type="application/rss+xml" />${itemsXml}
-  </channel>
-</rss>`;
-
-      res.set("Content-Type", "application/rss+xml; charset=utf-8");
-      res.send(rss);
-    } catch (e) {
-      console.error("RSS Error:", e);
-      res.status(500).send("Error generating RSS feed");
-    }
-  });
 
   app.get("/video/:slug", async (req, res, next) => {
     try {

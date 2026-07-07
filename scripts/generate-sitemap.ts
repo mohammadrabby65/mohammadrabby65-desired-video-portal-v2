@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, query, limit } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, query, limit, orderBy } from "firebase/firestore";
 import fs from "fs";
 import path from "path";
 
@@ -139,6 +139,65 @@ async function generateSitemap() {
     const outputPath = path.join(process.cwd(), "public", "sitemap-main.xml");
     fs.writeFileSync(outputPath, xml, "utf-8");
     console.log(`Successfully generated sitemap-main.xml at ${outputPath}`);
+
+    // Generate RSS Feed
+    console.log("Generating RSS feed...");
+    const rssQuery = query(collection(db, "posts"), orderBy("publishedAt", "desc"), limit(100));
+    const rssSnap = await getDocs(rssQuery);
+    
+    let itemsXml = "";
+    rssSnap.forEach(doc => {
+      const data = doc.data();
+      if (data.isActive === false) return;
+      
+      let uploadDate = new Date().toUTCString();
+      if (data.publishedAt) {
+        if (typeof data.publishedAt.toDate === "function") {
+          uploadDate = data.publishedAt.toDate().toUTCString();
+        } else if (data.publishedAt.seconds) {
+          uploadDate = new Date(data.publishedAt.seconds * 1000).toUTCString();
+        } else {
+          uploadDate = new Date(data.publishedAt).toUTCString();
+        }
+      }
+      
+      const videoUrl = `${SITE_URL}/video/${data.slug}`;
+      const title = escapeXml(data.title || "");
+      const description = escapeXml(data.description || "");
+      let categoryStr = "";
+      if (data.categories && data.categories.length > 0) {
+        categoryStr = escapeXml(data.categories[0]);
+      } else if (data.category) {
+        categoryStr = escapeXml(data.category);
+      }
+      
+      itemsXml += `
+    <item>
+      <title>${title}</title>
+      <link>${videoUrl}</link>
+      <description>${description}</description>
+      <pubDate>${uploadDate}</pubDate>
+      <guid isPermaLink="true">${videoUrl}</guid>
+      ${categoryStr ? `<category>${categoryStr}</category>` : ""}
+    </item>`;
+    });
+
+    const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>DesiredHub</title>
+    <description>DesiredHub - Free Desi Porn &amp; Hot Indian Sex Videos Online</description>
+    <link>${SITE_URL}</link>
+    <language>en-US</language>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <atom:link href="${SITE_URL}/feed.xml" rel="self" type="application/rss+xml" />${itemsXml}
+  </channel>
+</rss>`;
+
+    const rssPath = path.join(process.cwd(), "public", "feed.xml");
+    fs.writeFileSync(rssPath, rssXml, "utf-8");
+    console.log(`Successfully generated feed.xml at ${rssPath}`);
+
     process.exit(0);
   } catch (err) {
     console.error("Error generating sitemap:", err);
