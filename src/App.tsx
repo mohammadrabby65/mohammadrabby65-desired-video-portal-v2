@@ -34,6 +34,9 @@ const Compliance2257 = lazy(() =>
 const PrivacyPolicy = lazy(() =>
   import("./pages/PrivacyPolicy").then((module) => ({ default: module.PrivacyPolicy })),
 );
+const Sitemap = lazy(() =>
+  import("./pages/Sitemap").then((module) => ({ default: module.Sitemap })),
+);
 const Login = lazy(() =>
   import("./pages/admin/Login").then((module) => ({ default: module.Login })),
 );
@@ -161,6 +164,7 @@ export default function App() {
             <Route path="dmca" element={<DMCA />} />
             <Route path="2257" element={<Compliance2257 />} />
             <Route path="privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="sitemap" element={<Sitemap />} />
           </Route>
 
           <Route path="/admin/login" element={<Login />} />

@@ -65,6 +65,10 @@ export function Layout() {
             <Link to="/privacy-policy" className="hover:text-white transition-colors">
               Privacy Policy
             </Link>
+            <span className="text-neutral-700">|</span>
+            <Link to="/sitemap" className="hover:text-white transition-colors">
+              Sitemap
+            </Link>
           </div>
         </div>
       </footer>
