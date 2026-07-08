@@ -35,12 +35,12 @@ function escapeXml(unsafe: string) {
 async function generateSitemap() {
   try {
     console.log("Generating static sitemap...");
+
     // Query categories
     const catQuery = query(collection(db, "categories"), limit(100));
     const catSnap = await getDocs(catQuery);
     const categoriesList = catSnap.docs.map(doc => doc.data().slug).filter(Boolean);
-
-    
+        
     // Read sitemap-old.xml to preserve archive behavior
     const oldSitemapPath = path.join(process.cwd(), "public", "sitemap-old.xml");
     const archivedSlugs = new Set<string>();
@@ -58,19 +58,22 @@ async function generateSitemap() {
     // Query posts
     const postQuery = query(collection(db, "posts"), orderBy("publishedAt", "desc"), limit(2000));
     const postSnap = await getDocs(postQuery);
-
-    
-    const postsList = postSnap.docs.map(doc => {
+        
+    const activePosts = postSnap.docs.map(doc => {
       const data = doc.data();
       let lastmod = "";
+      let uploadDate = new Date().toUTCString();
       if (data.publishedAt) {
         let dateObj;
         if (typeof data.publishedAt.toDate === "function") {
           dateObj = data.publishedAt.toDate();
+          uploadDate = dateObj.toUTCString();
         } else if (data.publishedAt.seconds) {
           dateObj = new Date(data.publishedAt.seconds * 1000);
+          uploadDate = dateObj.toUTCString();
         } else {
           dateObj = new Date(data.publishedAt);
+          uploadDate = dateObj.toUTCString();
         }
         if (dateObj && !isNaN(dateObj.getTime())) {
           if (dateObj > new Date()) {
@@ -82,14 +85,22 @@ async function generateSitemap() {
       return {
         slug: data.slug,
         tags: data.tags || [],
-        lastmod
+        categories: data.categories || [],
+        category: data.category || "",
+        title: data.title || "",
+        description: data.description || "",
+        isActive: data.isActive,
+        lastmod,
+        uploadDate
       };
-    }).filter(p => p.slug && !archivedSlugs.has(p.slug));
+    }).filter(p => p.isActive !== false && p.slug);
+
+    const postsList = activePosts.filter(p => !archivedSlugs.has(p.slug));
 
     // Build XML
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>';
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-    
+        
     // Home Page
     xml += `  <url>\n`;
     xml += `    <loc>${SITE_URL}/</loc>\n`;
@@ -118,26 +129,6 @@ async function generateSitemap() {
       }
     }
 
-    /*
-    // Query tags
-    const tagsSet = new Set<string>();
-    postsList.forEach(post => {
-      if (post.tags && Array.isArray(post.tags)) {
-        post.tags.forEach((tag: string) => tagsSet.add(tag));
-      }
-    });
-    const tagsList = Array.from(tagsSet);
-    
-    // Tags
-    for (const tag of tagsList) {
-      xml += `  <url>\n`;
-      xml += `    <loc>${escapeXml(`${SITE_URL}/tag/${encodeURIComponent(tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''))}`)}</loc>\n`;
-      xml += `    <changefreq>weekly</changefreq>\n`;
-      xml += `    <priority>0.6</priority>\n`;
-      xml += `  </url>\n`;
-    }
-    */
-
     // Posts
     for (const post of postsList) {
       xml += `  <url>\n`;
@@ -149,7 +140,6 @@ async function generateSitemap() {
       xml += `    <priority>0.7</priority>\n`;
       xml += `  </url>\n`;
     }
-
     xml += `</urlset>\n`;
 
     const outputPath = path.join(process.cwd(), "public", "sitemap-main.xml");
@@ -158,41 +148,25 @@ async function generateSitemap() {
 
     // Generate RSS Feed
     console.log("Generating RSS feed...");
-    const rssQuery = query(collection(db, "posts"), orderBy("publishedAt", "desc"), limit(100));
-    const rssSnap = await getDocs(rssQuery);
-    
+        
     let itemsXml = "";
-    rssSnap.forEach(doc => {
-      const data = doc.data();
-      if (data.isActive === false) return;
-      
-      let uploadDate = new Date().toUTCString();
-      if (data.publishedAt) {
-        if (typeof data.publishedAt.toDate === "function") {
-          uploadDate = data.publishedAt.toDate().toUTCString();
-        } else if (data.publishedAt.seconds) {
-          uploadDate = new Date(data.publishedAt.seconds * 1000).toUTCString();
-        } else {
-          uploadDate = new Date(data.publishedAt).toUTCString();
-        }
-      }
-      
-      const videoUrl = `${SITE_URL}/video/${data.slug}`;
-      const title = escapeXml(data.title || "");
-      const description = escapeXml(data.description || "");
+    postsList.slice(0, 100).forEach(post => {
+      const videoUrl = `${SITE_URL}/video/${post.slug}`;
+      const title = escapeXml(post.title || "");
+      const description = escapeXml(post.description || "");
       let categoryStr = "";
-      if (data.categories && data.categories.length > 0) {
-        categoryStr = escapeXml(data.categories[0]);
-      } else if (data.category) {
-        categoryStr = escapeXml(data.category);
+      if (post.categories && post.categories.length > 0) {
+        categoryStr = escapeXml(post.categories[0]);
+      } else if (post.category) {
+        categoryStr = escapeXml(post.category);
       }
-      
+            
       itemsXml += `
     <item>
       <title>${title}</title>
       <link>${videoUrl}</link>
       <description>${description}</description>
-      <pubDate>${uploadDate}</pubDate>
+      <pubDate>${post.uploadDate}</pubDate>
       <guid isPermaLink="true">${videoUrl}</guid>
       ${categoryStr ? `<category>${categoryStr}</category>` : ""}
     </item>`;
