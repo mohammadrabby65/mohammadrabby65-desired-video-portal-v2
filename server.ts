@@ -108,6 +108,151 @@ Disallow: /api/*
 Sitemap: ${SITE_URL}/sitemap-main.xml`);
   });
 
+  let cachedSitemap: { xml: string, expires: number } | null = null;
+  let cachedFeed: { xml: string, expires: number } | null = null;
+
+  function escapeXml(unsafe: string) {
+    return unsafe.replace(/[<>&'"]/g, function (c) {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
+  }
+
+  async function fetchDynamicXml() {
+    const now = Date.now();
+    if (cachedSitemap && cachedFeed && cachedSitemap.expires > now && cachedFeed.expires > now) {
+      return { sitemap: cachedSitemap.xml, feed: cachedFeed.xml };
+    }
+
+    const catQuery = query(collection(db, "categories"), limit(100));
+    const catSnap = await getDocs(catQuery);
+    const categoriesList = catSnap.docs.map(doc => doc.data().slug).filter(Boolean);
+    
+    const oldSitemapPath = path.join(process.cwd(), "public", "sitemap-old.xml");
+    const archivedSlugs = new Set<string>();
+    if (fs.existsSync(oldSitemapPath)) {
+      const oldSitemap = fs.readFileSync(oldSitemapPath, "utf-8");
+      const regex = /<loc>.*?\/video\/([^<]+)<\/loc>/g;
+      let match;
+      while ((match = regex.exec(oldSitemap)) !== null) {
+        archivedSlugs.add(match[1]);
+      }
+    }
+
+    const postQuery = query(collection(db, "posts"), orderBy("publishedAt", "desc"), limit(2000));
+    const postSnap = await getDocs(postQuery);
+    
+    const activePosts = postSnap.docs.map(doc => {
+      const data = doc.data();
+      let lastmod = "";
+      let uploadDate = new Date().toUTCString();
+      if (data.publishedAt) {
+        let dateObj;
+        if (typeof data.publishedAt.toDate === "function") {
+          dateObj = data.publishedAt.toDate();
+          uploadDate = dateObj.toUTCString();
+        } else if (data.publishedAt.seconds) {
+          dateObj = new Date(data.publishedAt.seconds * 1000);
+          uploadDate = dateObj.toUTCString();
+        } else {
+          dateObj = new Date(data.publishedAt);
+          uploadDate = dateObj.toUTCString();
+        }
+        if (dateObj && !isNaN(dateObj.getTime())) {
+          if (dateObj > new Date()) {
+            dateObj = new Date();
+          }
+          lastmod = dateObj.toISOString();
+        }
+      }
+      return {
+        slug: data.slug,
+        tags: data.tags || [],
+        categories: data.categories || [],
+        category: data.category || "",
+        title: data.title || "",
+        description: data.description || "",
+        isActive: data.isActive,
+        lastmod,
+        uploadDate
+      };
+    }).filter(p => p.isActive !== false && p.slug);
+    
+    const postsList = activePosts.filter(p => !archivedSlugs.has(p.slug));
+
+    let sitemapXml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    sitemapXml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+    sitemapXml += `  <url>\n    <loc>${SITE_URL}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
+
+    const defaultCats = ["trending", "latest", "popular"];
+    for (const cat of defaultCats) {
+      sitemapXml += `  <url>\n    <loc>${escapeXml(`${SITE_URL}/category/${cat}`)}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+    }
+    for (const slug of categoriesList) {
+      if (!defaultCats.includes(slug)) {
+        sitemapXml += `  <url>\n    <loc>${escapeXml(`${SITE_URL}/category/${slug}`)}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+      }
+    }
+    for (const post of postsList) {
+      sitemapXml += `  <url>\n    <loc>${escapeXml(`${SITE_URL}/video/${post.slug}`)}</loc>\n`;
+      if (post.lastmod) {
+        sitemapXml += `    <lastmod>${post.lastmod}</lastmod>\n`;
+      }
+      sitemapXml += `    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+    }
+    sitemapXml += `</urlset>\n`;
+
+    let itemsXml = "";
+    postsList.slice(0, 100).forEach(post => {
+      const videoUrl = `${SITE_URL}/video/${post.slug}`;
+      const title = escapeXml(post.title || "");
+      const description = escapeXml(post.description || "");
+      let categoryStr = "";
+      if (post.categories && post.categories.length > 0) {
+        categoryStr = escapeXml(post.categories[0]);
+      } else if (post.category) {
+        categoryStr = escapeXml(post.category);
+      }
+      itemsXml += `    <item>\n      <title>${title}</title>\n      <link>${videoUrl}</link>\n      <description>${description}</description>\n      <pubDate>${post.uploadDate}</pubDate>\n      <guid isPermaLink="true">${videoUrl}</guid>\n      ${categoryStr ? `<category>${categoryStr}</category>\n` : ""}    </item>\n`;
+    });
+    
+    const rssXml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n  <channel>\n    <title>DesiredHub</title>\n    <description>DesiredHub - Free Desi Porn &amp; Hot Indian Sex Videos Online</description>\n    <link>${SITE_URL}</link>\n    <language>en-US</language>\n    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>\n    <atom:link href="${SITE_URL}/feed.xml" rel="self" type="application/rss+xml" />\n${itemsXml}  </channel>\n</rss>`;
+
+    const cacheExpiration = now + 60 * 1000;
+    cachedSitemap = { xml: sitemapXml, expires: cacheExpiration };
+    cachedFeed = { xml: rssXml, expires: cacheExpiration };
+
+    return { sitemap: sitemapXml, feed: rssXml };
+  }
+
+  app.get("/sitemap-main.xml", async (req, res) => {
+    try {
+      const data = await fetchDynamicXml();
+      res.type("application/xml");
+      res.send(data.sitemap);
+    } catch (e) {
+      console.error("Error generating sitemap:", e);
+      res.status(500).send("Error generating sitemap");
+    }
+  });
+
+  app.get("/feed.xml", async (req, res) => {
+    try {
+      const data = await fetchDynamicXml();
+      res.type("application/rss+xml; charset=utf-8");
+      res.send(data.feed);
+    } catch (e) {
+      console.error("Error generating feed:", e);
+      res.status(500).send("Error generating feed");
+    }
+  });
+
   let vite: any = null;
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");

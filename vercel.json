@@ -26,11 +26,11 @@
     },
     {
       "source": "/sitemap-main.xml",
-      "destination": "/sitemap-main.xml"
+      "destination": "/api/server"
     },
     {
       "source": "/feed.xml",
-      "destination": "/feed.xml"
+      "destination": "/api/server"
     },
     {
       "source": "/sitemap-old.xml",
