@@ -40,9 +40,25 @@ async function generateSitemap() {
     const catSnap = await getDocs(catQuery);
     const categoriesList = catSnap.docs.map(doc => doc.data().slug).filter(Boolean);
 
+    
+    // Read sitemap-old.xml to preserve archive behavior
+    const oldSitemapPath = path.join(process.cwd(), "public", "sitemap-old.xml");
+    const archivedSlugs = new Set<string>();
+    if (fs.existsSync(oldSitemapPath)) {
+      const oldSitemap = fs.readFileSync(oldSitemapPath, "utf-8");
+      // Extract locs
+      const regex = /<loc>.*?\/video\/([^<]+)<\/loc>/g;
+      let match;
+      while ((match = regex.exec(oldSitemap)) !== null) {
+        archivedSlugs.add(match[1]);
+      }
+      console.log(`Found ${archivedSlugs.size} archived videos in sitemap-old.xml`);
+    }
+
     // Query posts
-    const postQuery = query(collection(db, "posts"), limit(1000));
+    const postQuery = query(collection(db, "posts"), orderBy("publishedAt", "desc"), limit(2000));
     const postSnap = await getDocs(postQuery);
+
     
     const postsList = postSnap.docs.map(doc => {
       const data = doc.data();
@@ -68,7 +84,7 @@ async function generateSitemap() {
         tags: data.tags || [],
         lastmod
       };
-    }).filter(p => p.slug);
+    }).filter(p => p.slug && !archivedSlugs.has(p.slug));
 
     // Build XML
     let xml = '<?xml version="1.0" encoding="UTF-8"?>';

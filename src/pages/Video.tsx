@@ -193,7 +193,7 @@ export function Video() {
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Main Video Section */}
           <div className="flex-1 max-w-[1200px]">
-            <VideoPlayer videoUrl={video.videoUrl} thumbnailUrl={video.thumbnailUrl} title={video.title} />
+            <VideoPlayer videoUrl={video.videoUrl} thumbnailUrl={video.thumbnailUrl} />
 
             <div className="mt-4 flex flex-col gap-4">
               <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">

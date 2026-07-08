@@ -195,7 +195,7 @@ export function Category() {
                     <SkeletonCard key={i} />
                   ))
                 : videos.map((video: any) => (
-                    <VideoCard key={video.id} video={video}  />
+                    <VideoCard key={video.id} video={video} />
                   ))}
             </div>
 

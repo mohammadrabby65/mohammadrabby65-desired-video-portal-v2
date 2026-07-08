@@ -84,16 +84,6 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
             uploadDate: video.uploadDate,
             ...(video.duration && { duration: video.duration }),
             contentUrl: video.contentUrl,
-            embedUrl: currentUrl,
-            inLanguage: "en",
-            publisher: {
-              "@type": "Organization",
-              name: "DesiredHub",
-              logo: {
-                "@type": "ImageObject",
-                url: ogImage
-              }
-            }
           })}
         </script>
       )}

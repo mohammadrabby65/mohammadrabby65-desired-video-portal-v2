@@ -104,9 +104,6 @@ export function Categories() {
                     src={cat.thumbnailUrl} 
                     alt={cat.name}
                     loading="lazy"
-                    decoding="async"
-                    width="400"
-                    height="300"
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (

@@ -21,21 +21,13 @@ export function Layout() {
             <Link to="/" className="flex items-center">
               <img 
                 src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
-                alt="DesiredHub Logo" 
-                loading="eager"
-                decoding="async"
-                width="200"
-                height="52"
+                alt="DesiredHub" 
                 className="h-10 md:h-[52px] w-auto object-contain dark:hidden"
                 referrerPolicy="no-referrer"
               />
               <img 
                 src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
-                alt="DesiredHub Logo" 
-                loading="eager"
-                decoding="async"
-                width="200"
-                height="52"
+                alt="DesiredHub" 
                 className="h-10 md:h-[52px] w-auto object-contain hidden dark:block"
                 referrerPolicy="no-referrer"
               />

@@ -6,7 +6,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatViews(views: number): string {
+export function formatViews(views?: number): string {
+  if (views === undefined || views === null || isNaN(views)) {
+    return '0';
+  }
   if (views >= 1000000) {
     return (views / 1000000).toFixed(1) + 'M';
   }
