@@ -108,6 +108,44 @@ Disallow: /api/*
 Sitemap: ${SITE_URL}/sitemap-main.xml`);
   });
 
+  let cachedCategories: any = null;
+  let categoriesCacheTime = 0;
+  
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+      if (cachedCategories && (Date.now() - categoriesCacheTime < CACHE_DURATION)) {
+        res.status(200).set({
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=600'
+        }).json(cachedCategories);
+        return;
+      }
+
+      const q = query(
+        collection(db, 'categories'),
+        orderBy('name', 'asc'),
+        limit(100)
+      );
+      const snap = await getDocs(q);
+      const cats = snap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      cachedCategories = cats.filter((c: any) => c.isActive !== false);
+      categoriesCacheTime = Date.now();
+
+      res.status(200).set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=600'
+      }).json(cachedCategories);
+    } catch (e) {
+      console.error("Categories fetch error:", e);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   let vite: any = null;
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
@@ -154,6 +192,9 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       
       const cached = videoCache.get(slug);
       if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+        if (cached.data === null) {
+          return next();
+        }
         video = cached.data;
         docId = cached.id;
       } else {
@@ -161,6 +202,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
         const snap = await getDocs(q);
         
         if (snap.empty) {
+          videoCache.set(slug, { data: null, id: "", timestamp: Date.now() });
           return next();
         }
         
@@ -229,7 +271,10 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
 
       const html = template.replace("<title>DesiredHub</title>", seoTags);
       
-      res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+      res.status(200).set({ 
+        'Content-Type': 'text/html',
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60'
+      }).end(html);
     } catch (e) {
       console.error("SEO Injection Error:", e);
       next();
