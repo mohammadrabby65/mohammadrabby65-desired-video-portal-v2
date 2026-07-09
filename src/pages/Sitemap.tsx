@@ -7,10 +7,17 @@ import { SEO } from '../components/seo/SEO';
 import { Helmet } from 'react-helmet-async';
 import { VideoPost, Category } from '../types';
 
+let cachedSitemapData: any = null;
+let cachedSitemapTime = 0;
+
 export function Sitemap() {
   const { data, isLoading } = useQuery({
     queryKey: ['html-sitemap'],
     queryFn: async () => {
+      const now = Date.now();
+      if (cachedSitemapData && now - cachedSitemapTime < 1000 * 60 * 60 * 24) {
+        return cachedSitemapData;
+      }
       // Categories
       const categoriesQ = query(
         collection(db, 'categories'),
@@ -38,13 +45,16 @@ export function Sitemap() {
       const popularSnap = await getDocs(popularQ);
       const popularVideos = popularSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
 
-      return {
+      const result = {
         categories,
         latestVideos,
         popularVideos,
       };
+      cachedSitemapData = result;
+      cachedSitemapTime = now;
+      return result;
     },
-    staleTime: 1000 * 60 * 60, // 1 hour
+    staleTime: 1000 * 60 * 60 * 24, // 1 hour
   });
 
   const jsonLd = {

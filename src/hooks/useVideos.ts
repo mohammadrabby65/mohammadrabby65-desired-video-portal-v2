@@ -16,8 +16,8 @@ export function useFeaturedVideos() {
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
   });
 }
 
@@ -82,8 +82,8 @@ export function useInfiniteVideos(filter: VideoFilter, limitCount = 10) {
     },
     getNextPageParam: (lastPage) => lastPage.lastDoc,
     initialPageParam: null as DocumentSnapshot | null,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
   });
 }
 
@@ -108,10 +108,13 @@ export function useVideoBySlug(slug: string | undefined) {
       return undefined;
     },
     enabled: !!slug,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
   });
 }
+
+let cachedLatestVideosForRelated: VideoPost[] | null = null;
+let cachedLatestVideosForRelatedTime = 0;
 
 export function useRelatedVideos(videoId: string | undefined, categories: string[] | undefined, tags: string[] | undefined) {
   return useQuery({
@@ -138,14 +141,22 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
       
       if (relatedVideos.length < 20) {
         const remaining = 20 - relatedVideos.length;
-        // Fetch remaining videos from latest, getting enough to account for duplicates and the current video
-        const latestQ = query(
-          collection(db, 'posts'),
-          orderBy('publishedAt', 'desc'),
-          limit(remaining + 20) // Provide a buffer for overlap
-        );
-        const latestSnapshot = await getDocs(latestQ);
-        const latestVideos = latestSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+        let latestVideos: VideoPost[] = [];
+        const now = Date.now();
+        if (cachedLatestVideosForRelated && now - cachedLatestVideosForRelatedTime < 1000 * 60 * 60 * 24) {
+          latestVideos = cachedLatestVideosForRelated;
+        } else {
+          // Fetch remaining videos from latest, getting enough to account for duplicates and the current video
+          const latestQ = query(
+            collection(db, 'posts'),
+            orderBy('publishedAt', 'desc'),
+            limit(40) // Provide a buffer for overlap
+          );
+          const latestSnapshot = await getDocs(latestQ);
+          latestVideos = latestSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+          cachedLatestVideosForRelated = latestVideos;
+          cachedLatestVideosForRelatedTime = now;
+        }
         
         const existingIds = new Set(relatedVideos.map(v => v.id));
         existingIds.add(videoId);
@@ -157,8 +168,8 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
       return relatedVideos;
     },
     enabled: !!videoId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
 
@@ -174,8 +185,8 @@ export function useLatestVideos(limitCount = 10) {
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
   });
 }
 
@@ -208,8 +219,8 @@ export function useAdjacentVideos(publishedAt: any, currentSlug: string | undefi
       return { prev, next };
     },
     enabled: !!publishedAt && !!currentSlug,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
   });
 }
 
@@ -263,7 +274,7 @@ export function usePaginationCount(filter: PaginationFilter) {
       const snapshot = await getCountFromServer(q);
       return snapshot.data().count;
     },
-    staleTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 30 minutes
   });
 }
 
@@ -328,7 +339,7 @@ export function usePaginationVideos(filter: PaginationFilter, page: number, limi
 
       return videos;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
   });
 }
