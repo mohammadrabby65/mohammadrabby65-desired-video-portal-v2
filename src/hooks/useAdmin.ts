@@ -39,6 +39,9 @@ export function useAdminPosts(limitCount = 10, pageParam: DocumentSnapshot | nul
   });
 }
 
+const categoryCountCache = new Map<string, { count: number, timestamp: number }>();
+const COUNT_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
 export function useCategories(limitCount = 20, pageParam: DocumentSnapshot | null = null) {
   return useQuery({
     queryKey: ['admin', 'categories', limitCount, pageParam?.id],
@@ -52,21 +55,28 @@ export function useCategories(limitCount = 20, pageParam: DocumentSnapshot | nul
       
       const cats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category & { totalVideos?: number }));
       
-      for (const cat of cats) {
+      const promises = cats.map(async (cat) => {
         try {
+          const cached = categoryCountCache.get(cat.slug);
+          if (cached && (Date.now() - cached.timestamp < COUNT_CACHE_TTL_MS)) {
+            cat.totalVideos = cached.count;
+            return;
+          }
           const countQ = query(collection(db, 'posts'), where('categories', 'array-contains', cat.slug));
           const countSnap = await getCountFromServer(countQ);
           cat.totalVideos = countSnap.data().count;
+          categoryCountCache.set(cat.slug, { count: cat.totalVideos, timestamp: Date.now() });
         } catch (e) {
           cat.totalVideos = 0;
         }
-      }
+      });
+      await Promise.all(promises);
 
       return {
         categories: cats,
         lastDoc: snapshot.docs[snapshot.docs.length - 1] || null
       };
     },
-    staleTime: 1000 * 60 * 5 // 5 min
+    staleTime: 1000 * 60 * 60 // 1 hour
   });
 }

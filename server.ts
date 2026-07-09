@@ -142,18 +142,33 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
   }
 
 
+  const videoCache = new Map<string, { data: any, id: string, timestamp: number }>();
+  const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
   app.get("/video/:slug", async (req, res, next) => {
     try {
       const slug = req.params.slug;
       
-      const q = query(collection(db, "posts"), where("slug", "==", slug), limit(1));
-      const snap = await getDocs(q);
+      let video: any;
+      let docId = "";
       
-      if (snap.empty) {
-        return next();
+      const cached = videoCache.get(slug);
+      if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+        video = cached.data;
+        docId = cached.id;
+      } else {
+        const q = query(collection(db, "posts"), where("slug", "==", slug), limit(1));
+        const snap = await getDocs(q);
+        
+        if (snap.empty) {
+          return next();
+        }
+        
+        video = snap.docs[0].data();
+        docId = snap.docs[0].id;
+        
+        videoCache.set(slug, { data: video, id: docId, timestamp: Date.now() });
       }
-      
-      const video = snap.docs[0].data();
       
       let template = "";
       if (process.env.NODE_ENV !== "production") {
@@ -209,7 +224,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
         <meta data-rh="true" name="twitter:description" content="${description}" />
         <meta data-rh="true" name="twitter:image" content="${image}" />
         <script data-rh="true" type="application/ld+json">${JSON.stringify(jsonLd)}</script>
-        <script>window.__INITIAL_VIDEO_DATA__ = ${JSON.stringify({ id: snap.docs[0].id, ...video }).replace(/</g, '\\u003c')};</script>
+        <script>window.__INITIAL_VIDEO_DATA__ = ${JSON.stringify({ id: docId, ...video }).replace(/</g, '\\u003c')};</script>
       `;
 
       const html = template.replace("<title>DesiredHub</title>", seoTags);

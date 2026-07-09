@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, limit, startAfter, DocumentSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { VideoPost } from '../../types';
 import { Link } from 'react-router-dom';
-import { Play, Pause, Square, ExternalLink, Copy, CheckCircle, AlertTriangle, XCircle, Download, Activity, Edit, RotateCw } from 'lucide-react';
+import { Play, Pause, Square, ExternalLink, Copy, CheckCircle, AlertTriangle, XCircle, Download, Activity, Edit, RotateCw, PlusCircle } from 'lucide-react';
 import { SEO } from '../../components/seo/SEO';
 
 type UrlStatus = 'pending' | 'scanning' | 'working' | 'redirect' | 'dead' | 'timeout' | 'error';
@@ -33,6 +33,7 @@ export function DeadUrls() {
   const [isSavingUrl, setIsSavingUrl] = useState(false);
   
   const resultsRef = useRef<ScanResult[]>([]);
+  const lastDocRef = useRef<DocumentSnapshot | null>(null);
   const isScanningRef = useRef(false);
   const isPausedRef = useRef(false);
   const activeRequestsRef = useRef(0);
@@ -44,9 +45,19 @@ export function DeadUrls() {
     setResults([...newResults]);
   };
 
-  const loadVideos = async () => {
+  const loadVideos = async (append = false) => {
     try {
-      const snap = await getDocs(collection(db, 'posts'));
+      let q = query(collection(db, 'posts'), limit(200));
+      if (append && lastDocRef.current) {
+        q = query(collection(db, 'posts'), startAfter(lastDocRef.current), limit(200));
+      }
+
+      const snap = await getDocs(q);
+      
+      if (!snap.empty) {
+        lastDocRef.current = snap.docs[snap.docs.length - 1];
+      }
+
       const videos = snap.docs.map(doc => {
         const data = doc.data() as VideoPost;
         return {
@@ -58,7 +69,13 @@ export function DeadUrls() {
           status: 'pending' as UrlStatus
         };
       });
-      setResultsState(videos);
+      
+      if (append) {
+        setResultsState([...resultsRef.current, ...videos]);
+      } else {
+        setResultsState(videos);
+      }
+      
       setHasLoaded(true);
       return videos;
     } catch (err) {
@@ -296,12 +313,21 @@ export function DeadUrls() {
           )}
 
           {hasLoaded && !isScanning && !isPaused && (
-            <button 
-              onClick={handleReset}
-              className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium transition-colors"
-            >
-              Reset
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => loadVideos(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium transition-colors"
+              >
+                <PlusCircle className="w-4 h-4" />
+                Load Next 200
+              </button>
+              <button 
+                onClick={handleReset}
+                className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Reset
+              </button>
+            </div>
           )}
         </div>
       </div>
