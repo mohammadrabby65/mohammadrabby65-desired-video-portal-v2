@@ -155,7 +155,7 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
     },
     initialPageParam: null as DocumentSnapshot | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    enabled: !!videoId,
+    enabled: false,
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });

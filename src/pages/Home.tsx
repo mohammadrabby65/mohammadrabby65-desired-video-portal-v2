@@ -42,7 +42,7 @@ export function Home() {
     isError
   } = usePaginationVideos(filter, currentPage, 20);
 
-  const { data: rawCategories = [] } = usePublicCategories();
+  const { data: rawCategories = [] } = usePublicCategories(false);
   const categories = [...rawCategories]
     .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
     .slice(0, 20);
