@@ -206,7 +206,7 @@ export function useAdjacentVideos(publishedAt: any, currentSlug: string | undefi
       
       return { prev, next };
     },
-    enabled: !!publishedAt && !!currentSlug,
+    enabled: false,
     staleTime: 1000 * 60 * 60 * 24, // 5 minutes
     gcTime: 1000 * 60 * 60 * 24, // 30 minutes
   });
@@ -257,12 +257,10 @@ export function usePaginationCount(filter: PaginationFilter) {
   return useQuery({
     queryKey: ['videos', 'count', filter],
     queryFn: async () => {
-      const constraints = buildQueryConstraints(filter);
-      const q = query(collection(db, 'posts'), ...constraints);
-      const snapshot = await getCountFromServer(q);
-      return snapshot.data().count;
+      // Disabled to save Firestore reads
+      return 10000;
     },
-    staleTime: 1000 * 60 * 60 * 24, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
 

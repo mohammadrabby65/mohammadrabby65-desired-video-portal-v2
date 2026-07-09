@@ -11,7 +11,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
 
-  const { data: rawCategories = [], isLoading } = usePublicCategories();
+  const { data: rawCategories = [], isLoading } = usePublicCategories(isOpen);
   const categories = [...rawCategories].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
   return (

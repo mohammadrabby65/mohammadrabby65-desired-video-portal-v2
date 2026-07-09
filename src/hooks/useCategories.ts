@@ -3,7 +3,7 @@ import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Category } from '../types';
 
-export function usePublicCategories() {
+export function usePublicCategories(enabled = true) {
   return useQuery({
     queryKey: ['public-categories-all'],
     queryFn: async () => {
@@ -20,6 +20,7 @@ export function usePublicCategories() {
       
       return cats.filter(c => c.isActive !== false);
     },
+    enabled,
     staleTime: 1000 * 60 * 60, // 1 hour
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
