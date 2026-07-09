@@ -257,8 +257,10 @@ export function usePaginationCount(filter: PaginationFilter) {
   return useQuery({
     queryKey: ['videos', 'count', filter],
     queryFn: async () => {
-      // Disabled to save Firestore reads
-      return 10000;
+      const constraints = buildQueryConstraints(filter);
+      const q = query(collection(db, 'posts'), ...constraints);
+      const snapshot = await getCountFromServer(q);
+      return snapshot.data().count;
     },
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
   });
