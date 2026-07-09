@@ -116,57 +116,45 @@ export function useVideoBySlug(slug: string | undefined) {
 let cachedLatestVideosForRelated: VideoPost[] | null = null;
 let cachedLatestVideosForRelatedTime = 0;
 
-export function useRelatedVideos(videoId: string | undefined, categories: string[] | undefined, tags: string[] | undefined) {
-  return useQuery({
+export function useRelatedVideos(videoId: string | undefined, categories: string[] | undefined, tags: string[] | undefined, limitCount = 4) {
+  return useInfiniteQuery({
     queryKey: ['videos', 'related', videoId],
-    queryFn: async () => {
-      if (!videoId) return [];
-      
-      let relatedVideos: VideoPost[] = [];
-      
-      if (categories && categories.length > 0) {
-        const q = query(
-          collection(db, 'posts'),
-          where('categories', 'array-contains-any', categories.slice(0, 10)),
-          orderBy('publishedAt', 'desc'),
-          limit(21) // Fetch 21 in case one of them is the current video
-        );
-        
-        const snapshot = await getDocs(q);
-        const fetchedVideos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
-        
-        // Filter out current video and limit to 20
-        relatedVideos = fetchedVideos.filter(v => v.id !== videoId).slice(0, 20);
+    queryFn: async ({ pageParam = null }) => {
+      if (!videoId || !categories || categories.length === 0) {
+        return { videos: [], nextCursor: null };
       }
-      
-      if (relatedVideos.length < 20) {
-        const remaining = 20 - relatedVideos.length;
-        let latestVideos: VideoPost[] = [];
-        const now = Date.now();
-        if (cachedLatestVideosForRelated && now - cachedLatestVideosForRelatedTime < 1000 * 60 * 60 * 24) {
-          latestVideos = cachedLatestVideosForRelated;
-        } else {
-          // Fetch remaining videos from latest, getting enough to account for duplicates and the current video
-          const latestQ = query(
-            collection(db, 'posts'),
-            orderBy('publishedAt', 'desc'),
-            limit(40) // Provide a buffer for overlap
-          );
-          const latestSnapshot = await getDocs(latestQ);
-          latestVideos = latestSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
-          cachedLatestVideosForRelated = latestVideos;
-          cachedLatestVideosForRelatedTime = now;
-        }
-        
-        const existingIds = new Set(relatedVideos.map(v => v.id));
-        existingIds.add(videoId);
-        
-        const additionalVideos = latestVideos.filter(v => !existingIds.has(v.id)).slice(0, remaining);
-        relatedVideos = [...relatedVideos, ...additionalVideos];
+
+      const constraints: QueryConstraint[] = [
+        where('categories', 'array-contains-any', categories.slice(0, 10)),
+        orderBy('publishedAt', 'desc'),
+        limit(limitCount + 1)
+      ];
+
+      if (pageParam) {
+        constraints.push(startAfter(pageParam));
       }
-      
-      return relatedVideos;
+
+      const q = query(collection(db, 'posts'), ...constraints);
+      const snapshot = await getDocs(q);
+
+      let fetchedDocs = snapshot.docs;
+      let nextCursor: DocumentSnapshot | null = null;
+
+      const filteredDocs = fetchedDocs.filter(doc => doc.id !== videoId);
+
+      if (filteredDocs.length > limitCount) {
+        nextCursor = filteredDocs[limitCount - 1];
+        filteredDocs.pop();
+      } else if (fetchedDocs.length > limitCount) {
+        nextCursor = fetchedDocs[fetchedDocs.length - 1];
+      }
+
+      const videos = filteredDocs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+
+      return { videos, nextCursor };
     },
+    initialPageParam: null as DocumentSnapshot | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: !!videoId,
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
