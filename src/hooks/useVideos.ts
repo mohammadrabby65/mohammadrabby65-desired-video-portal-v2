@@ -67,7 +67,7 @@ export function useInfiniteVideos(filter: VideoFilter, limitCount = 10) {
         constraints.push(startAfter(pageParam));
       }
 
-      const q = query(collection(db, 'posts'), ...constraints);
+      const q = query(collection(db, 'posts'), ...constraints, limit(1000));
       const snapshot = await getDocs(q);
 
       let videos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
