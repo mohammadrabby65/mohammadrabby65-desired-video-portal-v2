@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 import { Home, List, X, Flame, Clock } from 'lucide-react';
+import { usePublicCategories } from '../../hooks/useCategories';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -13,25 +11,8 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
 
-  const { data: categories = [], isLoading } = useQuery({
-    queryKey: ['public-categories'],
-    queryFn: async () => {
-      const q = query(
-        collection(db, 'categories'),
-        orderBy('name', 'asc'),
-        limit(100)
-      );
-      const snap = await getDocs(q);
-      let cats = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      })) as { id: string; name: string; slug: string; isActive?: boolean; displayOrder?: number }[];
-      
-      cats = cats.filter(c => c.isActive !== false).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-      return cats;
-    },
-    staleTime: 1000 * 60 * 60 // 1 hour
-  });
+  const { data: rawCategories = [], isLoading } = usePublicCategories();
+  const categories = [...rawCategories].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
   return (
     <>

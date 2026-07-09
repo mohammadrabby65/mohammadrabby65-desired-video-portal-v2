@@ -98,6 +98,15 @@ export function useVideoBySlug(slug: string | undefined) {
       const doc = snapshot.docs[0];
       return { id: doc.id, ...doc.data() } as VideoPost;
     },
+    initialData: () => {
+      if (typeof window !== 'undefined' && (window as any).__INITIAL_VIDEO_DATA__) {
+        const data = (window as any).__INITIAL_VIDEO_DATA__;
+        if (data.slug === slug) {
+          return data;
+        }
+      }
+      return undefined;
+    },
     enabled: !!slug,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes

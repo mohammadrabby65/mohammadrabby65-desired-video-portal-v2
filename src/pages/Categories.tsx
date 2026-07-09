@@ -1,6 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import { collection, query, orderBy, getDocs, limit, getCountFromServer, where } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { usePublicCategories } from '../hooks/useCategories';
 import { Link } from 'react-router-dom';
 import { Category } from '../types';
 import { SEO } from '../components/seo/SEO';
@@ -13,35 +11,8 @@ interface CategoryWithCount extends Category {
 }
 
 export function Categories() {
-  const { data: categories, isLoading } = useQuery({
-    queryKey: ['public-categories-with-counts'],
-    queryFn: async () => {
-      const q = query(
-        collection(db, 'categories'),
-        orderBy('name', 'asc'),
-        limit(100)
-      );
-      const snap = await getDocs(q);
-      
-      let cats: CategoryWithCount[] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CategoryWithCount));
-      cats = cats.filter(c => c.isActive !== false).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-      
-      // Fetch total counts for each category
-      for (const cat of cats) {
-        try {
-          const countQ = query(collection(db, 'posts'), where('categories', 'array-contains', cat.slug));
-          const countSnap = await getCountFromServer(countQ);
-          cat.totalVideos = countSnap.data().count;
-        } catch (e) {
-           console.error("Error fetching count for", cat.name, e);
-           cat.totalVideos = 0;
-        }
-      }
-      
-      return cats;
-    },
-    staleTime: 1000 * 60 * 30 // 30 minutes
-  });
+  const { data: rawCategories = [], isLoading } = usePublicCategories();
+  const categories = [...rawCategories].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -118,11 +89,6 @@ export function Categories() {
                 {/* Content */}
                 <div className="absolute inset-x-0 bottom-0 p-4">
                   <h3 className="text-white font-bold text-lg mb-1">{cat.name}</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-neutral-400 bg-black/50 px-2 py-1 rounded-md backdrop-blur-sm">
-                      {cat.totalVideos || 0} videos
-                    </span>
-                  </div>
                 </div>
               </Link>
             ))}

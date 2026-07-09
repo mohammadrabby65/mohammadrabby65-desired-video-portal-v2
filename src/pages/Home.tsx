@@ -4,9 +4,7 @@ import { usePaginationVideos, usePaginationCount, PaginationFilter } from '../ho
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { ChevronDown } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { usePublicCategories } from '../hooks/useCategories';
 import { NavLink } from 'react-router-dom';
 import { SEO } from '../components/seo/SEO';
 import { Pagination } from '../components/ui/Pagination';
@@ -44,21 +42,10 @@ export function Home() {
     isError
   } = usePaginationVideos(filter, currentPage, 20);
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['public-categories-nav'],
-    queryFn: async () => {
-      const q = query(
-        collection(db, 'categories'),
-        orderBy('displayOrder', 'asc'),
-        limit(20)
-      );
-      const snap = await getDocs(q);
-      let cats = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as { id: string, name: string, slug: string, isActive?: boolean, displayOrder?: number }[];
-      cats = cats.filter(c => c.isActive !== false);
-      return cats;
-    },
-    staleTime: 1000 * 60 * 30 // 30 minutes
-  });
+  const { data: rawCategories = [] } = usePublicCategories();
+  const categories = [...rawCategories]
+    .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+    .slice(0, 20);
 
   return (
     <div className="flex-1 pb-16 pt-8">
