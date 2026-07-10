@@ -57,12 +57,7 @@ export function Video() {
         localStorage.setItem(key, now.toString());
         const incrementViews = async () => {
           try {
-            const { doc, updateDoc, increment } = await import("firebase/firestore");
-            const { db } = await import("../lib/firebase");
-            const videoRef = doc(db, "posts", video.id);
-            await updateDoc(videoRef, {
-              views: increment(1)
-            });
+            await fetch(`/api/videos/${video.id}/view`, { method: 'POST' });
           } catch (err) {
             console.error("Failed to increment views:", err);
           }

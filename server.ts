@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, query, limit, where, orderBy } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, query, limit, where, orderBy, doc, updateDoc, increment, getCountFromServer } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
 import fs from "fs";
 
@@ -143,6 +143,125 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
     } catch (e) {
       console.error("Categories fetch error:", e);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  const videosCache = new Map<string, { data: any, timestamp: number }>();
+  const countCache = new Map<string, { count: number, timestamp: number }>();
+  const VIDEOS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+  app.get("/api/videos", async (req, res) => {
+    try {
+      const { category, tag, q: searchQuery, sortBy, page = "1", limitCount = "20" } = req.query;
+      
+      const cacheKey = JSON.stringify({ category, tag, searchQuery, sortBy, page, limitCount });
+      const cached = videosCache.get(cacheKey);
+      
+      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
+         res.status(200).set({
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+         }).json(cached.data);
+         return;
+      }
+
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limitCount as string, 10) || 20;
+
+      const constraints: any[] = [];
+      if (searchQuery) {
+        const searchWord = (searchQuery as string).trim().toLowerCase().split(' ')[0];
+        if (searchWord) constraints.push(where('searchTerms', 'array-contains', searchWord));
+      } else if (category && category !== 'All') {
+        constraints.push(where('categories', 'array-contains', category));
+        constraints.push(orderBy((sortBy as string) && sortBy !== 'random' ? sortBy as string : 'publishedAt', 'desc'));
+      } else if (tag) {
+        constraints.push(where('tags', 'array-contains', tag));
+        constraints.push(orderBy((sortBy as string) && sortBy !== 'random' ? sortBy as string : 'publishedAt', 'desc'));
+      } else {
+        if (sortBy && sortBy !== 'random') {
+          constraints.push(orderBy(sortBy as string, 'desc'));
+        } else if (!sortBy) {
+          constraints.push(orderBy('publishedAt', 'desc'));
+        }
+      }
+
+      const videosQ = query(collection(db, 'posts'), ...constraints, limit(pageNum * limitNum));
+      const videosSnap = await getDocs(videosQ);
+      
+      const startIndex = (pageNum - 1) * limitNum;
+      const paginatedDocs = videosSnap.docs.slice(startIndex);
+      
+      let videos = paginatedDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      if (sortBy === 'random') {
+        videos = videos.sort(() => Math.random() - 0.5);
+      }
+
+      videosCache.set(cacheKey, { data: videos, timestamp: Date.now() });
+
+      res.status(200).set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+      }).json(videos);
+    } catch (err) {
+      console.error("API /videos error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/videos/count", async (req, res) => {
+    try {
+      const { category, tag, q: searchQuery } = req.query;
+      
+      const cacheKey = JSON.stringify({ category, tag, searchQuery });
+      const cached = countCache.get(cacheKey);
+      
+      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
+         res.status(200).set({
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+         }).json({ count: cached.count });
+         return;
+      }
+
+      const constraints: any[] = [];
+      if (searchQuery) {
+        const searchWord = (searchQuery as string).trim().toLowerCase().split(' ')[0];
+        if (searchWord) constraints.push(where('searchTerms', 'array-contains', searchWord));
+      } else if (category && category !== 'All') {
+        constraints.push(where('categories', 'array-contains', category));
+      } else if (tag) {
+        constraints.push(where('tags', 'array-contains', tag));
+      }
+
+      const countQ = query(collection(db, 'posts'), ...constraints, limit(1000));
+      const countSnap = await getCountFromServer(countQ);
+      const count = countSnap.data().count;
+
+      countCache.set(cacheKey, { count, timestamp: Date.now() });
+
+      res.status(200).set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+      }).json({ count });
+    } catch (err) {
+      console.error("API /videos/count error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/videos/:id/view", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const videoRef = doc(db, "posts", id);
+      await updateDoc(videoRef, {
+        views: increment(1)
+      });
+      res.status(200).json({ success: true });
+    } catch (err) {
+      console.error("View increment error:", err);
+      res.status(500).json({ error: "Failed to increment view" });
     }
   });
 
