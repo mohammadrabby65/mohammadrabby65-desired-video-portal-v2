@@ -308,7 +308,7 @@ export function usePaginationCount(filter: PaginationFilter) {
     queryKey: ['videos', 'count', filter],
     queryFn: async () => {
       const constraints = buildQueryConstraints(filter);
-      const q = query(collection(db, 'posts'), ...constraints);
+      const q = query(collection(db, 'posts'), ...constraints, limit(1000));
       const snapshot = await getCountFromServer(q);
       return snapshot.data().count;
     },
@@ -349,13 +349,43 @@ export function usePaginationVideos(filter: PaginationFilter, page: number, limi
       if (page > 1) {
         if (prevCursor) {
           constraints.push(startAfter(prevCursor));
+          const q = query(collection(db, 'posts'), ...constraints, limit(limitCount));
+          const snapshot = await getDocs(q);
+          
+          if (snapshot.docs.length > 0) {
+            const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+            cursorCache[filterKey][page] = lastDoc;
+            sessionStorage.setItem(`cursor_${filterKey}_${page}`, lastDoc.id);
+          }
+          
+          let videos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+          if (filter.sortBy === 'random') {
+            videos = videos.sort(() => Math.random() - 0.5);
+          }
+          return videos;
         } else {
-          // In a real application, if the cursor is missing (e.g., direct jump to page 10),
-          // we cannot fetch page 10 without reading all intervening documents.
-          // To strictly adhere to "read only 20 documents", we cannot catch up sequentially.
-          // As a fallback to prevent crashing, we just execute without a cursor (fetches page 1),
-          // but we log a warning.
-          console.warn(`Missing cursor for page ${page}. Firestore does not support arbitrary offsets without charging for skipped reads.`);
+          // If cursor is missing (e.g., user clicked page 3 directly), fetch up to that page
+          // This costs reads for skipped pages, but keeps it minimal (not the whole collection)
+          const catchUpQ = query(collection(db, 'posts'), ...constraints, limit(page * limitCount));
+          const catchUpSnap = await getDocs(catchUpQ);
+          
+          // Save intermediate cursors to cache
+          for (let i = 1; i <= page; i++) {
+            const pageEndIndex = Math.min(i * limitCount - 1, catchUpSnap.docs.length - 1);
+            if (pageEndIndex >= 0) {
+              const doc = catchUpSnap.docs[pageEndIndex];
+              cursorCache[filterKey][i] = doc;
+              sessionStorage.setItem(`cursor_${filterKey}_${i}`, doc.id);
+            }
+          }
+          
+          const skipCount = (page - 1) * limitCount;
+          let videos = catchUpSnap.docs.slice(skipCount).map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+          
+          if (filter.sortBy === 'random') {
+            videos = videos.sort(() => Math.random() - 0.5);
+          }
+          return videos;
         }
       }
       
