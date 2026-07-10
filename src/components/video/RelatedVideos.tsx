@@ -19,7 +19,7 @@ export function RelatedVideos({ videoId, categories, tags }: RelatedVideosProps)
     <div className="w-full">
       <h3 className="text-xl font-bold text-white mb-4">{title}</h3>
       
-      <div className="grid grid-cols-2 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-1 2xl:grid-cols-2 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-1 2xl:grid-cols-2 gap-3 md:gap-4 min-w-0 w-full">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
           : displayVideos.map(video => <VideoCard key={video.id} video={video} />)}

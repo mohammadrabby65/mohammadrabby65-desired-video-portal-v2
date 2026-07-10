@@ -78,8 +78,8 @@ export function Video() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-4 container mx-auto">
-        <div className="animate-pulse flex flex-col lg:flex-row gap-6">
+      <div className="flex-1 min-w-0 p-4 container mx-auto">
+        <div className="animate-pulse flex flex-col lg:flex-row gap-6 min-w-0 w-full">
           <div className="flex-1">
             <div className="w-full aspect-video bg-neutral-900 rounded-xl mb-4" />
             <div className="h-8 bg-neutral-900 rounded w-3/4 mb-2" />
@@ -91,8 +91,8 @@ export function Video() {
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex gap-2">
-                  <div className="w-40 aspect-video bg-neutral-900 rounded-lg" />
-                  <div className="flex-1 space-y-2">
+                  <div className="w-32 sm:w-40 aspect-video bg-neutral-900 rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-2 min-w-0">
                     <div className="h-4 bg-neutral-900 rounded w-full" />
                     <div className="h-3 bg-neutral-900 rounded w-1/2" />
                   </div>
@@ -167,36 +167,36 @@ export function Video() {
           contentUrl: video.videoUrl,
         }}
       />
-      <div className="flex-1 p-4 container mx-auto pb-10">
-        <nav className="flex text-neutral-400 text-sm mb-4">
-          <ol className="flex items-center space-x-2">
-            <li>
+      <div className="flex-1 min-w-0 p-4 container mx-auto pb-10 w-full overflow-x-hidden">
+        <nav className="flex text-neutral-400 text-sm mb-4 min-w-0 w-full overflow-hidden">
+          <ol className="flex items-center space-x-2 min-w-0 w-full">
+            <li className="shrink-0">
               <Link to="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             {categoryName && categorySlug && (
               <>
-                <li>/</li>
-                <li>
-                  <Link to={`/category/${categorySlug}`} className="hover:text-white transition-colors">{categoryName}</Link>
+                <li className="shrink-0">/</li>
+                <li className="shrink-0 min-w-0 truncate max-w-[100px] sm:max-w-none">
+                  <Link to={`/category/${categorySlug}`} className="hover:text-white transition-colors truncate block">{categoryName}</Link>
                 </li>
               </>
             )}
-            <li>/</li>
-            <li className="text-neutral-200 truncate" aria-current="page">{video.title}</li>
+            <li className="shrink-0">/</li>
+            <li className="text-neutral-200 truncate min-w-0" aria-current="page">{video.title}</li>
           </ol>
         </nav>
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 min-w-0 w-full">
           {/* Main Video Section */}
-          <div className="flex-1 max-w-[1200px]">
+          <div className="flex-1 max-w-[1200px] min-w-0">
             <VideoPlayer videoUrl={video.videoUrl} thumbnailUrl={video.thumbnailUrl} />
 
-            <div className="mt-4 flex flex-col gap-4">
-              <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">
+            <div className="mt-4 flex flex-col gap-4 min-w-0 w-full">
+              <h1 className="text-xl md:text-2xl font-bold text-white leading-tight break-words">
                 {video.title}
               </h1>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-4">
-                <div className="flex items-center gap-2 text-sm text-neutral-400">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-4 min-w-0 w-full">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-400">
                   <span className="font-medium text-neutral-300">
                     {formatViews(video.views)} views
                   </span>
@@ -265,7 +265,7 @@ export function Video() {
                             .replace(/[^a-z0-9]+/g, "-")
                             .replace(/(^-|-$)+/g, "")}`}
                           key={tag}
-                          className="bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors inline-flex"
+                          className="bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors inline-flex max-w-full truncate"
                         >
                           #{tag}
                         </Link>
@@ -273,7 +273,7 @@ export function Video() {
                       {!isTagsExpanded && video.tags.length > 12 && (
                         <button
                           onClick={() => setIsTagsExpanded(true)}
-                          className="bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors inline-flex"
+                          className="bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors inline-flex max-w-full truncate"
                         >
                           +{video.tags.length - 12} More
                         </button>
@@ -282,14 +282,14 @@ export function Video() {
                   )}
                 </div>
 
-                <p className="text-neutral-300 text-sm md:text-base leading-relaxed whitespace-pre-wrap mt-1">
+                <p className="text-neutral-300 text-sm md:text-base leading-relaxed whitespace-pre-wrap break-words mt-1">
                   {video.description}
                 </p>
               </div>
 
               {/* Prev / Next */}
               {adjacent && (adjacent.prev || adjacent.next) && (
-                <div className="grid grid-cols-2 gap-4 mt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                   {adjacent.next ? (
                     <Link
                       to={`/video/${adjacent.next.slug}`}

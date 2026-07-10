@@ -380,8 +380,8 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
               />
             </div>
 
-            <div className="flex items-center justify-between mt-1">
-              <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between mt-1 gap-2 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-4 flex-wrap sm:flex-nowrap">
                 <button
                   onClick={togglePlay}
                   className="text-white hover:text-red-500 transition-colors focus:outline-none"
@@ -415,12 +415,12 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
                   />
                 </div>
 
-                <div className="text-white text-xs font-medium font-mono">
+                <div className="text-white text-xs font-medium font-mono whitespace-nowrap">
                   {formatTime(currentTime)} / {formatTime(duration)}
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 relative">
+              <div className="flex items-center gap-2 sm:gap-4 relative">
                 <button
                   onClick={togglePiP}
                   className="text-white hover:text-red-500 transition-colors focus:outline-none"

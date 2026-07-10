@@ -42,11 +42,11 @@ export function VideoCard({ video }: VideoCardProps) {
           </div>
         )}
       </div>
-      <div className="flex flex-col px-1">
-        <h3 className="text-base font-medium text-neutral-100 line-clamp-2 leading-snug group-hover:text-red-500 transition-colors duration-150">
+      <div className="flex flex-col px-1 min-w-0 w-full">
+        <h3 className="text-base font-medium text-neutral-100 line-clamp-2 leading-snug group-hover:text-red-500 transition-colors duration-150 break-words">
           {video.title}
         </h3>
-        <div className="flex items-center text-[13px] text-neutral-400 mt-2 gap-2">
+        <div className="flex flex-wrap items-center text-[13px] text-neutral-400 mt-2 gap-2">
           <span>{formatViews(video.views)} views</span>
           <span className="w-1 h-1 rounded-full bg-neutral-700" />
           <span>{formatTimeAgo(video.publishedAt)}</span>

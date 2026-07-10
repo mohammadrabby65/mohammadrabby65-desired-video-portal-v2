@@ -75,3 +75,8 @@ video,
   --color-text-white: #ffffff !important;
   --color-white: #ffffff !important;
 }
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
