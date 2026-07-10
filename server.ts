@@ -6,6 +6,7 @@ import { initializeFirestore, collection, getDocs, query, limit, where, orderBy,
 import { SITE_URL } from "./src/config";
 import fs from "fs";
 
+
 const SECRET_KEY = process.env.VITE_STREAM_SECRET || "local-dev-secret-key-12345";
 
 const firebaseConfig = {
