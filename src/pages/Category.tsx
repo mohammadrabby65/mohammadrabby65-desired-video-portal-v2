@@ -1,8 +1,5 @@
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { collection, query, where, limit, getDocs } from "firebase/firestore";
-import { db } from "../lib/firebase";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { SEO } from "../components/seo/SEO";
@@ -10,6 +7,7 @@ import { ChevronDown } from "lucide-react";
 import { Pagination } from "../components/ui/Pagination";
 import { usePaginationVideos, usePaginationCount, PaginationFilter } from '../hooks/useVideos';
 import { getPageUrl } from '../lib/pagination';
+import { usePublicCategories } from "../hooks/useCategories";
 
 type SortOption = 'publishedAt' | 'featured' | 'views' | 'duration' | 'random';
 
@@ -30,25 +28,9 @@ export function Category() {
   const [sortBy, setSortBy] = useState<SortOption>('publishedAt');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
-  // Try to find the exact category name by slug from categories
-  const { data: categoryData, isPending: isCategoryPending } = useQuery({
-    queryKey: ["category-details", slug],
-    queryFn: async () => {
-      if (!slug) return null;
-      const q = query(
-        collection(db, "categories"),
-        where("slug", "==", slug),
-        limit(1),
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        return { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
-      }
-      return null;
-    },
-    staleTime: 1000 * 60 * 60, // 1 hour
-    enabled: !!slug,
-  });
+  // Try to find the exact category name by slug from categories API
+  const { data: categories = [], isPending: isCategoryPending } = usePublicCategories();
+  const categoryData = categories.find((cat) => cat.slug === slug) || null;
 
   const categoryName =
     categoryData?.name ||

@@ -27,6 +27,7 @@ export interface Category {
   seoDescription?: string;
   isActive?: boolean;
   createdAt?: string;
+  description?: string;
 }
 
 export interface SiteSettings {
