@@ -120,42 +120,27 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
   const queryClient = useQueryClient();
   return useInfiniteQuery({
     queryKey: ['videos', 'related', videoId],
-    queryFn: async ({ pageParam = null }) => {
+    queryFn: async ({ pageParam = 1 }) => {
       if (!videoId || !categories || categories.length === 0) {
         return { videos: [], nextCursor: null };
       }
 
-      const constraints: QueryConstraint[] = [
-        where('categories', 'array-contains-any', categories.slice(0, 10)),
-        orderBy('publishedAt', 'desc'),
-        limit(limitCount + 1)
-      ];
+      const params = new URLSearchParams({
+        videoId,
+        categories: categories.join(','),
+        tags: tags?.join(',') || '',
+        page: String(pageParam),
+        limitCount: String(limitCount),
+      });
 
-      if (pageParam) {
-        constraints.push(startAfter(pageParam));
+      const res = await fetch(`/api/videos/related?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch related videos');
       }
-
-      const q = query(collection(db, 'posts'), ...constraints);
-      const snapshot = await getDocs(q);
-
-      let fetchedDocs = snapshot.docs;
-      let nextCursor: DocumentSnapshot | null = null;
-
-      const filteredDocs = fetchedDocs.filter(doc => doc.id !== videoId);
-
-      if (filteredDocs.length > limitCount) {
-        nextCursor = filteredDocs[limitCount - 1];
-        filteredDocs.pop();
-      } else if (fetchedDocs.length > limitCount) {
-        nextCursor = fetchedDocs[fetchedDocs.length - 1];
-      }
-
-      const videos = filteredDocs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
-
-      return { videos, nextCursor };
+      return res.json();
     },
-    initialPageParam: null as DocumentSnapshot | null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage: any) => lastPage.nextCursor,
     initialData: () => {
       if (!videoId) return undefined;
       const cached = queryClient.getQueriesData({ queryKey: ['videos'] });
@@ -178,7 +163,7 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
       if (related.length >= limitCount) {
         return {
           pages: [{ videos: related.slice(0, limitCount), nextCursor: null }],
-          pageParams: [null]
+          pageParams: [1]
         };
       }
       return undefined;

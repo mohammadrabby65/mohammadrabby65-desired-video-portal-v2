@@ -149,6 +149,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
 
   const videosCache = new Map<string, { data: any, timestamp: number }>();
   const countCache = new Map<string, { count: number, timestamp: number }>();
+  const relatedVideosCache = new Map<string, { data: any, timestamp: number }>();
   const VIDEOS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
   app.get("/api/videos", async (req, res) => {
@@ -248,6 +249,70 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       }).json({ count });
     } catch (err) {
       console.error("API /videos/count error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/videos/related", async (req, res) => {
+    try {
+      const { videoId, categories: categoriesStr, tags: tagsStr, page = "1", limitCount = "4" } = req.query;
+      
+      const cacheKey = JSON.stringify({ videoId, categoriesStr, tagsStr, page, limitCount });
+      const cached = relatedVideosCache.get(cacheKey);
+      
+      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
+         res.status(200).set({
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+         }).json(cached.data);
+         return;
+      }
+
+      if (!videoId) {
+        return res.status(400).json({ error: "videoId is required" });
+      }
+
+      const categories = categoriesStr ? (categoriesStr as string).split(',').filter(Boolean) : [];
+      if (categories.length === 0) {
+        return res.json({ videos: [], nextCursor: null });
+      }
+
+      const pageNum = parseInt(page as string, 10) || 1;
+      const limitNum = parseInt(limitCount as string, 10) || 4;
+
+      const constraints: any[] = [
+        where('categories', 'array-contains-any', categories.slice(0, 10)),
+        orderBy('publishedAt', 'desc'),
+        limit(pageNum * limitNum + 5)
+      ];
+
+      const q = query(collection(db, 'posts'), ...constraints);
+      const snapshot = await getDocs(q);
+
+      const fetchedDocs = snapshot.docs;
+      const filteredDocs = fetchedDocs.filter(doc => doc.id !== videoId);
+
+      const startIndex = (pageNum - 1) * limitNum;
+      const paginatedDocs = filteredDocs.slice(startIndex, startIndex + limitNum + 1);
+
+      let nextCursor: number | null = null;
+      if (paginatedDocs.length > limitNum) {
+        nextCursor = pageNum + 1;
+        paginatedDocs.pop();
+      }
+
+      const videos = paginatedDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const result = { videos, nextCursor };
+
+      relatedVideosCache.set(cacheKey, { data: result, timestamp: Date.now() });
+
+      res.status(200).set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+      }).json(result);
+    } catch (err) {
+      console.error("API /videos/related error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
