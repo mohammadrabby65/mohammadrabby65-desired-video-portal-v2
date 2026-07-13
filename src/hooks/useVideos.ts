@@ -1,23 +1,18 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { collection, query, where, orderBy, limit, getDocs, startAfter, QueryConstraint, DocumentSnapshot, getCountFromServer, doc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 import { VideoPost } from '../types';
 
 export function useFeaturedVideos() {
   return useQuery({
     queryKey: ['videos', 'featured'],
     queryFn: async () => {
-      const q = query(
-        collection(db, 'posts'),
-        where('featured', '==', true),
-        orderBy('publishedAt', 'desc'),
-        limit(3)
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+      const res = await fetch('/api/videos/featured');
+      if (!res.ok) {
+        throw new Error('Failed to fetch featured videos');
+      }
+      return res.json() as Promise<VideoPost[]>;
     },
-    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
-    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
 
@@ -30,60 +25,28 @@ export type VideoFilter = {
 export function useInfiniteVideos(filter: VideoFilter, limitCount = 10) {
   return useInfiniteQuery({
     queryKey: ['videos', filter],
-    queryFn: async ({ pageParam = null }: { pageParam: DocumentSnapshot | null }) => {
-      const constraints: QueryConstraint[] = [];
+    queryFn: async ({ pageParam = 1 }: { pageParam: number }) => {
+      const params = new URLSearchParams();
+      if (filter.category) params.append('category', filter.category);
+      if (filter.trending) params.append('sortBy', 'publishedAt');
+      if (filter.sortBy) params.append('sortBy', filter.sortBy);
+      params.append('page', String(pageParam));
+      params.append('limitCount', String(limitCount));
 
-      if (filter.category && filter.category !== 'All') {
-        if (filter.category === 'Trending') {
-          constraints.push(where('trending', '==', true));
-          constraints.push(orderBy('publishedAt', 'desc'));
-        } else if (filter.category === 'Latest') {
-          constraints.push(orderBy('publishedAt', 'desc'));
-        } else if (filter.category === 'Popular') {
-          constraints.push(orderBy('views', 'desc'));
-        } else {
-          constraints.push(where('categories', 'array-contains', filter.category));
-          // For category filtering, order by publishedAt desc unless we have a specific sortBy
-          if (filter.sortBy && filter.sortBy !== 'random') {
-             constraints.push(orderBy(filter.sortBy, 'desc'));
-          } else {
-             constraints.push(orderBy('publishedAt', 'desc'));
-          }
-        }
-      } else {
-        if (filter.trending) {
-          constraints.push(where('trending', '==', true));
-        }
-        if (filter.sortBy && filter.sortBy !== 'random') {
-          constraints.push(orderBy(filter.sortBy, 'desc'));
-        } else if (!filter.sortBy) {
-          constraints.push(orderBy('publishedAt', 'desc'));
-        }
+      const res = await fetch(`/api/videos?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch infinite videos');
       }
-
-      constraints.push(limit(limitCount));
-
-      if (pageParam) {
-        constraints.push(startAfter(pageParam));
-      }
-
-      const q = query(collection(db, 'posts'), ...constraints, limit(1000));
-      const snapshot = await getDocs(q);
-
-      let videos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
-      const lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
-
-      // Client-side shuffle for "random" sort
-      if (filter.sortBy === 'random') {
-        videos = videos.sort(() => Math.random() - 0.5);
-      }
-
-      return { videos, lastDoc };
+      const videos = await res.json() as VideoPost[];
+      return { videos, pageParam };
     },
-    getNextPageParam: (lastPage) => lastPage.lastDoc,
-    initialPageParam: null as DocumentSnapshot | null,
-    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
-    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
+    getNextPageParam: (lastPage) => {
+      if (lastPage.videos.length < limitCount) return undefined;
+      return lastPage.pageParam + 1;
+    },
+    initialPageParam: 1,
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
 
@@ -92,11 +55,11 @@ export function useVideoBySlug(slug: string | undefined) {
     queryKey: ['video', slug],
     queryFn: async () => {
       if (!slug) throw new Error('No slug provided');
-      const q = query(collection(db, 'posts'), where('slug', '==', slug), limit(1));
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) throw new Error('Video not found');
-      const doc = snapshot.docs[0];
-      return { id: doc.id, ...doc.data() } as VideoPost;
+      const res = await fetch(`/api/videos/by-slug/${slug}`);
+      if (!res.ok) {
+        throw new Error('Video not found');
+      }
+      return res.json() as Promise<VideoPost>;
     },
     initialData: () => {
       if (typeof window !== 'undefined' && (window as any).__INITIAL_VIDEO_DATA__) {
@@ -108,8 +71,8 @@ export function useVideoBySlug(slug: string | undefined) {
       return undefined;
     },
     enabled: !!slug,
-    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
-    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
 
@@ -176,18 +139,16 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
 
 export function useLatestVideos(limitCount = 10) {
   return useQuery({
-    queryKey: ['videos', 'latest'],
+    queryKey: ['videos', 'latest', limitCount],
     queryFn: async () => {
-      const q = query(
-        collection(db, 'posts'),
-        orderBy('publishedAt', 'desc'),
-        limit(limitCount)
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VideoPost));
+      const res = await fetch(`/api/videos?limitCount=${limitCount}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch latest videos');
+      }
+      return res.json() as Promise<VideoPost[]>;
     },
-    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
-    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
 
@@ -232,8 +193,8 @@ export function useAdjacentVideos(publishedAt: any, currentSlug: string | undefi
       return undefined;
     },
     enabled: !!currentSlug,
-    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
-    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
 
@@ -243,40 +204,6 @@ export type PaginationFilter = {
   searchQuery?: string;
   sortBy?: 'publishedAt' | 'views' | 'duration' | 'featured' | 'random';
 };
-
-export function buildQueryConstraints(filter: PaginationFilter) {
-  const constraints: QueryConstraint[] = [];
-
-  if (filter.searchQuery) {
-    const q = filter.searchQuery.trim().toLowerCase();
-    const searchWord = q.split(' ')[0];
-    if (searchWord) {
-      constraints.push(where('searchTerms', 'array-contains', searchWord));
-    }
-  } else if (filter.category && filter.category !== 'All') {
-    constraints.push(where('categories', 'array-contains', filter.category));
-    if (filter.sortBy && filter.sortBy !== 'random') {
-       constraints.push(orderBy(filter.sortBy, 'desc'));
-    } else {
-       constraints.push(orderBy('publishedAt', 'desc'));
-    }
-  } else if (filter.tag) {
-    constraints.push(where('tags', 'array-contains', filter.tag));
-    if (filter.sortBy && filter.sortBy !== 'random') {
-       constraints.push(orderBy(filter.sortBy, 'desc'));
-    } else {
-       constraints.push(orderBy('publishedAt', 'desc'));
-    }
-  } else {
-    if (filter.sortBy && filter.sortBy !== 'random') {
-      constraints.push(orderBy(filter.sortBy, 'desc'));
-    } else if (!filter.sortBy) {
-      constraints.push(orderBy('publishedAt', 'desc'));
-    }
-  }
-
-  return constraints;
-}
 
 export function usePaginationCount(filter: PaginationFilter) {
   return useQuery({

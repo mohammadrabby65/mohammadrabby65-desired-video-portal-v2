@@ -151,6 +151,8 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
   const countCache = new Map<string, { count: number, timestamp: number }>();
   const relatedVideosCache = new Map<string, { data: any, timestamp: number }>();
   const adjacentVideosCache = new Map<string, { data: any, timestamp: number }>();
+  const featuredCache = new Map<string, { data: any, timestamp: number }>();
+  const videoBySlugCache = new Map<string, { data: any, timestamp: number }>();
   const VIDEOS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
   app.get("/api/videos", async (req, res) => {
@@ -384,6 +386,76 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       }).json(result);
     } catch (err) {
       console.error("API /videos/adjacent error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/videos/featured", async (req, res) => {
+    try {
+      const cacheKey = "featured_videos";
+      const cached = featuredCache.get(cacheKey);
+
+      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
+        return res.status(200).set({
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+        }).json(cached.data);
+      }
+
+      const q = query(
+        collection(db, 'posts'),
+        where('featured', '==', true),
+        orderBy('publishedAt', 'desc'),
+        limit(3)
+      );
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      featuredCache.set(cacheKey, { data, timestamp: Date.now() });
+
+      res.status(200).set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+      }).json(data);
+    } catch (err) {
+      console.error("API /videos/featured error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/videos/by-slug/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      if (!slug) {
+        return res.status(400).json({ error: "slug is required" });
+      }
+
+      const cached = videoBySlugCache.get(slug);
+      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
+        return res.status(200).set({
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+        }).json(cached.data);
+      }
+
+      const q = query(collection(db, 'posts'), where('slug', '==', slug), limit(1));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+
+      const docSnap = snapshot.docs[0];
+      const data = { id: docSnap.id, ...docSnap.data() };
+
+      videoBySlugCache.set(slug, { data, timestamp: Date.now() });
+
+      res.status(200).set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+      }).json(data);
+    } catch (err) {
+      console.error("API /videos/by-slug error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
