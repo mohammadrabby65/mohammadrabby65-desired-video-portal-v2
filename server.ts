@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, query, limit, where, orderBy, doc, updateDoc, getCountFromServer } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
 import fs from "fs";
 
@@ -150,6 +150,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
   const videosCache = new Map<string, { data: any, timestamp: number }>();
   const countCache = new Map<string, { count: number, timestamp: number }>();
   const relatedVideosCache = new Map<string, { data: any, timestamp: number }>();
+  const adjacentVideosCache = new Map<string, { data: any, timestamp: number }>();
   const VIDEOS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
   app.get("/api/videos", async (req, res) => {
@@ -313,6 +314,76 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       }).json(result);
     } catch (err) {
       console.error("API /videos/related error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/videos/adjacent", async (req, res) => {
+    try {
+      const { currentSlug, seconds: secondsStr, nanoseconds: nanosecondsStr } = req.query;
+
+      if (!currentSlug) {
+        return res.status(400).json({ error: "currentSlug is required" });
+      }
+
+      const seconds = parseInt(secondsStr as string, 10);
+      const nanoseconds = parseInt(nanosecondsStr as string, 10);
+
+      const cacheKey = JSON.stringify({ currentSlug, seconds, nanoseconds });
+      const cached = adjacentVideosCache.get(cacheKey);
+
+      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
+        res.status(200).set({
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+        }).json(cached.data);
+        return;
+      }
+
+      let pubAt: any = null;
+      if (isNaN(seconds) || isNaN(nanoseconds)) {
+        const videoQ = query(collection(db, 'posts'), where('slug', '==', currentSlug), limit(1));
+        const videoSnap = await getDocs(videoQ);
+        if (videoSnap.empty) {
+          return res.status(404).json({ prev: null, next: null });
+        }
+        pubAt = videoSnap.docs[0].data().publishedAt;
+      } else {
+        pubAt = new Timestamp(seconds, nanoseconds);
+      }
+
+      if (!pubAt) {
+        return res.status(404).json({ prev: null, next: null });
+      }
+
+      const prevQ = query(
+        collection(db, 'posts'),
+        orderBy('publishedAt', 'desc'),
+        startAfter(pubAt),
+        limit(1)
+      );
+
+      const nextQ = query(
+        collection(db, 'posts'),
+        orderBy('publishedAt', 'asc'),
+        startAfter(pubAt),
+        limit(1)
+      );
+
+      const [prevSnap, nextSnap] = await Promise.all([getDocs(prevQ), getDocs(nextQ)]);
+
+      const prev = prevSnap.empty ? null : { id: prevSnap.docs[0].id, ...prevSnap.docs[0].data() };
+      const next = nextSnap.empty ? null : { id: nextSnap.docs[0].id, ...nextSnap.docs[0].data() };
+
+      const result = { prev, next };
+      adjacentVideosCache.set(cacheKey, { data: result, timestamp: Date.now() });
+
+      res.status(200).set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+      }).json(result);
+    } catch (err) {
+      console.error("API /videos/adjacent error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });

@@ -196,29 +196,19 @@ export function useAdjacentVideos(publishedAt: any, currentSlug: string | undefi
   return useQuery({
     queryKey: ['videos', 'adjacent', currentSlug],
     queryFn: async () => {
-      if (!publishedAt || !currentSlug) return { prev: null, next: null };
+      if (!currentSlug) return { prev: null, next: null };
 
-      const prevQ = query(
-        collection(db, 'posts'),
-        orderBy('publishedAt', 'desc'),
-        startAfter(publishedAt),
-        limit(1)
-      );
-      
-      // For "next", since we are descending, next means newer, so we reverse order.
-      const nextQ = query(
-        collection(db, 'posts'),
-        orderBy('publishedAt', 'asc'),
-        startAfter(publishedAt),
-        limit(1)
-      );
+      const params = new URLSearchParams({
+        currentSlug,
+        seconds: String(publishedAt?.seconds || ''),
+        nanoseconds: String(publishedAt?.nanoseconds || ''),
+      });
 
-      const [prevSnap, nextSnap] = await Promise.all([getDocs(prevQ), getDocs(nextQ)]);
-      
-      const prev = prevSnap.empty ? null : { id: prevSnap.docs[0].id, ...prevSnap.docs[0].data() } as VideoPost;
-      const next = nextSnap.empty ? null : { id: nextSnap.docs[0].id, ...nextSnap.docs[0].data() } as VideoPost;
-      
-      return { prev, next };
+      const res = await fetch(`/api/videos/adjacent?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch adjacent videos');
+      }
+      return res.json();
     },
     initialData: () => {
       if (!currentSlug) return undefined;
