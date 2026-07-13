@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { VideoPost } from '../../types';
-import { formatViews, formatTimeAgo } from '../../lib/utils';
+import { formatTimeAgo } from '../../lib/utils';
 import { Play } from 'lucide-react';
 
 interface VideoCardProps {
@@ -47,8 +47,6 @@ export function VideoCard({ video }: VideoCardProps) {
           {video.title}
         </h3>
         <div className="flex flex-wrap items-center text-[13px] text-neutral-400 mt-2 gap-2">
-          <span>{formatViews(video.views)} views</span>
-          <span className="w-1 h-1 rounded-full bg-neutral-700" />
           <span>{formatTimeAgo(video.publishedAt)}</span>
         </div>
       </div>

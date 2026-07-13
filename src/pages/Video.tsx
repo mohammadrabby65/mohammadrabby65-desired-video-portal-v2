@@ -4,7 +4,7 @@ import { useVideoBySlug, useAdjacentVideos } from "../hooks/useVideos";
 import { VideoPlayer } from "../components/video/VideoPlayer";
 import { RelatedVideos } from "../components/video/RelatedVideos";
 import { SEO } from "../components/seo/SEO";
-import { formatTimeAgo, formatViews } from "../lib/utils";
+import { formatTimeAgo } from "../lib/utils";
 import {
   ThumbsUp,
   Heart,
@@ -35,37 +35,7 @@ export function Video() {
   const { data: adjacent } = useAdjacentVideos(video?.publishedAt, video?.slug);
   const [isTagsExpanded, setIsTagsExpanded] = useState(false);
 
-  // Record unique view (once every 24 hours per visitor) using atomic increment
-  useEffect(() => {
-    if (video?.id) {
-      const key = `view_recorded_24h_${video.id}`;
-      const lastViewStr = localStorage.getItem(key);
-      const now = Date.now();
-      const twentyFourHours = 24 * 60 * 60 * 1000;
 
-      let shouldIncrement = false;
-      if (!lastViewStr) {
-        shouldIncrement = true;
-      } else {
-        const lastView = parseInt(lastViewStr, 10);
-        if (isNaN(lastView) || now - lastView > twentyFourHours) {
-          shouldIncrement = true;
-        }
-      }
-
-      if (shouldIncrement) {
-        localStorage.setItem(key, now.toString());
-        const incrementViews = async () => {
-          try {
-            await fetch(`/api/videos/${video.id}/view`, { method: 'POST' });
-          } catch (err) {
-            console.error("Failed to increment views:", err);
-          }
-        };
-        incrementViews();
-      }
-    }
-  }, [video?.id]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -197,10 +167,6 @@ export function Video() {
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-4 min-w-0 w-full">
                 <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-400">
-                  <span className="font-medium text-neutral-300">
-                    {formatViews(video.views)} views
-                  </span>
-                  <span className="w-1 h-1 rounded-full bg-neutral-700" />
                   <span>{formatTimeAgo(video.publishedAt)}</span>
                 </div>
 

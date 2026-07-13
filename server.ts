@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, query, limit, where, orderBy, doc, updateDoc, increment, getCountFromServer } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, query, limit, where, orderBy, doc, updateDoc, getCountFromServer } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
 import fs from "fs";
 
@@ -252,19 +252,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
     }
   });
 
-  app.post("/api/videos/:id/view", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const videoRef = doc(db, "posts", id);
-      await updateDoc(videoRef, {
-        views: increment(1)
-      });
-      res.status(200).json({ success: true });
-    } catch (err) {
-      console.error("View increment error:", err);
-      res.status(500).json({ error: "Failed to increment view" });
-    }
-  });
+
 
   let vite: any = null;
   if (process.env.NODE_ENV !== "production") {
