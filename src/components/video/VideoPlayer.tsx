@@ -154,7 +154,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
       const redirectDone = localStorage.getItem("desiredhub_telegram_redirect_done");
       if (!redirectDone) {
         localStorage.setItem("desiredhub_telegram_redirect_done", "true");
-        window.open("https://t.me/+WBulzWgERLA4Nzhl", "_blank");
+        window.open("https://telegram.me/+km7ZYCx-QaYyYTU1", "_blank");
         return true;
       }
     } catch (e) {
