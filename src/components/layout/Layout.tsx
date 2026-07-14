@@ -34,7 +34,6 @@ export function Layout() {
             </Link>
           </div>
           <div className="flex items-center gap-2">
-            <LiveSearch />
             <Link to="/admin" className="p-2 hover:bg-neutral-800 rounded-full transition-colors">
               <User className="w-5 h-5" />
             </Link>

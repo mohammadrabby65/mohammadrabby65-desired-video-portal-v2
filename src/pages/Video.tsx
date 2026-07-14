@@ -1,41 +1,20 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useVideoBySlug, useAdjacentVideos } from "../hooks/useVideos";
+import { useVideoBySlug } from "../hooks/useVideos";
 import { VideoPlayer } from "../components/video/VideoPlayer";
-import { RelatedVideos } from "../components/video/RelatedVideos";
 import { SEO } from "../components/seo/SEO";
 import { formatTimeAgo } from "../lib/utils";
 import {
   ThumbsUp,
-  Heart,
   Share2,
-  Tag,
   Flag,
   Copy,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
-
-const formatIsoDuration = (duration: string) => {
-  if (!duration) return undefined;
-  const parts = duration.split(':').map(Number);
-  if (parts.length === 3) {
-    return `PT${parts[0]}H${parts[1]}M${parts[2]}S`;
-  } else if (parts.length === 2) {
-    return `PT${parts[0]}M${parts[1]}S`;
-  } else if (parts.length === 1) {
-    return `PT${parts[0]}S`;
-  }
-  return undefined;
-};
 
 export function Video() {
   const { slug } = useParams<{ slug: string }>();
   const { data: video, isLoading, isError } = useVideoBySlug(slug);
-  const { data: adjacent } = useAdjacentVideos(video?.publishedAt, video?.slug);
   const [isTagsExpanded, setIsTagsExpanded] = useState(false);
-
-
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -49,26 +28,12 @@ export function Video() {
   if (isLoading) {
     return (
       <div className="flex-1 min-w-0 p-4 container mx-auto">
-        <div className="animate-pulse flex flex-col lg:flex-row gap-6 min-w-0 w-full">
+        <div className="animate-pulse flex flex-col gap-6 min-w-0 w-full">
           <div className="flex-1">
             <div className="w-full aspect-video bg-neutral-900 rounded-xl mb-4" />
             <div className="h-8 bg-neutral-900 rounded w-3/4 mb-2" />
             <div className="h-4 bg-neutral-900 rounded w-1/4 mb-6" />
             <div className="h-20 bg-neutral-900 rounded w-full" />
-          </div>
-          <div className="w-full lg:w-[400px]">
-            <div className="h-6 bg-neutral-900 rounded w-1/2 mb-4" />
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex gap-2">
-                  <div className="w-32 sm:w-40 aspect-video bg-neutral-900 rounded-lg shrink-0" />
-                  <div className="flex-1 space-y-2 min-w-0">
-                    <div className="h-4 bg-neutral-900 rounded w-full" />
-                    <div className="h-3 bg-neutral-900 rounded w-1/2" />
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
@@ -91,63 +56,21 @@ export function Video() {
   }
 
   const categoryName = video.categories?.[0] || (video as any).category;
-  const categorySlug = categoryName ? categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : null;
-
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: typeof window !== "undefined" ? window.location.origin : "",
-      },
-      ...(categoryName && categorySlug ? [{
-        "@type": "ListItem",
-        position: 2,
-        name: categoryName,
-        item: typeof window !== "undefined" ? `${window.location.origin}/category/${categorySlug}` : "",
-      }] : []),
-      {
-        "@type": "ListItem",
-        position: categoryName && categorySlug ? 3 : 2,
-        name: video.title,
-        item: typeof window !== "undefined" ? window.location.href : "",
-      },
-    ],
-  };
 
   return (
     <>
-      <SEO
-        title={`${video.title} - DesiredHub`}
-        description={video.description}
-        image={video.thumbnailUrl}
-        exactTitle={true}
-        jsonLd={breadcrumbJsonLd}
-        video={{
-          name: video.title,
-          description: video.description,
-          thumbnailUrl: video.thumbnailUrl,
-          uploadDate: video.publishedAt?.toDate
-            ? video.publishedAt.toDate().toISOString()
-            : new Date().toISOString(),
-          ...(video.duration && { duration: formatIsoDuration(video.duration) }),
-          contentUrl: video.videoUrl,
-        }}
-      />
+      <SEO title={`${video.title} - DesiredHub`} />
       <div className="flex-1 min-w-0 p-4 container mx-auto pb-10 w-full overflow-x-hidden">
         <nav className="flex text-neutral-400 text-sm mb-4 min-w-0 w-full overflow-hidden">
           <ol className="flex items-center space-x-2 min-w-0 w-full">
             <li className="shrink-0">
               <Link to="/" className="hover:text-white transition-colors">Home</Link>
             </li>
-            {categoryName && categorySlug && (
+            {categoryName && (
               <>
                 <li className="shrink-0">/</li>
-                <li className="shrink-0 min-w-0 truncate max-w-[100px] sm:max-w-none">
-                  <Link to={`/category/${categorySlug}`} className="hover:text-white transition-colors truncate block">{categoryName}</Link>
+                <li className="shrink-0 min-w-0 truncate max-w-[100px] sm:max-w-none text-neutral-400">
+                  {categoryName}
                 </li>
               </>
             )}
@@ -155,9 +78,9 @@ export function Video() {
             <li className="text-neutral-200 truncate min-w-0" aria-current="page">{video.title}</li>
           </ol>
         </nav>
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 min-w-0 w-full">
+        <div className="flex flex-col gap-6 lg:gap-8 min-w-0 w-full max-w-[1200px] mx-auto">
           {/* Main Video Section */}
-          <div className="flex-1 max-w-[1200px] min-w-0">
+          <div className="flex-1 min-w-0">
             <VideoPlayer videoUrl={video.videoUrl} thumbnailUrl={video.thumbnailUrl} />
 
             <div className="mt-4 flex flex-col gap-4 min-w-0 w-full">
@@ -209,32 +132,20 @@ export function Video() {
                     </span>
                   ))}
                   {(video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])).map(cat => (
-                    <Link
-                      key={cat}
-                      to={`/category/${cat
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, "-")
-                        .replace(/(^-|-$)+/g, "")}`}
-                    >
-                      <span className="bg-red-500/10 text-red-500 hover:bg-red-500/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer inline-flex">
-                        {cat}
-                      </span>
-                    </Link>
+                    <span key={cat} className="bg-red-500/10 text-red-500 px-4 py-1.5 rounded-full text-sm font-medium inline-flex">
+                      {cat}
+                    </span>
                   ))}
 
                   {video.tags && (
                     <>
                       {(isTagsExpanded ? video.tags : video.tags.slice(0, 12)).map((tag) => (
-                        <Link
-                          to={`/tag/${tag
-                            .toLowerCase()
-                            .replace(/[^a-z0-9]+/g, "-")
-                            .replace(/(^-|-$)+/g, "")}`}
+                        <span
                           key={tag}
-                          className="bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors inline-flex max-w-full truncate"
+                          className="bg-neutral-800 text-neutral-300 px-4 py-1.5 rounded-full text-sm font-medium inline-flex max-w-full truncate"
                         >
                           #{tag}
-                        </Link>
+                        </span>
                       ))}
                       {!isTagsExpanded && video.tags.length > 12 && (
                         <button
@@ -252,58 +163,7 @@ export function Video() {
                   {video.description}
                 </p>
               </div>
-
-              {/* Prev / Next */}
-              {adjacent && (adjacent.prev || adjacent.next) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                  {adjacent.next ? (
-                    <Link
-                      to={`/video/${adjacent.next.slug}`}
-                      className="flex items-center gap-3 bg-neutral-900 hover:bg-neutral-800 p-4 rounded-xl transition-colors group"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-neutral-500 group-hover:text-white transition-colors" />
-                      <div className="min-w-0">
-                        <div className="text-xs text-neutral-500 mb-1">
-                          Previous Video
-                        </div>
-                        <div className="text-sm font-semibold text-white truncate">
-                          {adjacent.next.title}
-                        </div>
-                      </div>
-                    </Link>
-                  ) : (
-                    <div></div>
-                  )}
-                  {adjacent.prev ? (
-                    <Link
-                      to={`/video/${adjacent.prev.slug}`}
-                      className="flex items-center justify-end text-right gap-3 bg-neutral-900 hover:bg-neutral-800 p-4 rounded-xl transition-colors group"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-xs text-neutral-500 mb-1">
-                          Next Video
-                        </div>
-                        <div className="text-sm font-semibold text-white truncate">
-                          {adjacent.prev.title}
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-white transition-colors" />
-                    </Link>
-                  ) : (
-                    <div></div>
-                  )}
-                </div>
-              )}
             </div>
-          </div>
-
-          {/* Sidebar / Related Videos */}
-          <div className="w-full lg:w-[400px] xl:w-[450px]">
-            <RelatedVideos
-              videoId={video.id}
-              categories={video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])}
-              tags={video.tags}
-            />
           </div>
         </div>
       </div>
