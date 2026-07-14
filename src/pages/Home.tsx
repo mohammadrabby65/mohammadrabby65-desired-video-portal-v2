@@ -4,6 +4,7 @@ import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { ChevronDown } from 'lucide-react';
 import { SEO } from '../components/seo/SEO';
+import { TelegramPopup } from '../components/ui/TelegramPopup';
 
 type SortOption = {
   label: string;
@@ -39,6 +40,7 @@ export function Home() {
         description="Watch the latest premium viral sex videos with fast streaming and daily updates."
         exactTitle={true}
       />
+      <TelegramPopup />
       <section className="container mx-auto px-4 mb-16">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
