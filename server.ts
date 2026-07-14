@@ -148,6 +148,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
   });
 
   const videosCache = new Map<string, { data: any, timestamp: number }>();
+  const cursorCache = new Map<string, any[]>();
   const countCache = new Map<string, { count: number, timestamp: number }>();
   const relatedVideosCache = new Map<string, { data: any, timestamp: number }>();
   const adjacentVideosCache = new Map<string, { data: any, timestamp: number }>();
@@ -169,7 +170,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       }
 
       const pageNum = parseInt(page as string, 10) || 1;
-      const limitNum = parseInt(limitCount as string, 10) || 20;
+      const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 20); // Never allow reading more than 20 docs
 
       const constraints: any[] = [];
       if (searchQuery) {
@@ -189,13 +190,60 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
         }
       }
 
-      const videosQ = query(collection(db, 'posts'), ...constraints, limit(pageNum * limitNum));
-      const videosSnap = await getDocs(videosQ);
-      
-      const startIndex = (pageNum - 1) * limitNum;
-      const paginatedDocs = videosSnap.docs.slice(startIndex);
-      
-      let videos = paginatedDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const filterKey = JSON.stringify({ category, tag, searchQuery, sortBy });
+      let videos: any[] = [];
+
+      if (pageNum === 1) {
+        // Query Page 1
+        const videosQ = query(collection(db, 'posts'), ...constraints, limit(limitNum));
+        const videosSnap = await getDocs(videosQ);
+        
+        videos = videosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Cache the cursor for Page 2
+        if (videosSnap.docs.length === limitNum) {
+          const lastDoc = videosSnap.docs[videosSnap.docs.length - 1];
+          let cursors = cursorCache.get(filterKey);
+          if (!cursors) {
+            cursors = [];
+            cursorCache.set(filterKey, cursors);
+          }
+          cursors[0] = lastDoc;
+        }
+      } else {
+        // Query Page N > 1 using cursor
+        let cursors = cursorCache.get(filterKey);
+        const cursorIndex = pageNum - 2;
+        const cursor = cursors ? cursors[cursorIndex] : null;
+
+        if (!cursor) {
+          // No cached cursor exists. Do not perform expensive reads.
+          let lastValidPage = 1;
+          if (cursors) {
+            for (let i = cursors.length - 1; i >= 0; i--) {
+              if (cursors[i]) {
+                lastValidPage = i + 2;
+                break;
+              }
+            }
+          }
+          return res.status(404).json({
+            error: "Page not found",
+            message: `Page ${pageNum} is not accessible directly without visiting previous pages.`,
+            lastValidPage
+          });
+        }
+
+        const videosQ = query(collection(db, 'posts'), ...constraints, startAfter(cursor), limit(limitNum));
+        const videosSnap = await getDocs(videosQ);
+        
+        videos = videosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Cache the cursor for Page N + 1
+        if (videosSnap.docs.length === limitNum) {
+          cursors[pageNum - 1] = videosSnap.docs[videosSnap.docs.length - 1];
+        }
+      }
       
       if (sortBy === 'random') {
         videos = videos.sort(() => Math.random() - 0.5);

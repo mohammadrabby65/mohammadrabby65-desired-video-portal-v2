@@ -1,7 +1,10 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { collection, query, where, orderBy, limit, getDocs, startAfter, QueryConstraint, DocumentSnapshot, getCountFromServer, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { VideoPost } from '../types';
+import { getPageUrl } from '../lib/pagination';
 
 export function useFeaturedVideos() {
   return useQuery({
@@ -297,7 +300,9 @@ export function usePaginationCount(filter: PaginationFilter) {
 }
 
 export function usePaginationVideos(filter: PaginationFilter, page: number, limitCount = 20) {
-  return useQuery({
+  const navigate = useNavigate();
+
+  const queryResult = useQuery({
     queryKey: ['videos', 'page', filter, page, limitCount],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -309,11 +314,45 @@ export function usePaginationVideos(filter: PaginationFilter, page: number, limi
       params.append('limitCount', limitCount.toString());
       
       const res = await fetch(`/api/videos?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to fetch videos');
+      if (!res.ok) {
+        if (res.status === 404) {
+          const errData = await res.json().catch(() => ({}));
+          if (errData.lastValidPage !== undefined) {
+            throw { isRedirect: true, lastValidPage: errData.lastValidPage };
+          }
+        }
+        throw new Error('Failed to fetch videos');
+      }
       const data = await res.json();
       return data as VideoPost[];
     },
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    retry: false, // Don't retry redirect errors
   });
+
+  const error = queryResult.error as any;
+
+  useEffect(() => {
+    if (error && error.isRedirect) {
+      const lastPage = error.lastValidPage;
+      let redirectUrl = "/";
+      if (filter.category) {
+        redirectUrl = `/category/${filter.category}`;
+      } else if (filter.tag) {
+        redirectUrl = `/tag/${filter.tag}`;
+      } else if (filter.searchQuery) {
+        redirectUrl = `/search`;
+      }
+      
+      const finalUrl = getPageUrl(
+        redirectUrl,
+        lastPage,
+        filter.searchQuery ? new URLSearchParams({ q: filter.searchQuery }) : undefined
+      );
+      navigate(finalUrl, { replace: true });
+    }
+  }, [error, filter, navigate]);
+
+  return queryResult;
 }
