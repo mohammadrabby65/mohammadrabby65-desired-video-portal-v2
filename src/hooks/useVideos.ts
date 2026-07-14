@@ -4,7 +4,6 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import { collection, query, where, orderBy, limit, getDocs, startAfter, QueryConstraint, DocumentSnapshot, getCountFromServer, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { VideoPost } from '../types';
-import { getPageUrl } from '../lib/pagination';
 
 export function useFeaturedVideos() {
   return useQuery({
@@ -123,7 +122,7 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
   const queryClient = useQueryClient();
   return useInfiniteQuery({
     queryKey: ['videos', 'related', videoId],
-    queryFn: async ({ pageParam = 1 }) => {
+    queryFn: async ({ pageParam = null }) => {
       if (!videoId || !categories || categories.length === 0) {
         return { videos: [], nextCursor: null };
       }
@@ -132,9 +131,12 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
         videoId,
         categories: categories.join(','),
         tags: tags?.join(',') || '',
-        page: String(pageParam),
         limitCount: String(limitCount),
       });
+      
+      if (pageParam) {
+        params.append('lastId', pageParam as string);
+      }
 
       const res = await fetch(`/api/videos/related?${params.toString()}`);
       if (!res.ok) {
@@ -142,7 +144,7 @@ export function useRelatedVideos(videoId: string | undefined, categories: string
       }
       return res.json();
     },
-    initialPageParam: 1,
+    initialPageParam: null as string | null,
     getNextPageParam: (lastPage: any) => lastPage.nextCursor,
     initialData: () => {
       if (!videoId) return undefined;
@@ -281,78 +283,33 @@ export function buildQueryConstraints(filter: PaginationFilter) {
   return constraints;
 }
 
-export function usePaginationCount(filter: PaginationFilter) {
-  return useQuery({
-    queryKey: ['videos', 'count', filter],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filter.category) params.append('category', filter.category);
-      if (filter.tag) params.append('tag', filter.tag);
-      if (filter.searchQuery) params.append('q', filter.searchQuery);
-      
-      const res = await fetch(`/api/videos/count?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to fetch count');
-      const data = await res.json();
-      return data.count;
-    },
-    staleTime: 1000 * 60 * 60 * 24, // 24 hours
-  });
-}
-
-export function usePaginationVideos(filter: PaginationFilter, page: number, limitCount = 20) {
-  const navigate = useNavigate();
-
-  const queryResult = useQuery({
-    queryKey: ['videos', 'page', filter, page, limitCount],
-    queryFn: async () => {
+export function usePaginationVideos(filter: PaginationFilter, limitCount = 20) {
+  return useInfiniteQuery({
+    queryKey: ['videos', 'infinite', filter, limitCount],
+    queryFn: async ({ pageParam = null }) => {
       const params = new URLSearchParams();
       if (filter.category) params.append('category', filter.category);
       if (filter.tag) params.append('tag', filter.tag);
       if (filter.searchQuery) params.append('q', filter.searchQuery);
       if (filter.sortBy) params.append('sortBy', filter.sortBy);
-      params.append('page', page.toString());
       params.append('limitCount', limitCount.toString());
+      if (pageParam) {
+        params.append('lastId', pageParam);
+      }
       
       const res = await fetch(`/api/videos?${params.toString()}`);
-      if (!res.ok) {
-        if (res.status === 404) {
-          const errData = await res.json().catch(() => ({}));
-          if (errData.lastValidPage !== undefined) {
-            throw { isRedirect: true, lastValidPage: errData.lastValidPage };
-          }
-        }
-        throw new Error('Failed to fetch videos');
-      }
+      if (!res.ok) throw new Error('Failed to fetch videos');
       const data = await res.json();
       return data as VideoPost[];
     },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.length === limitCount) {
+        return lastPage[lastPage.length - 1].id;
+      }
+      return undefined;
+    },
+    initialPageParam: null as string | null,
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
-    retry: false, // Don't retry redirect errors
   });
-
-  const error = queryResult.error as any;
-
-  useEffect(() => {
-    if (error && error.isRedirect) {
-      const lastPage = error.lastValidPage;
-      let redirectUrl = "/";
-      if (filter.category) {
-        redirectUrl = `/category/${filter.category}`;
-      } else if (filter.tag) {
-        redirectUrl = `/tag/${filter.tag}`;
-      } else if (filter.searchQuery) {
-        redirectUrl = `/search`;
-      }
-      
-      const finalUrl = getPageUrl(
-        redirectUrl,
-        lastPage,
-        filter.searchQuery ? new URLSearchParams({ q: filter.searchQuery }) : undefined
-      );
-      navigate(finalUrl, { replace: true });
-    }
-  }, [error, filter, navigate]);
-
-  return queryResult;
 }

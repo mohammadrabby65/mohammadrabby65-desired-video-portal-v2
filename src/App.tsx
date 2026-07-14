@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
 import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -152,7 +152,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
-            <Route path="page/:page" element={<Home />} />
+            <Route path="page/:page" element={<Navigate to="/" replace />} />
             <Route path="video/:slug" element={<Video />} />
             <Route path="category/:slug" element={<Category />} />
             <Route path="categories" element={<Categories />} />

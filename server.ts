@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
 import fs from "fs";
 
@@ -126,7 +126,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       const q = query(
         collection(db, 'categories'),
         orderBy('name', 'asc'),
-        limit(100)
+        limit(20)
       );
       const snap = await getDocs(q);
       const cats = snap.docs.map((doc) => ({
@@ -148,29 +148,15 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
   });
 
   const videosCache = new Map<string, { data: any, timestamp: number }>();
-  const cursorCache = new Map<string, any[]>();
-  const countCache = new Map<string, { count: number, timestamp: number }>();
   const relatedVideosCache = new Map<string, { data: any, timestamp: number }>();
   const adjacentVideosCache = new Map<string, { data: any, timestamp: number }>();
   const VIDEOS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
   app.get("/api/videos", async (req, res) => {
     try {
-      const { category, tag, q: searchQuery, sortBy, page = "1", limitCount = "20" } = req.query;
+      const { category, tag, q: searchQuery, sortBy, limitCount = "20", lastId } = req.query;
       
-      const cacheKey = JSON.stringify({ category, tag, searchQuery, sortBy, page, limitCount });
-      const cached = videosCache.get(cacheKey);
-      
-      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
-         res.status(200).set({
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-         }).json(cached.data);
-         return;
-      }
-
-      const pageNum = parseInt(page as string, 10) || 1;
-      const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 20); // Never allow reading more than 20 docs
+      const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 20);
 
       const constraints: any[] = [];
       if (searchQuery) {
@@ -190,66 +176,22 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
         }
       }
 
-      const filterKey = JSON.stringify({ category, tag, searchQuery, sortBy });
-      let videos: any[] = [];
-
-      if (pageNum === 1) {
-        // Query Page 1
-        const videosQ = query(collection(db, 'posts'), ...constraints, limit(limitNum));
-        const videosSnap = await getDocs(videosQ);
-        
-        videos = videosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Cache the cursor for Page 2
-        if (videosSnap.docs.length === limitNum) {
-          const lastDoc = videosSnap.docs[videosSnap.docs.length - 1];
-          let cursors = cursorCache.get(filterKey);
-          if (!cursors) {
-            cursors = [];
-            cursorCache.set(filterKey, cursors);
-          }
-          cursors[0] = lastDoc;
-        }
-      } else {
-        // Query Page N > 1 using cursor
-        let cursors = cursorCache.get(filterKey);
-        const cursorIndex = pageNum - 2;
-        const cursor = cursors ? cursors[cursorIndex] : null;
-
-        if (!cursor) {
-          // No cached cursor exists. Do not perform expensive reads.
-          let lastValidPage = 1;
-          if (cursors) {
-            for (let i = cursors.length - 1; i >= 0; i--) {
-              if (cursors[i]) {
-                lastValidPage = i + 2;
-                break;
-              }
-            }
-          }
-          return res.status(404).json({
-            error: "Page not found",
-            message: `Page ${pageNum} is not accessible directly without visiting previous pages.`,
-            lastValidPage
-          });
-        }
-
-        const videosQ = query(collection(db, 'posts'), ...constraints, startAfter(cursor), limit(limitNum));
-        const videosSnap = await getDocs(videosQ);
-        
-        videos = videosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Cache the cursor for Page N + 1
-        if (videosSnap.docs.length === limitNum) {
-          cursors[pageNum - 1] = videosSnap.docs[videosSnap.docs.length - 1];
+      if (lastId) {
+        // Fetch the cursor doc
+        const cursorDocSnap = await getDoc(doc(db, 'posts', lastId as string));
+        if (cursorDocSnap.exists()) {
+          constraints.push(startAfter(cursorDocSnap));
         }
       }
+
+      const videosQ = query(collection(db, 'posts'), ...constraints, limit(limitNum));
+      const videosSnap = await getDocs(videosQ);
+      
+      let videos = videosSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
       
       if (sortBy === 'random') {
         videos = videos.sort(() => Math.random() - 0.5);
       }
-
-      videosCache.set(cacheKey, { data: videos, timestamp: Date.now() });
 
       res.status(200).set({
         'Content-Type': 'application/json',
@@ -261,61 +203,13 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
     }
   });
 
-  app.get("/api/videos/count", async (req, res) => {
-    try {
-      const { category, tag, q: searchQuery } = req.query;
-      
-      const cacheKey = JSON.stringify({ category, tag, searchQuery });
-      const cached = countCache.get(cacheKey);
-      
-      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
-         res.status(200).set({
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-         }).json({ count: cached.count });
-         return;
-      }
-
-      const constraints: any[] = [];
-      if (searchQuery) {
-        const searchWord = (searchQuery as string).trim().toLowerCase().split(' ')[0];
-        if (searchWord) constraints.push(where('searchTerms', 'array-contains', searchWord));
-      } else if (category && category !== 'All') {
-        constraints.push(where('categories', 'array-contains', category));
-      } else if (tag) {
-        constraints.push(where('tags', 'array-contains', tag));
-      }
-
-      const countQ = query(collection(db, 'posts'), ...constraints, limit(1000));
-      const countSnap = await getCountFromServer(countQ);
-      const count = countSnap.data().count;
-
-      countCache.set(cacheKey, { count, timestamp: Date.now() });
-
-      res.status(200).set({
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-      }).json({ count });
-    } catch (err) {
-      console.error("API /videos/count error:", err);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+  // Removed /api/videos/count endpoint as it was very expensive
 
   app.get("/api/videos/related", async (req, res) => {
     try {
-      const { videoId, categories: categoriesStr, tags: tagsStr, page = "1", limitCount = "4" } = req.query;
+      const { videoId, categories: categoriesStr, tags: tagsStr, limitCount = "4", lastId } = req.query;
       
-      const cacheKey = JSON.stringify({ videoId, categoriesStr, tagsStr, page, limitCount });
-      const cached = relatedVideosCache.get(cacheKey);
-      
-      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
-         res.status(200).set({
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-         }).json(cached.data);
-         return;
-      }
+      const limitNum = Math.min(parseInt(limitCount as string, 10) || 4, 20);
 
       if (!videoId) {
         return res.status(400).json({ error: "videoId is required" });
@@ -326,14 +220,21 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
         return res.json({ videos: [], nextCursor: null });
       }
 
-      const pageNum = parseInt(page as string, 10) || 1;
-      const limitNum = parseInt(limitCount as string, 10) || 4;
-
       const constraints: any[] = [
         where('categories', 'array-contains-any', categories.slice(0, 10)),
-        orderBy('publishedAt', 'desc'),
-        limit(pageNum * limitNum + 5)
+        orderBy('publishedAt', 'desc')
       ];
+
+      if (lastId) {
+        const cursorDocSnap = await getDoc(doc(db, 'posts', lastId as string));
+        if (cursorDocSnap.exists()) {
+          constraints.push(startAfter(cursorDocSnap));
+        }
+      }
+
+      // We read limitNum + 1 because we need to filter out the current videoId if it appears
+      const maxLimit = Math.min(limitNum + 1, 20);
+      constraints.push(limit(maxLimit));
 
       const q = query(collection(db, 'posts'), ...constraints);
       const snapshot = await getDocs(q);
@@ -341,20 +242,16 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       const fetchedDocs = snapshot.docs;
       const filteredDocs = fetchedDocs.filter(doc => doc.id !== videoId);
 
-      const startIndex = (pageNum - 1) * limitNum;
-      const paginatedDocs = filteredDocs.slice(startIndex, startIndex + limitNum + 1);
+      const paginatedDocs = filteredDocs.slice(0, limitNum);
 
-      let nextCursor: number | null = null;
-      if (paginatedDocs.length > limitNum) {
-        nextCursor = pageNum + 1;
-        paginatedDocs.pop();
+      let nextCursor: string | null = null;
+      if (filteredDocs.length > limitNum) {
+        nextCursor = paginatedDocs[paginatedDocs.length - 1].id;
       }
 
       const videos = paginatedDocs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       const result = { videos, nextCursor };
-
-      relatedVideosCache.set(cacheKey, { data: result, timestamp: Date.now() });
 
       res.status(200).set({
         'Content-Type': 'application/json',

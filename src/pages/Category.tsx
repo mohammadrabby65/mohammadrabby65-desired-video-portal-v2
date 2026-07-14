@@ -1,12 +1,10 @@
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useState } from "react";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { SEO } from "../components/seo/SEO";
 import { ChevronDown } from "lucide-react";
-import { Pagination } from "../components/ui/Pagination";
-import { usePaginationVideos, usePaginationCount, PaginationFilter } from '../hooks/useVideos';
-import { getPageUrl } from '../lib/pagination';
+import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 import { usePublicCategories } from "../hooks/useCategories";
 
 type SortOption = 'publishedAt' | 'featured' | 'views' | 'duration' | 'random';
@@ -21,9 +19,6 @@ const SORT_OPTIONS: { label: string; value: SortOption }[] = [
 
 export function Category() {
   const { slug } = useParams<{ slug: string }>();
-  const [searchParams] = useSearchParams();
-  const pageParam = searchParams.get('page');
-  const currentPage = parseInt(pageParam || '1', 10);
   
   const [sortBy, setSortBy] = useState<SortOption>('publishedAt');
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -43,14 +38,16 @@ export function Category() {
     sortBy
   };
 
-  const { data: totalCount = 0 } = usePaginationCount(filter);
-  const totalPages = Math.ceil(totalCount / 20);
-
   const {
-    data: videos = [],
+    data,
     isLoading,
-    isError
-  } = usePaginationVideos(filter, currentPage, 20);
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage
+  } = usePaginationVideos(filter, 20);
+
+  const videos = data?.pages.flat() || [];
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -80,11 +77,9 @@ export function Category() {
   return (
     <div className="flex-1 pb-16 pt-8">
       <SEO
-        title={`${categoryName} Porn Videos${currentPage > 1 ? ` - Page ${currentPage}` : ''} - DesiredHub`}
+        title={`${categoryName} Porn Videos - DesiredHub`}
         description={`Watch the best ${categoryName} sex videos on DesiredHub. Premium free porn updated daily.`}
         jsonLd={jsonLd}
-        prevUrl={currentPage > 1 ? getPageUrl(`/category/${slug}`, currentPage - 1, searchParams) : undefined}
-        nextUrl={currentPage < totalPages ? getPageUrl(`/category/${slug}`, currentPage + 1, searchParams) : undefined}
       />
       <section className="container mx-auto px-4 mb-16">
         <nav className="flex text-neutral-400 text-sm mb-4">
@@ -102,11 +97,6 @@ export function Category() {
               <h1 className="text-2xl md:text-3xl font-bold text-white capitalize">
                 {categoryName} Videos
               </h1>
-              {totalCount > 0 && (
-                <p className="text-neutral-400 mt-2">
-                  {totalCount} video{totalCount !== 1 ? 's' : ''} available
-                </p>
-              )}
             </div>
 
             <div className="relative">
@@ -179,15 +169,21 @@ export function Category() {
                 : videos.map((video: any) => (
                     <VideoCard key={video.id} video={video} />
                   ))}
+              {isFetchingNextPage && (
+                Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={`fetching-${i}`} />)
+              )}
             </div>
 
-            {!isLoading && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                basePath={`/category/${slug}`}
-                searchParams={searchParams}
-              />
+            {hasNextPage && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                </button>
+              </div>
             )}
           </>
         )}

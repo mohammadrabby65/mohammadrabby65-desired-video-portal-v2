@@ -1,17 +1,12 @@
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { SEO } from "../components/seo/SEO";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { Helmet } from "react-helmet-async";
-import { usePaginationVideos, usePaginationCount, PaginationFilter } from '../hooks/useVideos';
-import { Pagination } from "../components/ui/Pagination";
-import { getPageUrl } from '../lib/pagination';
+import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 
 export function Tag() {
   const { slug } = useParams<{ slug: string }>();
-  const [searchParams] = useSearchParams();
-  const pageParam = searchParams.get('page');
-  const currentPage = parseInt(pageParam || '1', 10);
 
   // Tag slug to normal string (e.g., action-movies -> action movies)
   const tagTitle = slug ? slug.replace(/-/g, " ") : "Tag";
@@ -20,14 +15,16 @@ export function Tag() {
     tag: tagTitle,
   };
 
-  const { data: totalCount = 0 } = usePaginationCount(filter);
-  const totalPages = Math.ceil(totalCount / 20);
-
   const {
-    data: videos = [],
+    data,
     isLoading,
-    isError
-  } = usePaginationVideos(filter, currentPage, 20);
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage
+  } = usePaginationVideos(filter, 20);
+
+  const videos = data?.pages.flat() || [];
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -59,11 +56,9 @@ export function Tag() {
   return (
     <div className="max-w-[2000px] mx-auto px-4 md:px-6 py-6 md:py-8 min-h-screen">
       <SEO
-        title={`${formattedTagName} Videos${currentPage > 1 ? ` - Page ${currentPage}` : ''} - DesiredHub`}
+        title={`${formattedTagName} Videos - DesiredHub`}
         description={`Watch the latest and best videos tagged with ${tagTitle}.`}
-        exactTitle={currentPage === 1}
-        prevUrl={currentPage > 1 ? getPageUrl(`/tag/${slug}`, currentPage - 1, searchParams) : undefined}
-        nextUrl={currentPage < totalPages ? getPageUrl(`/tag/${slug}`, currentPage + 1, searchParams) : undefined}
+        exactTitle={true}
       />
       <Helmet>
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
@@ -73,9 +68,6 @@ export function Tag() {
         <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
           #{tagTitle}
         </h1>
-        {totalCount > 0 && (
-          <p className="text-neutral-400">{totalCount} videos with this tag</p>
-        )}
       </div>
 
       {isError ? (
@@ -106,15 +98,21 @@ export function Tag() {
             ) : videos.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
+            {isFetchingNextPage && (
+              Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={`fetching-${i}`} />)
+            )}
           </div>
 
-          {!isLoading && (
-             <Pagination
-               currentPage={currentPage}
-               totalPages={totalPages}
-               basePath={`/tag/${slug}`}
-               searchParams={searchParams}
-             />
+          {hasNextPage && (
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load More'}
+              </button>
+            </div>
           )}
         </>
       )}

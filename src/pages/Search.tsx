@@ -1,46 +1,39 @@
 import { useSearchParams } from 'react-router-dom';
-import { usePaginationVideos, usePaginationCount, PaginationFilter } from '../hooks/useVideos';
+import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { SEO } from '../components/seo/SEO';
-import { Pagination } from '../components/ui/Pagination';
-import { getPageUrl } from '../lib/pagination';
 
 export function Search() {
   const [searchParams] = useSearchParams();
   const queryText = searchParams.get('q') || '';
-  const pageParam = searchParams.get('page');
-  const currentPage = parseInt(pageParam || '1', 10);
 
   const filter: PaginationFilter = {
     searchQuery: queryText,
   };
 
-  const { data: totalCount = 0 } = usePaginationCount(filter);
-  const totalPages = Math.ceil(totalCount / 20);
-
   const {
-    data: videos = [],
+    data,
     isLoading,
-    isError
-  } = usePaginationVideos(filter, currentPage, 20);
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage
+  } = usePaginationVideos(filter, 20);
+
+  const videos = data?.pages.flat() || [];
 
   return (
     <div className="flex-1 pb-16 pt-8">
       <SEO 
-        title={`Search results for "${queryText}"${currentPage > 1 ? ` - Page ${currentPage}` : ''} - DesiredHub`}
+        title={`Search results for "${queryText}" - DesiredHub`}
         description={`Search results for "${queryText}" on DesiredHub.`}
-        prevUrl={currentPage > 1 ? getPageUrl('/search', currentPage - 1, searchParams) : undefined}
-        nextUrl={currentPage < totalPages ? getPageUrl('/search', currentPage + 1, searchParams) : undefined}
       />
       <section className="container mx-auto px-4 mb-16">
         <div className="mb-8">
           <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
             Search Results for "{queryText}"
           </h2>
-          <p className="text-neutral-400 mt-2">
-            {totalCount} result{totalCount !== 1 ? 's' : ''} found
-          </p>
         </div>
 
         {isError ? (
@@ -67,15 +60,21 @@ export function Search() {
                   <VideoCard key={video.id} video={video} />
                 ))
               )}
+              {isFetchingNextPage && (
+                Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={`fetching-${i}`} />)
+              )}
             </div>
 
-            {!isLoading && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                basePath="/search"
-                searchParams={searchParams}
-              />
+            {hasNextPage && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                </button>
+              </div>
             )}
           </>
         )}

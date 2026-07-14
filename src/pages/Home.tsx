@@ -1,14 +1,11 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { usePaginationVideos, usePaginationCount, PaginationFilter } from '../hooks/useVideos';
+import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { ChevronDown } from 'lucide-react';
 import { usePublicCategories } from '../hooks/useCategories';
 import { NavLink } from 'react-router-dom';
 import { SEO } from '../components/seo/SEO';
-import { Pagination } from '../components/ui/Pagination';
-import { getPageUrl } from '../lib/pagination';
 
 type SortOption = {
   label: string;
@@ -24,8 +21,6 @@ const SORT_OPTIONS: SortOption[] = [
 ];
 
 export function Home() {
-  const { page } = useParams<{ page?: string }>();
-  const currentPage = parseInt(page || '1', 10);
   const [sortBy, setSortBy] = useState<PaginationFilter['sortBy']>('publishedAt');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
@@ -33,14 +28,16 @@ export function Home() {
     sortBy,
   };
 
-  const { data: totalCount = 0 } = usePaginationCount(filter);
-  const totalPages = Math.ceil(totalCount / 20);
-
   const {
-    data: videos = [],
+    data,
     isLoading,
-    isError
-  } = usePaginationVideos(filter, currentPage, 20);
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage
+  } = usePaginationVideos(filter, 20);
+
+  const videos = data?.pages.flat() || [];
 
   const { data: rawCategories = [] } = usePublicCategories(false);
   const categories = [...rawCategories]
@@ -50,11 +47,9 @@ export function Home() {
   return (
     <div className="flex-1 pb-16 pt-8">
       <SEO 
-        title={currentPage > 1 ? `Page ${currentPage} - DesiredHub` : "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online"}
+        title="DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online"
         description="Watch the latest premium viral sex videos with fast streaming and daily updates."
-        exactTitle={currentPage === 1}
-        prevUrl={currentPage > 1 ? getPageUrl('/', currentPage - 1) : undefined}
-        nextUrl={currentPage < totalPages ? getPageUrl('/', currentPage + 1) : undefined}
+        exactTitle={true}
       />
       <section className="container mx-auto px-4 mb-16">
         <div className="mb-8">
@@ -146,14 +141,21 @@ export function Home() {
                   <VideoCard key={video.id} video={video} />
                 ))
               )}
+              {isFetchingNextPage && (
+                Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={`fetching-${i}`} />)
+              )}
             </div>
 
-            {!isLoading && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                basePath="/"
-              />
+            {hasNextPage && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                </button>
+              </div>
             )}
           </>
         )}
