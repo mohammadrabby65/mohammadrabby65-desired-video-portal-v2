@@ -105,7 +105,8 @@ async function startServer() {
 Allow: /
 Disallow: /admin
 Disallow: /admin/*
-Disallow: /api/*`);
+Disallow: /api/*
+Sitemap: ${SITE_URL}/sitemap-main.xml`);
   });
 
   let cachedCategories: any = null;
@@ -150,8 +151,6 @@ Disallow: /api/*`);
   const countCache = new Map<string, { count: number, timestamp: number }>();
   const relatedVideosCache = new Map<string, { data: any, timestamp: number }>();
   const adjacentVideosCache = new Map<string, { data: any, timestamp: number }>();
-  const featuredCache = new Map<string, { data: any, timestamp: number }>();
-  const videoBySlugCache = new Map<string, { data: any, timestamp: number }>();
   const VIDEOS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
   app.get("/api/videos", async (req, res) => {
@@ -389,76 +388,6 @@ Disallow: /api/*`);
     }
   });
 
-  app.get("/api/videos/featured", async (req, res) => {
-    try {
-      const cacheKey = "featured_videos";
-      const cached = featuredCache.get(cacheKey);
-
-      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
-        return res.status(200).set({
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-        }).json(cached.data);
-      }
-
-      const q = query(
-        collection(db, 'posts'),
-        where('featured', '==', true),
-        orderBy('publishedAt', 'desc'),
-        limit(3)
-      );
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      featuredCache.set(cacheKey, { data, timestamp: Date.now() });
-
-      res.status(200).set({
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-      }).json(data);
-    } catch (err) {
-      console.error("API /videos/featured error:", err);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  app.get("/api/videos/by-slug/:slug", async (req, res) => {
-    try {
-      const slug = req.params.slug;
-      if (!slug) {
-        return res.status(400).json({ error: "slug is required" });
-      }
-
-      const cached = videoBySlugCache.get(slug);
-      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
-        return res.status(200).set({
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-        }).json(cached.data);
-      }
-
-      const q = query(collection(db, 'posts'), where('slug', '==', slug), limit(1));
-      const snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        return res.status(404).json({ error: "Video not found" });
-      }
-
-      const docSnap = snapshot.docs[0];
-      const data = { id: docSnap.id, ...docSnap.data() };
-
-      videoBySlugCache.set(slug, { data, timestamp: Date.now() });
-
-      res.status(200).set({
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-      }).json(data);
-    } catch (err) {
-      console.error("API /videos/by-slug error:", err);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
 
 
   let vite: any = null;
@@ -495,6 +424,106 @@ Disallow: /api/*`);
   }
 
 
+  const videoCache = new Map<string, { data: any, id: string, timestamp: number }>();
+  const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+  app.get("/video/:slug", async (req, res, next) => {
+    try {
+      const slug = req.params.slug;
+      
+      let video: any;
+      let docId = "";
+      
+      const cached = videoCache.get(slug);
+      if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+        if (cached.data === null) {
+          return next();
+        }
+        video = cached.data;
+        docId = cached.id;
+      } else {
+        const q = query(collection(db, "posts"), where("slug", "==", slug), limit(1));
+        const snap = await getDocs(q);
+        
+        if (snap.empty) {
+          videoCache.set(slug, { data: null, id: "", timestamp: Date.now() });
+          return next();
+        }
+        
+        video = snap.docs[0].data();
+        docId = snap.docs[0].id;
+        
+        videoCache.set(slug, { data: video, id: docId, timestamp: Date.now() });
+      }
+      
+      let template = "";
+      if (process.env.NODE_ENV !== "production") {
+        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
+        template = await vite.transformIndexHtml(req.originalUrl, template);
+      } else {
+        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
+      }
+      
+      const title = escapeHtml(`${video.title} - DesiredHub`);
+      const description = escapeHtml(video.description || "");
+      const image = escapeHtml(video.thumbnailUrl || "");
+      const currentUrl = escapeHtml(`${SITE_URL}/video/${slug}`);
+      
+      let uploadDate = new Date().toISOString();
+      if (video.publishedAt) {
+        if (typeof video.publishedAt.toDate === "function") {
+          uploadDate = video.publishedAt.toDate().toISOString();
+        } else if (video.publishedAt.seconds) {
+          uploadDate = new Date(video.publishedAt.seconds * 1000).toISOString();
+        } else {
+          uploadDate = new Date(video.publishedAt).toISOString();
+        }
+      }
+      
+      const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        name: video.title,
+        description: video.description,
+        thumbnailUrl: [video.thumbnailUrl],
+        uploadDate: uploadDate,
+        ...(video.duration && { duration: formatIsoDuration(video.duration) }),
+        contentUrl: video.videoUrl,
+      };
+
+      const seoTags = `
+        <title data-rh="true">${title}</title>
+        <meta data-rh="true" name="description" content="${description}" />
+        <link data-rh="true" rel="canonical" href="${currentUrl}" />
+        <meta data-rh="true" property="og:site_name" content="DesiredHub" />
+        <meta data-rh="true" property="og:locale" content="en_US" />
+        <meta data-rh="true" property="og:type" content="website" />
+        <meta data-rh="true" property="og:url" content="${currentUrl}" />
+        <meta data-rh="true" property="og:title" content="${title}" />
+        <meta data-rh="true" property="og:description" content="${description}" />
+        <meta data-rh="true" property="og:image" content="${image}" />
+        <meta data-rh="true" property="og:image:width" content="1200" />
+        <meta data-rh="true" property="og:image:height" content="630" />
+        <meta data-rh="true" name="twitter:card" content="summary_large_image" />
+        <meta data-rh="true" name="twitter:url" content="${currentUrl}" />
+        <meta data-rh="true" name="twitter:title" content="${title}" />
+        <meta data-rh="true" name="twitter:description" content="${description}" />
+        <meta data-rh="true" name="twitter:image" content="${image}" />
+        <script data-rh="true" type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+        <script>window.__INITIAL_VIDEO_DATA__ = ${JSON.stringify({ id: docId, ...video }).replace(/</g, '\\u003c')};</script>
+      `;
+
+      const html = template.replace("<title>DesiredHub</title>", seoTags);
+      
+      res.status(200).set({ 
+        'Content-Type': 'text/html',
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60'
+      }).end(html);
+    } catch (e) {
+      console.error("SEO Injection Error:", e);
+      next();
+    }
+  });
 
   if (process.env.NODE_ENV !== "production") {
     app.use(vite.middlewares);

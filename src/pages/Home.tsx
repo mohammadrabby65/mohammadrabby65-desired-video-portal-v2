@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
+import { useParams } from 'react-router-dom';
+import { usePaginationVideos, usePaginationCount, PaginationFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { ChevronDown } from 'lucide-react';
+import { usePublicCategories } from '../hooks/useCategories';
+import { NavLink } from 'react-router-dom';
 import { SEO } from '../components/seo/SEO';
-import { TelegramPopup } from '../components/ui/TelegramPopup';
+import { Pagination } from '../components/ui/Pagination';
+import { getPageUrl } from '../lib/pagination';
 
 type SortOption = {
   label: string;
@@ -20,6 +24,8 @@ const SORT_OPTIONS: SortOption[] = [
 ];
 
 export function Home() {
+  const { page } = useParams<{ page?: string }>();
+  const currentPage = parseInt(page || '1', 10);
   const [sortBy, setSortBy] = useState<PaginationFilter['sortBy']>('publishedAt');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
@@ -27,20 +33,29 @@ export function Home() {
     sortBy,
   };
 
+  const { data: totalCount = 0 } = usePaginationCount(filter);
+  const totalPages = Math.ceil(totalCount / 20);
+
   const {
     data: videos = [],
     isLoading,
     isError
-  } = usePaginationVideos(filter, 1, 20);
+  } = usePaginationVideos(filter, currentPage, 20);
+
+  const { data: rawCategories = [] } = usePublicCategories(false);
+  const categories = [...rawCategories]
+    .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+    .slice(0, 20);
 
   return (
     <div className="flex-1 pb-16 pt-8">
       <SEO 
-        title="DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online"
+        title={currentPage > 1 ? `Page ${currentPage} - DesiredHub` : "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online"}
         description="Watch the latest premium viral sex videos with fast streaming and daily updates."
-        exactTitle={true}
+        exactTitle={currentPage === 1}
+        prevUrl={currentPage > 1 ? getPageUrl('/', currentPage - 1) : undefined}
+        nextUrl={currentPage < totalPages ? getPageUrl('/', currentPage + 1) : undefined}
       />
-      <TelegramPopup />
       <section className="container mx-auto px-4 mb-16">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -85,6 +100,26 @@ export function Home() {
               )}
             </div>
           </div>
+          
+          {categories.length > 0 && (
+            <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide text-sm font-medium items-center">
+              {categories.map((cat, index) => (
+                <div key={cat.id} className="flex items-center gap-4">
+                  <NavLink 
+                    to={`/category/${cat.slug}`} 
+                    className={({ isActive }) => 
+                      `whitespace-nowrap transition-colors ${isActive ? 'text-red-500' : 'text-neutral-400 hover:text-neutral-200'}`
+                    }
+                  >
+                    {cat.name}
+                  </NavLink>
+                  {index < categories.length - 1 && (
+                    <span className="text-neutral-800 select-none">|</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {isError ? (
@@ -102,15 +137,25 @@ export function Home() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
-            {isLoading ? (
-              Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
-            ) : (
-              videos.map(video => (
-                <VideoCard key={video.id} video={video} />
-              ))
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+              {isLoading ? (
+                Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
+              ) : (
+                videos.map(video => (
+                  <VideoCard key={video.id} video={video} />
+                ))
+              )}
+            </div>
+
+            {!isLoading && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                basePath="/"
+              />
             )}
-          </div>
+          </>
         )}
       </section>
     </div>
