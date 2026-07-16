@@ -109,7 +109,27 @@ export function Settings() {
           </div>
         </div>
 
-        <div className="pt-4 border-t border-neutral-800 flex justify-end">
+        <div className="pt-4 border-t border-neutral-800 flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={async () => {
+              setLoading(true);
+              try {
+                const res = await fetch('/api/admin/snapshot/generate', { method: 'POST' });
+                if (res.ok) alert('Snapshot generated successfully');
+                else alert('Failed to generate snapshot');
+              } catch (e) {
+                alert('Error generating snapshot');
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            className="flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+            Regenerate Static Data
+          </button>
           <button
             type="submit"
             disabled={loading}

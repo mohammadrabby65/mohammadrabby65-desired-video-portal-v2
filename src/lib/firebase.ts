@@ -1,7 +1,9 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, initializeFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, setLogLevel } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+
+setLogLevel("silent");
 
 const firebaseConfig = {
   projectId: "gen-lang-client-0637384010",

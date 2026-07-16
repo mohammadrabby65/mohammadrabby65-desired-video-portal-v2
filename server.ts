@@ -2,9 +2,11 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
 import fs from "fs";
+
+setLogLevel("silent");
 
 
 const SECRET_KEY = process.env.VITE_STREAM_SECRET || "local-dev-secret-key-12345";
@@ -20,14 +22,78 @@ const firebaseConfig = {
 };
 
 const fbApp = initializeApp(firebaseConfig, "server-app");
-const db = initializeFirestore(fbApp, {}, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2");
+const db = initializeFirestore(fbApp, { experimentalForceLongPolling: true }, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2");
 
 export const app = express();
+
+let publicDataSnapshot: {
+  posts: any[];
+  categories: any[];
+  lastUpdated: number;
+} = {
+  posts: [],
+  categories: [],
+  lastUpdated: 0
+};
+
+async function generateSnapshot() {
+  console.log("Generating data snapshot...");
+  try {
+    const catQ = query(collection(db, 'categories'), orderBy('name', 'asc'), limit(1000));
+    const catSnap = await getDocs(catQ);
+    const categories = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    const postQ = query(collection(db, 'posts'), limit(1000));
+    const postSnap = await getDocs(postQ);
+    const posts = postSnap.docs.map(doc => {
+      const data = doc.data();
+      let publishedAtMs = 0;
+      if (data.publishedAt) {
+        if (typeof data.publishedAt.toDate === 'function') {
+          publishedAtMs = data.publishedAt.toDate().getTime();
+        } else if (data.publishedAt.seconds) {
+          publishedAtMs = data.publishedAt.seconds * 1000;
+        } else {
+          publishedAtMs = new Date(data.publishedAt).getTime();
+        }
+      }
+      return { id: doc.id, ...data, _publishedAtMs: publishedAtMs };
+    });
+
+    posts.sort((a, b) => b._publishedAtMs - a._publishedAtMs);
+
+    publicDataSnapshot = {
+      posts,
+      categories,
+      lastUpdated: Date.now()
+    };
+    
+    fs.writeFileSync(path.join(process.cwd(), 'data-snapshot.json'), JSON.stringify(publicDataSnapshot));
+    console.log(`Snapshot generated. Posts: ${posts.length}, Categories: ${categories.length}`);
+  } catch (err) {
+    console.error("Error generating snapshot:", err);
+  }
+}
+
+try {
+  const fileData = fs.readFileSync(path.join(process.cwd(), 'data-snapshot.json'), 'utf-8');
+  publicDataSnapshot = JSON.parse(fileData);
+  console.log(`Loaded snapshot from disk. Posts: ${publicDataSnapshot.posts.length}, Categories: ${publicDataSnapshot.categories.length}`);
+} catch (e) {
+  generateSnapshot();
+}
+
+setInterval(generateSnapshot, 60 * 60 * 1000);
 
 async function startServer() {
   const PORT = 3000;
   
   app.use(express.json());
+
+  app.post("/api/admin/snapshot/generate", async (req, res) => {
+    await generateSnapshot();
+    res.json({ success: true, lastUpdated: publicDataSnapshot.lastUpdated });
+  });
 
   // Basic anti-hotlinking middleware for stream endpoints
   app.use("/api/stream", (req, res, next) => {
@@ -109,101 +175,65 @@ Disallow: /api/*
 Sitemap: ${SITE_URL}/sitemap-main.xml`);
   });
 
-  let cachedCategories: any = null;
-  let categoriesCacheTime = 0;
-  
   app.get("/api/categories", async (req, res) => {
     try {
-      const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
-      if (cachedCategories && (Date.now() - categoriesCacheTime < CACHE_DURATION)) {
-        res.status(200).set({
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=600'
-        }).json(cachedCategories);
-        return;
-      }
-
-      const q = query(
-        collection(db, 'categories'),
-        orderBy('name', 'asc'),
-        limit(20)
-      );
-      const snap = await getDocs(q);
-      const cats = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      cachedCategories = cats.filter((c: any) => c.isActive !== false);
-      categoriesCacheTime = Date.now();
-
       res.status(200).set({
         'Content-Type': 'application/json',
         'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=600'
-      }).json(cachedCategories);
+      }).json(publicDataSnapshot.categories.filter((c: any) => c.isActive !== false));
     } catch (e) {
       console.error("Categories fetch error:", e);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  const videosCache = new Map<string, { data: any, timestamp: number }>();
-  const relatedVideosCache = new Map<string, { data: any, timestamp: number }>();
-  const adjacentVideosCache = new Map<string, { data: any, timestamp: number }>();
-  const VIDEOS_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-
   app.get("/api/videos", async (req, res) => {
     try {
       const { category, tag, q: searchQuery, sortBy, limitCount = "20", lastId } = req.query;
-      
-      const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 20);
+      const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 100);
 
-      const constraints: any[] = [];
+      let filtered = publicDataSnapshot.posts;
+
       if (searchQuery) {
         const searchWord = (searchQuery as string).trim().toLowerCase().split(' ')[0];
-        if (searchWord) constraints.push(where('searchTerms', 'array-contains', searchWord));
+        if (searchWord) {
+           filtered = filtered.filter(v => v.searchTerms && v.searchTerms.includes(searchWord));
+        }
       } else if (category && category !== 'All') {
-        constraints.push(where('categories', 'array-contains', category));
-        constraints.push(orderBy((sortBy as string) && sortBy !== 'random' ? sortBy as string : 'publishedAt', 'desc'));
+         filtered = filtered.filter(v => v.categories && v.categories.includes(category));
       } else if (tag) {
-        constraints.push(where('tags', 'array-contains', tag));
-        constraints.push(orderBy((sortBy as string) && sortBy !== 'random' ? sortBy as string : 'publishedAt', 'desc'));
-      } else {
-        if (sortBy && sortBy !== 'random') {
-          constraints.push(orderBy(sortBy as string, 'desc'));
-        } else if (!sortBy) {
-          constraints.push(orderBy('publishedAt', 'desc'));
-        }
+         filtered = filtered.filter(v => v.tags && v.tags.includes(tag));
       }
 
-      if (lastId) {
-        // Fetch the cursor doc
-        const cursorDocSnap = await getDoc(doc(db, 'posts', lastId as string));
-        if (cursorDocSnap.exists()) {
-          constraints.push(startAfter(cursorDocSnap));
-        }
-      }
-
-      const videosQ = query(collection(db, 'posts'), ...constraints, limit(limitNum));
-      const videosSnap = await getDocs(videosQ);
-      
-      let videos = videosSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
-      
       if (sortBy === 'random') {
-        videos = videos.sort(() => Math.random() - 0.5);
+         filtered = [...filtered].sort(() => Math.random() - 0.5);
+      } else if (sortBy === 'oldest') {
+         filtered = [...filtered].sort((a, b) => a._publishedAtMs - b._publishedAtMs);
+      } else if (sortBy === 'popular') {
+         filtered = [...filtered].sort((a, b) => (b.views || 0) - (a.views || 0));
+      } else {
+         filtered = [...filtered].sort((a, b) => b._publishedAtMs - a._publishedAtMs);
       }
+
+      let startIndex = 0;
+      if (lastId) {
+        const lastIdx = filtered.findIndex(v => v.id === lastId);
+        if (lastIdx !== -1) {
+          startIndex = lastIdx + 1;
+        }
+      }
+
+      const paginatedDocs = filtered.slice(startIndex, startIndex + limitNum);
 
       res.status(200).set({
         'Content-Type': 'application/json',
         'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-      }).json(videos);
+      }).json(paginatedDocs);
     } catch (err) {
       console.error("API /videos error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
-
-  // Removed /api/videos/count endpoint as it was very expensive
 
   app.get("/api/videos/related", async (req, res) => {
     try {
@@ -220,43 +250,31 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
         return res.json({ videos: [], nextCursor: null });
       }
 
-      const constraints: any[] = [
-        where('categories', 'array-contains-any', categories.slice(0, 10)),
-        orderBy('publishedAt', 'desc')
-      ];
+      let filtered = publicDataSnapshot.posts.filter(v => 
+        v.id !== videoId && 
+        v.categories && 
+        v.categories.some((c: string) => categories.includes(c))
+      );
 
+      let startIndex = 0;
       if (lastId) {
-        const cursorDocSnap = await getDoc(doc(db, 'posts', lastId as string));
-        if (cursorDocSnap.exists()) {
-          constraints.push(startAfter(cursorDocSnap));
+        const lastIdx = filtered.findIndex(v => v.id === lastId);
+        if (lastIdx !== -1) {
+          startIndex = lastIdx + 1;
         }
       }
 
-      // We read limitNum + 1 because we need to filter out the current videoId if it appears
-      const maxLimit = Math.min(limitNum + 1, 20);
-      constraints.push(limit(maxLimit));
-
-      const q = query(collection(db, 'posts'), ...constraints);
-      const snapshot = await getDocs(q);
-
-      const fetchedDocs = snapshot.docs;
-      const filteredDocs = fetchedDocs.filter(doc => doc.id !== videoId);
-
-      const paginatedDocs = filteredDocs.slice(0, limitNum);
+      const paginatedDocs = filtered.slice(startIndex, startIndex + limitNum);
 
       let nextCursor: string | null = null;
-      if (filteredDocs.length > limitNum) {
-        nextCursor = paginatedDocs[paginatedDocs.length - 1].id;
+      if (startIndex + limitNum < filtered.length) {
+        nextCursor = paginatedDocs[paginatedDocs.length - 1]?.id || null;
       }
-
-      const videos = paginatedDocs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      const result = { videos, nextCursor };
 
       res.status(200).set({
         'Content-Type': 'application/json',
         'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-      }).json(result);
+      }).json({ videos: paginatedDocs, nextCursor });
     } catch (err) {
       console.error("API /videos/related error:", err);
       res.status(500).json({ error: "Internal server error" });
@@ -274,59 +292,34 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       const seconds = parseInt(secondsStr as string, 10);
       const nanoseconds = parseInt(nanosecondsStr as string, 10);
 
-      const cacheKey = JSON.stringify({ currentSlug, seconds, nanoseconds });
-      const cached = adjacentVideosCache.get(cacheKey);
-
-      if (cached && (Date.now() - cached.timestamp < VIDEOS_CACHE_TTL)) {
-        res.status(200).set({
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-        }).json(cached.data);
-        return;
-      }
-
-      let pubAt: any = null;
+      let pubAtMs: number | null = null;
       if (isNaN(seconds) || isNaN(nanoseconds)) {
-        const videoQ = query(collection(db, 'posts'), where('slug', '==', currentSlug), limit(1));
-        const videoSnap = await getDocs(videoQ);
-        if (videoSnap.empty) {
+        const video = publicDataSnapshot.posts.find(v => v.slug === currentSlug);
+        if (!video) {
           return res.status(404).json({ prev: null, next: null });
         }
-        pubAt = videoSnap.docs[0].data().publishedAt;
+        pubAtMs = video._publishedAtMs;
       } else {
-        pubAt = new Timestamp(seconds, nanoseconds);
+        pubAtMs = (seconds * 1000) + Math.floor(nanoseconds / 1000000);
       }
 
-      if (!pubAt) {
+      if (!pubAtMs) {
         return res.status(404).json({ prev: null, next: null });
       }
 
-      const prevQ = query(
-        collection(db, 'posts'),
-        orderBy('publishedAt', 'desc'),
-        startAfter(pubAt),
-        limit(1)
-      );
+      let prev = null;
+      let next = null;
 
-      const nextQ = query(
-        collection(db, 'posts'),
-        orderBy('publishedAt', 'asc'),
-        startAfter(pubAt),
-        limit(1)
-      );
-
-      const [prevSnap, nextSnap] = await Promise.all([getDocs(prevQ), getDocs(nextQ)]);
-
-      const prev = prevSnap.empty ? null : { id: prevSnap.docs[0].id, ...prevSnap.docs[0].data() };
-      const next = nextSnap.empty ? null : { id: nextSnap.docs[0].id, ...nextSnap.docs[0].data() };
-
-      const result = { prev, next };
-      adjacentVideosCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      const older = publicDataSnapshot.posts.filter(v => v._publishedAtMs < pubAtMs!);
+      if (older.length > 0) prev = older[0];
+      
+      const newer = publicDataSnapshot.posts.filter(v => v._publishedAtMs > pubAtMs!);
+      if (newer.length > 0) next = newer[newer.length - 1];
 
       res.status(200).set({
         'Content-Type': 'application/json',
         'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-      }).json(result);
+      }).json({ prev, next });
     } catch (err) {
       console.error("API /videos/adjacent error:", err);
       res.status(500).json({ error: "Internal server error" });
@@ -369,8 +362,21 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
   }
 
 
-  const videoCache = new Map<string, { data: any, id: string, timestamp: number }>();
-  const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+  app.get("/api/video/:slug", (req, res) => {
+    try {
+      const slug = req.params.slug;
+      const video = publicDataSnapshot.posts.find(v => v.slug === slug);
+      if (!video) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      res.status(200).set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=3600'
+      }).json(video);
+    } catch (e) {
+      res.status(500).json({ error: "Internal error" });
+    }
+  });
 
   app.get("/video/:slug", async (req, res, next) => {
     try {
@@ -379,26 +385,12 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       let video: any;
       let docId = "";
       
-      const cached = videoCache.get(slug);
-      if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
-        if (cached.data === null) {
-          return next();
-        }
-        video = cached.data;
-        docId = cached.id;
+      const cachedVideo = publicDataSnapshot.posts.find(v => v.slug === slug);
+      if (cachedVideo) {
+        video = cachedVideo;
+        docId = cachedVideo.id;
       } else {
-        const q = query(collection(db, "posts"), where("slug", "==", slug), limit(1));
-        const snap = await getDocs(q);
-        
-        if (snap.empty) {
-          videoCache.set(slug, { data: null, id: "", timestamp: Date.now() });
-          return next();
-        }
-        
-        video = snap.docs[0].data();
-        docId = snap.docs[0].id;
-        
-        videoCache.set(slug, { data: video, id: docId, timestamp: Date.now() });
+        return next();
       }
       
       let template = "";

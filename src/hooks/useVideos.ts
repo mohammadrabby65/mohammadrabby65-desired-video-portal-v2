@@ -94,11 +94,9 @@ export function useVideoBySlug(slug: string | undefined) {
     queryKey: ['video', slug],
     queryFn: async () => {
       if (!slug) throw new Error('No slug provided');
-      const q = query(collection(db, 'posts'), where('slug', '==', slug), limit(1));
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) throw new Error('Video not found');
-      const doc = snapshot.docs[0];
-      return { id: doc.id, ...doc.data() } as VideoPost;
+      const res = await fetch(`/api/video/${slug}`);
+      if (!res.ok) throw new Error('Video not found');
+      return res.json();
     },
     initialData: () => {
       if (typeof window !== 'undefined' && (window as any).__INITIAL_VIDEO_DATA__) {
