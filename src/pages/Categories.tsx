@@ -11,7 +11,7 @@ interface CategoryWithCount extends Category {
 }
 
 export function Categories() {
-  const { data: rawCategories = [], isLoading } = usePublicCategories();
+  const { data: rawCategories = [], isLoading, error } = usePublicCategories();
   const categories = [...rawCategories].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
   const jsonLd = {
@@ -58,7 +58,7 @@ export function Categories() {
               <div key={i} className="aspect-[4/3] rounded-2xl bg-neutral-900 animate-pulse" />
             ))}
           </div>
-        ) : categories?.length === 0 ? (
+        ) : error ? ( <div>Error: {error.message}</div> ) : categories?.length === 0 ? (
           <div className="text-center py-20 bg-neutral-900/30 rounded-2xl border border-neutral-800/50">
             <h2 className="text-xl font-semibold text-white mb-2">No categories found</h2>
           </div>

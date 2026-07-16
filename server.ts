@@ -195,9 +195,15 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       let filtered = publicDataSnapshot.posts;
 
       if (searchQuery) {
-        const searchWord = (searchQuery as string).trim().toLowerCase().split(' ')[0];
-        if (searchWord) {
-           filtered = filtered.filter(v => v.searchTerms && v.searchTerms.includes(searchWord));
+        const queryStr = (searchQuery as string).trim().toLowerCase();
+        if (queryStr) {
+           filtered = filtered.filter(v => {
+             const titleMatch = (v.title || '').toLowerCase().includes(queryStr);
+             const descMatch = (v.description || '').toLowerCase().includes(queryStr);
+             const tagMatch = (v.tags || []).some((t: string) => t.toLowerCase().includes(queryStr));
+             const catMatch = (v.categories || []).some((c: string) => c.toLowerCase().includes(queryStr));
+             return titleMatch || descMatch || tagMatch || catMatch;
+           });
         }
       } else if (category && category !== 'All') {
          filtered = filtered.filter(v => v.categories && v.categories.includes(category));
