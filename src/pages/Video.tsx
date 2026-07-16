@@ -31,6 +31,11 @@ const formatIsoDuration = (duration: string) => {
 
 export function Video() {
   const { slug } = useParams<{ slug: string }>();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]);
+
   const { data: video, isLoading, isError } = useVideoBySlug(slug);
   const { data: adjacent } = useAdjacentVideos(video?.publishedAt, video?.slug);
   const [isTagsExpanded, setIsTagsExpanded] = useState(false);

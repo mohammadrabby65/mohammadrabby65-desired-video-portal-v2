@@ -86,6 +86,9 @@ export default function App() {
 
   // Track page views on route change
   useEffect(() => {
+    // Scroll to top on route change
+    window.scrollTo(0, 0);
+    
     if (typeof window !== "undefined" && (window as any).gtag) {
       (window as any).gtag("event", "page_view", {
         page_path: location.pathname + location.search,
