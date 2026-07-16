@@ -1,7 +1,143 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { Save, Loader2 } from 'lucide-react';
+import { Save, Loader2, Database } from 'lucide-react';
+
+interface SnapshotStatus {
+  status: 'Success' | 'Failed' | 'Never Generated';
+  lastUpdated: number;
+  postsCount: number;
+  categoriesCount: number;
+  sizeKb: number;
+}
+
+function SnapshotManagement() {
+  const [status, setStatus] = useState<SnapshotStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const fetchStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/snapshot/status');
+      if (res.ok) {
+        setStatus(await res.json());
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+
+  const handleGenerate = async () => {
+    setIsConfirming(false);
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/admin/snapshot/generate', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert('Snapshot generated successfully.');
+        await fetchStatus();
+      } else {
+        const err = data.error || 'Failed to generate snapshot';
+        setErrorMsg(err);
+        alert(`Failed to generate snapshot: ${err}`);
+        await fetchStatus();
+      }
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Error generating snapshot');
+      alert(`Error generating snapshot: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
+      <div className="flex items-center gap-2 border-b border-neutral-800 pb-2">
+        <Database className="w-5 h-5 text-neutral-400" />
+        <h2 className="text-lg font-semibold text-white">Snapshot Management</h2>
+      </div>
+
+      {status ? (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+          <div className="bg-neutral-950 p-4 rounded-lg border border-neutral-800">
+            <div className="text-neutral-400 mb-1">Status</div>
+            <div className={`font-medium ${status.status === 'Success' ? 'text-green-500' : status.status === 'Failed' ? 'text-red-500' : 'text-yellow-500'}`}>{status.status}</div>
+          </div>
+          <div className="bg-neutral-950 p-4 rounded-lg border border-neutral-800">
+            <div className="text-neutral-400 mb-1">Last Generated</div>
+            <div className="text-white font-medium">{status.lastUpdated > 0 ? new Date(status.lastUpdated).toLocaleString() : 'Never'}</div>
+          </div>
+          <div className="bg-neutral-950 p-4 rounded-lg border border-neutral-800">
+            <div className="text-neutral-400 mb-1">Total Posts</div>
+            <div className="text-white font-medium">{status.postsCount}</div>
+          </div>
+          <div className="bg-neutral-950 p-4 rounded-lg border border-neutral-800">
+            <div className="text-neutral-400 mb-1">Total Categories</div>
+            <div className="text-white font-medium">{status.categoriesCount}</div>
+          </div>
+          <div className="bg-neutral-950 p-4 rounded-lg border border-neutral-800">
+            <div className="text-neutral-400 mb-1">File Size</div>
+            <div className="text-white font-medium">{status.sizeKb > 1024 ? (status.sizeKb / 1024).toFixed(2) + ' MB' : status.sizeKb + ' KB'}</div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-neutral-400 text-sm">Loading snapshot status...</div>
+      )}
+
+      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 text-blue-400 text-sm">
+        <div className="font-medium mb-1">Automatic Snapshot Refresh: Every 1 hour</div>
+        <p>The system automatically rebuilds the snapshot in the background every hour.</p>
+      </div>
+
+      {errorMsg && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400 text-sm">
+          <div className="font-medium">Error Generating Snapshot</div>
+          <p className="mt-1 font-mono text-xs break-all">{errorMsg}</p>
+        </div>
+      )}
+
+      <div>
+        {!isConfirming ? (
+          <button
+            type="button"
+            onClick={() => setIsConfirming(true)}
+            disabled={loading}
+            className="flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+            {loading ? 'Generating snapshot...' : 'Generate Snapshot Now'}
+          </button>
+        ) : (
+          <div className="bg-neutral-950 border border-neutral-800 p-4 rounded-lg max-w-lg">
+            <p className="text-white mb-4">Generate a new public snapshot?<br/>All visitors will immediately receive the updated data.</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsConfirming(false)}
+                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-md font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-medium"
+              >
+                Generate
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function Settings() {
   const [formData, setFormData] = useState({
@@ -111,26 +247,6 @@ export function Settings() {
 
         <div className="pt-4 border-t border-neutral-800 flex justify-end gap-4">
           <button
-            type="button"
-            onClick={async () => {
-              setLoading(true);
-              try {
-                const res = await fetch('/api/admin/snapshot/generate', { method: 'POST' });
-                if (res.ok) alert('Snapshot generated successfully');
-                else alert('Failed to generate snapshot');
-              } catch (e) {
-                alert('Error generating snapshot');
-              } finally {
-                setLoading(false);
-              }
-            }}
-            disabled={loading}
-            className="flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-            Regenerate Static Data
-          </button>
-          <button
             type="submit"
             disabled={loading}
             className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
@@ -140,6 +256,8 @@ export function Settings() {
           </button>
         </div>
       </form>
+
+      <SnapshotManagement />
     </div>
   );
 }

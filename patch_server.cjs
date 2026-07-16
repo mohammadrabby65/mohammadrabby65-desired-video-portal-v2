@@ -1,40 +1,63 @@
 const fs = require('fs');
 let code = fs.readFileSync('server.ts', 'utf8');
 
-// Add snapshotPromise and ensureSnapshot
-const ensureSnapshotCode = `
-let snapshotPromise: Promise<void> | null = null;
+code = code.replace(
+`    fs.writeFileSync(path.join(process.cwd(), 'data-snapshot.json'), JSON.stringify(publicDataSnapshot));
+    console.log(\`Snapshot generated. Posts: \${posts.length}, Categories: \${categories.length}\`);
+  } catch (err) {
+    console.error("Error generating snapshot:", err);
+  }`,
+`    fs.writeFileSync(path.join(process.cwd(), 'data-snapshot.json'), JSON.stringify(publicDataSnapshot));
+    console.log(\`Snapshot generated. Posts: \${posts.length}, Categories: \${categories.length}\`);
+  } catch (err) {
+    console.error("Error generating snapshot:", err);
+    throw err;
+  }`
+);
 
-async function ensureSnapshot() {
-  if (publicDataSnapshot.lastUpdated > 0 && publicDataSnapshot.posts.length > 0) return;
-  if (!snapshotPromise) {
-    snapshotPromise = generateSnapshot().finally(() => {
-      snapshotPromise = null;
-    });
-  }
-  await snapshotPromise;
-}
+const statusEndpoint = `
+  app.get("/api/admin/snapshot/status", (req, res) => {
+    try {
+      const stats = fs.statSync(path.join(process.cwd(), 'data-snapshot.json'));
+      res.json({
+        status: publicDataSnapshot.lastUpdated > 0 ? "Success" : "Never Generated",
+        lastUpdated: publicDataSnapshot.lastUpdated,
+        postsCount: publicDataSnapshot.posts.length,
+        categoriesCount: publicDataSnapshot.categories.length,
+        sizeKb: Math.round(stats.size / 1024)
+      });
+    } catch (e) {
+      res.json({
+        status: publicDataSnapshot.lastUpdated > 0 ? "Failed" : "Never Generated",
+        lastUpdated: publicDataSnapshot.lastUpdated,
+        postsCount: publicDataSnapshot.posts.length,
+        categoriesCount: publicDataSnapshot.categories.length,
+        sizeKb: 0
+      });
+    }
+  });
+
+  app.post("/api/admin/snapshot/generate", async (req, res) => {
+    try {
+      await generateSnapshot();
+      res.json({ success: true, lastUpdated: publicDataSnapshot.lastUpdated });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || 'Failed to generate snapshot' });
+    }
+  });
 `;
 
-code = code.replace('async function generateSnapshot() {', ensureSnapshotCode + '\nasync function generateSnapshot() {');
+code = code.replace(
+`  app.post("/api/admin/snapshot/generate", async (req, res) => {
+    await generateSnapshot();
+    res.json({ success: true, lastUpdated: publicDataSnapshot.lastUpdated });
+  });`,
+statusEndpoint
+);
 
-// Inject await ensureSnapshot() into all API routes
-const routesToPatch = [
-  'app.get("/api/categories", async (req, res) => {\n    try {\n',
-  'app.get("/api/videos", async (req, res) => {\n    try {\n',
-  'app.get("/api/videos/related", async (req, res) => {\n    try {\n',
-  'app.get("/api/videos/adjacent", async (req, res) => {\n    try {\n',
-  'app.get("/api/video/:slug", async (req, res) => {\n    try {\n',
-  'app.get("/video/:slug", async (req, res, next) => {\n    try {\n'
-];
-
-code = code.replace('app.get("/api/video/:slug", (req, res) => {', 'app.get("/api/video/:slug", async (req, res) => {');
-
-for (const route of routesToPatch) {
-  code = code.replace(route, route + '      await ensureSnapshot();\n');
-}
-
-// Modify the startup catch block
-code = code.replace('} catch (e) {\n  generateSnapshot();\n}', '} catch (e) {\n  ensureSnapshot();\n}');
+code = code.replace(
+`setInterval(generateSnapshot, 60 * 60 * 1000);`,
+`setInterval(() => generateSnapshot().catch(console.error), 60 * 60 * 1000);`
+);
 
 fs.writeFileSync('server.ts', code);
