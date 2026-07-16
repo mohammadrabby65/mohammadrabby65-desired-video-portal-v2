@@ -36,6 +36,19 @@ let publicDataSnapshot: {
   lastUpdated: 0
 };
 
+
+let snapshotPromise: Promise<void> | null = null;
+
+async function ensureSnapshot() {
+  if (publicDataSnapshot.lastUpdated > 0 && publicDataSnapshot.posts.length > 0) return;
+  if (!snapshotPromise) {
+    snapshotPromise = generateSnapshot().finally(() => {
+      snapshotPromise = null;
+    });
+  }
+  await snapshotPromise;
+}
+
 async function generateSnapshot() {
   console.log("Generating data snapshot...");
   try {
@@ -62,6 +75,11 @@ async function generateSnapshot() {
 
     posts.sort((a, b) => b._publishedAtMs - a._publishedAtMs);
 
+    if (posts.length === 0) {
+      console.warn("Validation failed: 0 posts fetched. Aborting update.");
+      return;
+    }
+
     publicDataSnapshot = {
       posts,
       categories,
@@ -80,7 +98,7 @@ try {
   publicDataSnapshot = JSON.parse(fileData);
   console.log(`Loaded snapshot from disk. Posts: ${publicDataSnapshot.posts.length}, Categories: ${publicDataSnapshot.categories.length}`);
 } catch (e) {
-  generateSnapshot();
+  ensureSnapshot();
 }
 
 setInterval(generateSnapshot, 60 * 60 * 1000);
@@ -177,6 +195,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
 
   app.get("/api/categories", async (req, res) => {
     try {
+      await ensureSnapshot();
       res.status(200).set({
         'Content-Type': 'application/json',
         'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=600'
@@ -189,6 +208,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
 
   app.get("/api/videos", async (req, res) => {
     try {
+      await ensureSnapshot();
       const { category, tag, q: searchQuery, sortBy, limitCount = "20", lastId } = req.query;
       const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 100);
 
@@ -243,6 +263,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
 
   app.get("/api/videos/related", async (req, res) => {
     try {
+      await ensureSnapshot();
       const { videoId, categories: categoriesStr, tags: tagsStr, limitCount = "4", lastId } = req.query;
       
       const limitNum = Math.min(parseInt(limitCount as string, 10) || 4, 20);
@@ -289,6 +310,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
 
   app.get("/api/videos/adjacent", async (req, res) => {
     try {
+      await ensureSnapshot();
       const { currentSlug, seconds: secondsStr, nanoseconds: nanosecondsStr } = req.query;
 
       if (!currentSlug) {
@@ -368,8 +390,9 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
   }
 
 
-  app.get("/api/video/:slug", (req, res) => {
+  app.get("/api/video/:slug", async (req, res) => {
     try {
+      await ensureSnapshot();
       const slug = req.params.slug;
       const video = publicDataSnapshot.posts.find(v => v.slug === slug);
       if (!video) {
@@ -386,6 +409,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
 
   app.get("/video/:slug", async (req, res, next) => {
     try {
+      await ensureSnapshot();
       const slug = req.params.slug;
       
       let video: any;
