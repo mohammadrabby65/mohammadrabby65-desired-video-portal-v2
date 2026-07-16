@@ -86,7 +86,6 @@ async function generateSnapshot() {
       lastUpdated: Date.now()
     };
     
-    fs.writeFileSync(path.join(process.cwd(), 'data-snapshot.json'), JSON.stringify(publicDataSnapshot));
     console.log(`Snapshot generated. Posts: ${posts.length}, Categories: ${categories.length}`);
   } catch (err) {
     console.error("Error generating snapshot:", err);
@@ -94,13 +93,7 @@ async function generateSnapshot() {
   }
 }
 
-try {
-  const fileData = fs.readFileSync(path.join(process.cwd(), 'data-snapshot.json'), 'utf-8');
-  publicDataSnapshot = JSON.parse(fileData);
-  console.log(`Loaded snapshot from disk. Posts: ${publicDataSnapshot.posts.length}, Categories: ${publicDataSnapshot.categories.length}`);
-} catch (e) {
-  ensureSnapshot();
-}
+ensureSnapshot();
 
 setInterval(() => generateSnapshot().catch(console.error), 60 * 60 * 1000);
 
@@ -111,24 +104,14 @@ async function startServer() {
 
 
   app.get("/api/admin/snapshot/status", (req, res) => {
-    try {
-      const stats = fs.statSync(path.join(process.cwd(), 'data-snapshot.json'));
-      res.json({
-        status: publicDataSnapshot.lastUpdated > 0 ? "Success" : "Never Generated",
-        lastUpdated: publicDataSnapshot.lastUpdated,
-        postsCount: publicDataSnapshot.posts.length,
-        categoriesCount: publicDataSnapshot.categories.length,
-        sizeKb: Math.round(stats.size / 1024)
-      });
-    } catch (e) {
-      res.json({
-        status: publicDataSnapshot.lastUpdated > 0 ? "Failed" : "Never Generated",
-        lastUpdated: publicDataSnapshot.lastUpdated,
-        postsCount: publicDataSnapshot.posts.length,
-        categoriesCount: publicDataSnapshot.categories.length,
-        sizeKb: 0
-      });
-    }
+    const sizeBytes = Buffer.byteLength(JSON.stringify(publicDataSnapshot));
+    res.json({
+      status: publicDataSnapshot.lastUpdated > 0 ? "Success" : "Never Generated",
+      lastUpdated: publicDataSnapshot.lastUpdated,
+      postsCount: publicDataSnapshot.posts.length,
+      categoriesCount: publicDataSnapshot.categories.length,
+      sizeKb: Math.round(sizeBytes / 1024)
+    });
   });
 
   app.post("/api/admin/snapshot/generate", async (req, res) => {
