@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter, setLogLevel, setDoc } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
 import fs from "fs";
 
@@ -42,42 +42,7 @@ let snapshotPromise: Promise<void> | null = null;
 async function ensureSnapshot() {
   if (publicDataSnapshot.lastUpdated > 0 && publicDataSnapshot.posts.length > 0) return;
   if (!snapshotPromise) {
-    snapshotPromise = (async () => {
-      try {
-        const metaDoc = await getDoc(doc(db, 'public_snapshot', 'metadata'));
-        if (metaDoc.exists()) {
-          const meta = metaDoc.data();
-          const chunkCount = meta.chunkCount || 0;
-          
-          const catDoc = await getDoc(doc(db, 'public_snapshot', 'categories'));
-          const categories = catDoc.exists() ? catDoc.data().data || [] : [];
-          
-          let allPosts: any[] = [];
-          const chunkPromises = [];
-          for (let i = 1; i <= chunkCount; i++) {
-            chunkPromises.push(getDoc(doc(db, 'public_snapshot', 'chunks', 'posts', `posts_${i}`)));
-          }
-          const chunkDocs = await Promise.all(chunkPromises);
-          for (const chunkDoc of chunkDocs) {
-            if (chunkDoc.exists()) {
-              allPosts = allPosts.concat(chunkDoc.data().data || []);
-            }
-          }
-          
-          publicDataSnapshot = {
-            posts: allPosts,
-            categories: categories,
-            lastUpdated: meta.generatedAt ? (meta.generatedAt.toDate ? meta.generatedAt.toDate().getTime() : new Date(meta.generatedAt).getTime()) : Date.now()
-          };
-          console.log(`Loaded snapshot from Firestore. Posts: ${publicDataSnapshot.posts.length}`);
-        } else {
-          await generateSnapshot();
-        }
-      } catch (err) {
-        console.error("Failed to load snapshot from Firestore, generating...", err);
-        await generateSnapshot();
-      }
-    })().finally(() => {
+    snapshotPromise = generateSnapshot().finally(() => {
       snapshotPromise = null;
     });
   }
@@ -115,46 +80,27 @@ async function generateSnapshot() {
       return;
     }
 
-    const chunkCount = Math.ceil(posts.length / 100);
-
     publicDataSnapshot = {
       posts,
       categories,
       lastUpdated: Date.now()
     };
-
-    try {
-      await setDoc(doc(db, 'public_snapshot', 'metadata'), {
-        generatedAt: Timestamp.now(),
-        version: 2,
-        chunkCount,
-        totalPosts: posts.length,
-        totalCategories: categories.length
-      });
-
-      await setDoc(doc(db, 'public_snapshot', 'categories'), {
-        data: categories
-      });
-
-      const writePromises = [];
-      for (let i = 0; i < chunkCount; i++) {
-        const chunk = posts.slice(i * 100, (i + 1) * 100);
-        writePromises.push(setDoc(doc(db, 'public_snapshot', 'chunks', 'posts', `posts_${i + 1}`), {
-          data: chunk
-        }));
-      }
-      await Promise.all(writePromises);
-      console.log(`Snapshot generated and saved to Firestore. Posts: ${posts.length}, Categories: ${categories.length}`);
-    } catch (writeErr) {
-      console.warn("Could not save snapshot to Firestore (likely permission denied for server environment). Memory updated.", writeErr.message);
-    }
+    
+    fs.writeFileSync(path.join(process.cwd(), 'data-snapshot.json'), JSON.stringify(publicDataSnapshot));
+    console.log(`Snapshot generated. Posts: ${posts.length}, Categories: ${categories.length}`);
   } catch (err) {
     console.error("Error generating snapshot:", err);
     throw err;
   }
 }
 
-ensureSnapshot();
+try {
+  const fileData = fs.readFileSync(path.join(process.cwd(), 'data-snapshot.json'), 'utf-8');
+  publicDataSnapshot = JSON.parse(fileData);
+  console.log(`Loaded snapshot from disk. Posts: ${publicDataSnapshot.posts.length}, Categories: ${publicDataSnapshot.categories.length}`);
+} catch (e) {
+  ensureSnapshot();
+}
 
 setInterval(() => generateSnapshot().catch(console.error), 60 * 60 * 1000);
 
@@ -165,14 +111,24 @@ async function startServer() {
 
 
   app.get("/api/admin/snapshot/status", (req, res) => {
-    const sizeBytes = Buffer.byteLength(JSON.stringify(publicDataSnapshot));
-    res.json({
-      status: publicDataSnapshot.lastUpdated > 0 ? "Success" : "Never Generated",
-      lastUpdated: publicDataSnapshot.lastUpdated,
-      postsCount: publicDataSnapshot.posts.length,
-      categoriesCount: publicDataSnapshot.categories.length,
-      sizeKb: Math.round(sizeBytes / 1024)
-    });
+    try {
+      const stats = fs.statSync(path.join(process.cwd(), 'data-snapshot.json'));
+      res.json({
+        status: publicDataSnapshot.lastUpdated > 0 ? "Success" : "Never Generated",
+        lastUpdated: publicDataSnapshot.lastUpdated,
+        postsCount: publicDataSnapshot.posts.length,
+        categoriesCount: publicDataSnapshot.categories.length,
+        sizeKb: Math.round(stats.size / 1024)
+      });
+    } catch (e) {
+      res.json({
+        status: publicDataSnapshot.lastUpdated > 0 ? "Failed" : "Never Generated",
+        lastUpdated: publicDataSnapshot.lastUpdated,
+        postsCount: publicDataSnapshot.posts.length,
+        categoriesCount: publicDataSnapshot.categories.length,
+        sizeKb: 0
+      });
+    }
   });
 
   app.post("/api/admin/snapshot/generate", async (req, res) => {

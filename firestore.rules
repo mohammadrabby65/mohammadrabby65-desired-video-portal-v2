@@ -18,11 +18,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    match /public_snapshot/{document=**} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     match /settings/{document} {
       allow read: if true;
       allow write: if isAdmin();

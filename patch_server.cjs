@@ -3,23 +3,20 @@ let code = fs.readFileSync('server.ts', 'utf8');
 
 code = code.replace(
 `    fs.writeFileSync(path.join(process.cwd(), 'data-snapshot.json'), JSON.stringify(publicDataSnapshot));
-    console.log(\`Snapshot generated. Posts: \${posts.length}, Categories: \${categories.length}\`);`,
-`    console.log(\`Snapshot generated. Posts: \${posts.length}, Categories: \${categories.length}\`);`
+    console.log(\`Snapshot generated. Posts: \${posts.length}, Categories: \${categories.length}\`);
+  } catch (err) {
+    console.error("Error generating snapshot:", err);
+  }`,
+`    fs.writeFileSync(path.join(process.cwd(), 'data-snapshot.json'), JSON.stringify(publicDataSnapshot));
+    console.log(\`Snapshot generated. Posts: \${posts.length}, Categories: \${categories.length}\`);
+  } catch (err) {
+    console.error("Error generating snapshot:", err);
+    throw err;
+  }`
 );
 
-code = code.replace(
-`try {
-  const fileData = fs.readFileSync(path.join(process.cwd(), 'data-snapshot.json'), 'utf-8');
-  publicDataSnapshot = JSON.parse(fileData);
-  console.log(\`Loaded snapshot from disk. Posts: \${publicDataSnapshot.posts.length}, Categories: \${publicDataSnapshot.categories.length}\`);
-} catch (e) {
-  ensureSnapshot();
-}`,
-`ensureSnapshot();`
-);
-
-code = code.replace(
-`  app.get("/api/admin/snapshot/status", (req, res) => {
+const statusEndpoint = `
+  app.get("/api/admin/snapshot/status", (req, res) => {
     try {
       const stats = fs.statSync(path.join(process.cwd(), 'data-snapshot.json'));
       res.json({
@@ -38,17 +35,29 @@ code = code.replace(
         sizeKb: 0
       });
     }
+  });
+
+  app.post("/api/admin/snapshot/generate", async (req, res) => {
+    try {
+      await generateSnapshot();
+      res.json({ success: true, lastUpdated: publicDataSnapshot.lastUpdated });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || 'Failed to generate snapshot' });
+    }
+  });
+`;
+
+code = code.replace(
+`  app.post("/api/admin/snapshot/generate", async (req, res) => {
+    await generateSnapshot();
+    res.json({ success: true, lastUpdated: publicDataSnapshot.lastUpdated });
   });`,
-`  app.get("/api/admin/snapshot/status", (req, res) => {
-    const sizeBytes = Buffer.byteLength(JSON.stringify(publicDataSnapshot));
-    res.json({
-      status: publicDataSnapshot.lastUpdated > 0 ? "Success" : "Never Generated",
-      lastUpdated: publicDataSnapshot.lastUpdated,
-      postsCount: publicDataSnapshot.posts.length,
-      categoriesCount: publicDataSnapshot.categories.length,
-      sizeKb: Math.round(sizeBytes / 1024)
-    });
-  });`
+statusEndpoint
+);
+
+code = code.replace(
+`setInterval(generateSnapshot, 60 * 60 * 1000);`,
+`setInterval(() => generateSnapshot().catch(console.error), 60 * 60 * 1000);`
 );
 
 fs.writeFileSync('server.ts', code);
