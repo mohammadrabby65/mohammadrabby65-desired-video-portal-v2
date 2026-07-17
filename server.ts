@@ -36,6 +36,115 @@ let publicDataSnapshot: {
   lastUpdated: 0
 };
 
+function escapeXml(unsafe: string) {
+  return unsafe.replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+}
+
+function generateSitemapFile() {
+  try {
+    const { posts, categories } = publicDataSnapshot;
+    
+    // Build XML
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+    
+    // Home Page
+    xml += `  <url>\n`;
+    xml += `    <loc>${SITE_URL}/</loc>\n`;
+    xml += `    <changefreq>daily</changefreq>\n`;
+    xml += `    <priority>1.0</priority>\n`;
+    xml += `  </url>\n`;
+    
+    // Add default virtual categories
+    const defaultCats = ["trending", "latest", "popular"];
+    for (const cat of defaultCats) {
+      xml += `  <url>\n`;
+      xml += `    <loc>${escapeXml(`${SITE_URL}/category/${cat}`)}</loc>\n`;
+      xml += `    <changefreq>daily</changefreq>\n`;
+      xml += `    <priority>0.8</priority>\n`;
+      xml += `  </url>\n`;
+    }
+    
+    // Categories from snapshot
+    const activeCategories = categories.filter(c => c.isActive !== false && c.slug);
+    for (const cat of activeCategories) {
+      if (!defaultCats.includes(cat.slug)) {
+        xml += `  <url>\n`;
+        xml += `    <loc>${escapeXml(`${SITE_URL}/category/${cat.slug}`)}</loc>\n`;
+        xml += `    <changefreq>daily</changefreq>\n`;
+        xml += `    <priority>0.8</priority>\n`;
+        xml += `  </url>\n`;
+      }
+    }
+    
+    // Posts/Videos from snapshot
+    const activePosts = posts.filter(p => p.isActive !== false && p.slug);
+    for (const post of activePosts) {
+      xml += `  <url>\n`;
+      xml += `    <loc>${escapeXml(`${SITE_URL}/video/${post.slug}`)}</loc>\n`;
+      
+      let lastmod = "";
+      if (post.publishedAt) {
+        let dateObj;
+        if (typeof post.publishedAt.toDate === "function") {
+          dateObj = post.publishedAt.toDate();
+        } else if (post.publishedAt.seconds) {
+          dateObj = new Date(post.publishedAt.seconds * 1000);
+        } else {
+          dateObj = new Date(post.publishedAt);
+        }
+        if (dateObj && !isNaN(dateObj.getTime())) {
+          if (dateObj > new Date()) {
+            dateObj = new Date();
+          }
+          lastmod = dateObj.toISOString();
+        }
+      }
+      
+      if (lastmod) {
+        xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      }
+      xml += `    <changefreq>weekly</changefreq>\n`;
+      xml += `    <priority>0.7</priority>\n`;
+      xml += `  </url>\n`;
+    }
+    
+    xml += `</urlset>\n`;
+    
+    // Ensure public folder exists
+    const publicDir = path.join(process.cwd(), "public");
+    if (!fs.existsSync(publicDir)) {
+      fs.mkdirSync(publicDir, { recursive: true });
+    }
+    
+    const outputPath = path.join(publicDir, "sitemap.xml");
+    fs.writeFileSync(outputPath, xml, "utf-8");
+    console.log(`Successfully generated sitemap.xml at ${outputPath}`);
+    
+    // Also save in dist if dist exists to ensure runtime fallback works
+    const distDir = path.join(process.cwd(), "dist");
+    if (fs.existsSync(distDir)) {
+      try {
+        fs.writeFileSync(path.join(distDir, "sitemap.xml"), xml, "utf-8");
+        console.log(`Successfully copied sitemap.xml to dist path`);
+      } catch (err) {
+        console.warn("Could not copy sitemap.xml to dist:", err);
+      }
+    }
+  } catch (err) {
+    console.error("Error generating sitemap.xml:", err);
+  }
+}
+
 
 let snapshotPromise: Promise<void> | null = null;
 
@@ -87,6 +196,11 @@ async function generateSnapshot() {
     };
     
     console.log(`Snapshot generated. Posts: ${posts.length}, Categories: ${categories.length}`);
+    try {
+      generateSitemapFile();
+    } catch (sitemapErr) {
+      console.error("Failed to generate sitemap.xml after snapshot:", sitemapErr);
+    }
   } catch (err) {
     console.error("Error generating snapshot:", err);
     throw err;
@@ -211,7 +325,73 @@ Allow: /
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /api/*
-Sitemap: ${SITE_URL}/sitemap-main.xml`);
+Sitemap: ${SITE_URL}/sitemap.xml`);
+  });
+
+  // Dynamic sitemap.xml Route
+  app.get("/sitemap.xml", async (req, res) => {
+    try {
+      await ensureSnapshot();
+      const sitemapPath = path.join(process.cwd(), "public", "sitemap.xml");
+      if (fs.existsSync(sitemapPath)) {
+        res.header("Content-Type", "application/xml");
+        return res.status(200).sendFile(sitemapPath);
+      }
+      
+      // Dynamic rendering fallback if physical file does not exist
+      const { posts, categories } = publicDataSnapshot;
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+      
+      // Home Page
+      xml += `  <url>\n    <loc>${SITE_URL}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
+      
+      // Add default virtual categories
+      const defaultCats = ["trending", "latest", "popular"];
+      for (const cat of defaultCats) {
+        xml += `  <url>\n    <loc>${escapeXml(`${SITE_URL}/category/${cat}`)}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+      }
+      
+      // Categories from snapshot
+      const activeCategories = categories.filter(c => c.isActive !== false && c.slug);
+      for (const cat of activeCategories) {
+        if (!defaultCats.includes(cat.slug)) {
+          xml += `  <url>\n    <loc>${escapeXml(`${SITE_URL}/category/${cat.slug}`)}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+        }
+      }
+      
+      // Posts/Videos from snapshot
+      const activePosts = posts.filter(p => p.isActive !== false && p.slug);
+      for (const post of activePosts) {
+        xml += `  <url>\n    <loc>${escapeXml(`${SITE_URL}/video/${post.slug}`)}</loc>\n`;
+        let lastmod = "";
+        if (post.publishedAt) {
+          let dateObj;
+          if (typeof post.publishedAt.toDate === "function") {
+            dateObj = post.publishedAt.toDate();
+          } else if (post.publishedAt.seconds) {
+            dateObj = new Date(post.publishedAt.seconds * 1000);
+          } else {
+            dateObj = new Date(post.publishedAt);
+          }
+          if (dateObj && !isNaN(dateObj.getTime())) {
+            if (dateObj > new Date()) dateObj = new Date();
+            lastmod = dateObj.toISOString();
+          }
+        }
+        if (lastmod) {
+          xml += `    <lastmod>${lastmod}</lastmod>\n`;
+        }
+        xml += `    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>\n`;
+      }
+      xml += `</urlset>\n`;
+      
+      res.header("Content-Type", "application/xml");
+      return res.status(200).send(xml);
+    } catch (err) {
+      console.error("Error serving sitemap.xml fallback:", err);
+      res.status(500).send("Error rendering sitemap");
+    }
   });
 
   app.get("/api/categories", async (req, res) => {

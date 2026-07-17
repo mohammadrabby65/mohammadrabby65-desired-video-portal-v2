@@ -25,16 +25,12 @@
       "destination": "/api/server"
     },
     {
-      "source": "/sitemap-main.xml",
+      "source": "/sitemap.xml",
       "destination": "/api/server"
     },
     {
       "source": "/feed.xml",
       "destination": "/api/server"
-    },
-    {
-      "source": "/sitemap-old.xml",
-      "destination": "/sitemap-old.xml"
     },
     {
       "source": "/robots.txt",
