@@ -615,6 +615,40 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
     }
   });
 
+  app.get("/search", async (req, res, next) => {
+    try {
+      let template = "";
+      if (process.env.NODE_ENV !== "production") {
+        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
+        template = await vite.transformIndexHtml(req.originalUrl, template);
+      } else {
+        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
+      }
+      
+      const queryText = (req.query.q as string) || '';
+      const title = escapeHtml(queryText ? `Search results for "${queryText}" - DesiredHub` : "Search - DesiredHub");
+      const description = escapeHtml(queryText ? `Search results for "${queryText}" on DesiredHub.` : "Search videos on DesiredHub.");
+      const currentUrl = escapeHtml(`${SITE_URL}/search${queryText ? `?q=${encodeURIComponent(queryText)}` : ""}`);
+      
+      const seoTags = `
+        <title data-rh="true">${title}</title>
+        <meta data-rh="true" name="description" content="${description}" />
+        <meta name="robots" content="noindex,follow" />
+        <link data-rh="true" rel="canonical" href="${currentUrl}" />
+      `;
+      
+      const html = template.replace("<title>DesiredHub</title>", seoTags);
+      
+      res.status(200).set({ 
+        'Content-Type': 'text/html',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private'
+      }).end(html);
+    } catch (e) {
+      console.error("Search SEO Injection Error:", e);
+      next();
+    }
+  });
+
   app.get("/video/:slug", async (req, res, next) => {
     try {
       await ensureSnapshot();

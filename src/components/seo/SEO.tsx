@@ -8,6 +8,7 @@ interface SEOProps {
   url?: string;
   exactTitle?: boolean;
   noIndex?: boolean;
+  robots?: string;
   prevUrl?: string;
   nextUrl?: string;
   jsonLd?: any;
@@ -21,7 +22,7 @@ interface SEOProps {
   };
 }
 
-export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, prevUrl, nextUrl, jsonLd, video }: SEOProps) {
+export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, robots, prevUrl, nextUrl, jsonLd, video }: SEOProps) {
   const siteTitle = 'DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online';
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
   let currentPath = '';
@@ -45,7 +46,7 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
     <Helmet>
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
-      <meta name="robots" content={noIndex ? "noindex,nofollow" : "index,follow"} />
+      <meta name="robots" content={robots || (noIndex ? "noindex,nofollow" : "index,follow")} />
       
       {/* Canonical URL */}
       {currentUrl && <link rel="canonical" href={currentUrl} />}

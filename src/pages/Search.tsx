@@ -28,6 +28,7 @@ export function Search() {
       <SEO 
         title={`Search results for "${queryText}" - DesiredHub`}
         description={`Search results for "${queryText}" on DesiredHub.`}
+        robots="noindex,follow"
       />
       <section className="container mx-auto px-4 mb-16">
         <div className="mb-8">
