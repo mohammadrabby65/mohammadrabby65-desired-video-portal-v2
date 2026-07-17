@@ -98,30 +98,11 @@ export function Video() {
   const categoryName = video.categories?.[0] || (video as any).category;
   const categorySlug = categoryName ? categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : null;
 
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: typeof window !== "undefined" ? window.location.origin : "",
-      },
-      ...(categoryName && categorySlug ? [{
-        "@type": "ListItem",
-        position: 2,
-        name: categoryName,
-        item: typeof window !== "undefined" ? `${window.location.origin}/category/${categorySlug}` : "",
-      }] : []),
-      {
-        "@type": "ListItem",
-        position: categoryName && categorySlug ? 3 : 2,
-        name: video.title,
-        item: typeof window !== "undefined" ? window.location.href : "",
-      },
-    ],
-  };
+  const breadcrumbs = [
+    { name: "Home", item: "/" },
+    ...(categoryName && categorySlug ? [{ name: categoryName, item: `/category/${categorySlug}` }] : []),
+    { name: video.title, item: `/video/${video.slug}` }
+  ];
 
   return (
     <>
@@ -130,7 +111,7 @@ export function Video() {
         description={video.description}
         image={video.thumbnailUrl}
         exactTitle={true}
-        jsonLd={breadcrumbJsonLd}
+        breadcrumbs={breadcrumbs}
         video={{
           name: video.title,
           description: video.description,

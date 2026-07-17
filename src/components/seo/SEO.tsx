@@ -1,6 +1,11 @@
 import { Helmet } from 'react-helmet-async';
 import { SITE_URL } from '../../config';
 
+export interface BreadcrumbItem {
+  name: string;
+  item: string;
+}
+
 interface SEOProps {
   title: string;
   description: string;
@@ -12,6 +17,7 @@ interface SEOProps {
   prevUrl?: string;
   nextUrl?: string;
   jsonLd?: any;
+  breadcrumbs?: BreadcrumbItem[];
   video?: {
     name: string;
     description: string;
@@ -22,7 +28,7 @@ interface SEOProps {
   };
 }
 
-export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, robots, prevUrl, nextUrl, jsonLd, video }: SEOProps) {
+export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, robots, prevUrl, nextUrl, jsonLd, breadcrumbs, video }: SEOProps) {
   const siteTitle = 'DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online';
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
   let currentPath = '';
@@ -53,6 +59,20 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
       {prevUrl && <link rel="prev" href={prevUrl} />}
       {nextUrl && <link rel="next" href={nextUrl} />}
       {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
+      {breadcrumbs && (
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": breadcrumbs.map((b, idx) => ({
+              "@type": "ListItem",
+              "position": idx + 1,
+              "name": b.name,
+              "item": b.item.startsWith("http") ? b.item : `${SITE_URL}${b.item}`
+            }))
+          })}
+        </script>
+      )}
 
       
       {/* Open Graph / Facebook */}

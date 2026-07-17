@@ -799,6 +799,34 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
         contentUrl: video.videoUrl,
       };
 
+      const categoryName = (video.categories && video.categories[0]) || video.category;
+      const categorySlug = categoryName ? categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : null;
+
+      const breadcrumbsJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": SITE_URL
+          },
+          ...(categoryName && categorySlug ? [{
+            "@type": "ListItem",
+            "position": 2,
+            "name": categoryName,
+            "item": `${SITE_URL}/category/${categorySlug}`
+          }] : []),
+          {
+            "@type": "ListItem",
+            "position": categoryName && categorySlug ? 3 : 2,
+            "name": video.title,
+            "item": `${SITE_URL}/video/${slug}`
+          }
+        ]
+      };
+
       const seoTags = `
         <title data-rh="true">${title}</title>
         <meta data-rh="true" name="description" content="${description}" />
@@ -818,6 +846,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
         <meta data-rh="true" name="twitter:description" content="${description}" />
         <meta data-rh="true" name="twitter:image" content="${image}" />
         <script data-rh="true" type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+        <script data-rh="true" type="application/ld+json">${JSON.stringify(breadcrumbsJsonLd)}</script>
         <script>window.__INITIAL_VIDEO_DATA__ = ${JSON.stringify({ id: docId, ...video }).replace(/</g, '\\u003c')};</script>
       `;
 

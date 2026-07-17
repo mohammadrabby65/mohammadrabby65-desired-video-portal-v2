@@ -32,23 +32,6 @@ export function Tag() {
     name: `Videos tagged with ${tagTitle}`,
     description: `Browse the best videos tagged with ${tagTitle}.`,
     url: typeof window !== "undefined" ? window.location.href : "",
-    breadcrumb: {
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        {
-          "@type": "ListItem",
-          position: 1,
-          name: "Home",
-          item: typeof window !== "undefined" ? window.location.origin : "",
-        },
-        {
-          "@type": "ListItem",
-          position: 2,
-          name: `#${tagTitle}`,
-          item: typeof window !== "undefined" ? window.location.href : "",
-        },
-      ],
-    },
   };
 
   const formattedTagName = tagTitle.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -59,10 +42,12 @@ export function Tag() {
         title={`${formattedTagName} Videos - DesiredHub`}
         description={`Watch the latest and best videos tagged with ${tagTitle}.`}
         exactTitle={true}
+        jsonLd={jsonLd}
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: `#${tagTitle}`, item: `/tag/${slug}` }
+        ]}
       />
-      <Helmet>
-        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
-      </Helmet>
 
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">

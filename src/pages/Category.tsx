@@ -55,23 +55,6 @@ export function Category() {
     name: `${categoryName} Videos`,
     description: `Browse the best ${categoryName} videos.`,
     url: typeof window !== "undefined" ? window.location.href : "",
-    breadcrumb: {
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        {
-          "@type": "ListItem",
-          position: 1,
-          name: "Home",
-          item: typeof window !== "undefined" ? window.location.origin : "",
-        },
-        {
-          "@type": "ListItem",
-          position: 2,
-          name: categoryName,
-          item: typeof window !== "undefined" ? window.location.href : "",
-        },
-      ],
-    },
   };
 
   return (
@@ -80,6 +63,10 @@ export function Category() {
         title={`${categoryName} Porn Videos - DesiredHub`}
         description={`Watch the best ${categoryName} sex videos on DesiredHub. Premium free porn updated daily.`}
         jsonLd={jsonLd}
+        breadcrumbs={[
+          { name: "Home", item: "/" },
+          { name: categoryName, item: `/category/${slug}` }
+        ]}
       />
       <section className="container mx-auto px-4 mb-16">
         <nav className="flex text-neutral-400 text-sm mb-4">

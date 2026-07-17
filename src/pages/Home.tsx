@@ -50,6 +50,9 @@ export function Home() {
         title="DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online"
         description="Watch the latest premium viral sex videos with fast streaming and daily updates."
         exactTitle={true}
+        breadcrumbs={[
+          { name: "Home", item: "/" }
+        ]}
       />
       <section className="container mx-auto px-4 mb-16">
         <div className="mb-8">
