@@ -7,16 +7,21 @@ import { Play } from 'lucide-react';
 interface VideoCardProps {
   video: VideoPost;
   key?: string | number;
+  priority?: boolean;
 }
 
-export function VideoCard({ video }: VideoCardProps) {
+export function VideoCard({ video, priority = false }: VideoCardProps) {
   return (
     <Link to={`/video/${video.slug}`} className="group flex flex-col gap-3">
       <div className="relative aspect-video rounded-xl overflow-hidden bg-neutral-900 border border-neutral-800">
         <img
           src={video.thumbnailUrl || "https://placehold.co/600x400/171717/333333?text=No+Thumbnail"}
           alt={video.title}
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
+          {...(priority ? { fetchPriority: "high" as any } : {})}
+          decoding="async"
+          width="600"
+          height="338"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center">

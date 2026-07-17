@@ -166,8 +166,8 @@ export function Category() {
                 ? Array.from({ length: 20 }).map((_, i) => (
                     <SkeletonCard key={i} />
                   ))
-                : videos.map((video: any) => (
-                    <VideoCard key={video.id} video={video} />
+                : videos.map((video: any, index: number) => (
+                    <VideoCard key={video.id} video={video} priority={index < 4} />
                   ))}
               {isFetchingNextPage && (
                 Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={`fetching-${i}`} />)
