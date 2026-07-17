@@ -628,7 +628,106 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
         video = cachedVideo;
         docId = cachedVideo.id;
       } else {
-        return next();
+        res.status(404).set('Content-Type', 'text/html').send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 - Page Not Found | DesiredHub</title>
+    <style>
+      :root {
+        --bg-color: #0a0a0a;
+        --text-primary: #ffffff;
+        --text-secondary: #a3a3a3;
+        --accent: #ef4444;
+        --accent-hover: #dc2626;
+        --card-bg: #171717;
+        --border: #262626;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        text-align: center;
+      }
+      .container {
+        max-width: 480px;
+        padding: 40px 24px;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        animation: fadeIn 0.6s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .logo {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--accent);
+        text-decoration: none;
+        letter-spacing: -0.05em;
+        display: inline-block;
+        margin-bottom: 24px;
+      }
+      h1 {
+        font-size: 72px;
+        font-weight: 800;
+        margin: 0 0 8px 0;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        color: var(--accent);
+      }
+      h2 {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0 0 16px 0;
+        color: var(--text-primary);
+      }
+      p {
+        font-size: 15px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        margin: 0 0 32px 0;
+      }
+      .btn {
+        display: inline-block;
+        background-color: var(--accent);
+        color: #ffffff;
+        text-decoration: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        transition: background-color 0.15s ease, transform 0.1s ease;
+      }
+      .btn:hover {
+        background-color: var(--accent-hover);
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <a href="/" class="logo">DesiredHub</a>
+      <h1>404</h1>
+      <h2>Video Not Found</h2>
+      <p>The video you are trying to watch does not exist, has been removed, or the link is broken.</p>
+      <a href="/" class="btn">Back to Home</a>
+    </div>
+  </body>
+</html>`);
+        return;
       }
       
       let template = "";
