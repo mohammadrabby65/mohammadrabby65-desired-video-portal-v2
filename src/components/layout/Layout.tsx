@@ -3,12 +3,14 @@ import { Link, Outlet } from "react-router-dom";
 import { Menu, User } from "lucide-react";
 import { LiveSearch } from "./LiveSearch";
 import { Sidebar } from "./Sidebar";
+import { AdInjector } from "./AdInjector";
 
 export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col w-full overflow-x-hidden relative">
+      <AdInjector />
       <header className="sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800">
         <div className="container mx-auto px-4 h-20 md:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 shrink">

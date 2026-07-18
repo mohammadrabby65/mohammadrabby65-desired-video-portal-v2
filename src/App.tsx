@@ -80,6 +80,11 @@ const Profile = lazy(() =>
     default: module.Profile,
   })),
 );
+const Advertisements = lazy(() =>
+  import("./pages/admin/Advertisements").then((module) => ({
+    default: module.Advertisements,
+  })),
+);
 
 export default function App() {
   const location = useLocation();
@@ -183,6 +188,7 @@ export default function App() {
             <Route path="categories" element={<AdminCategories />} />
             <Route path="dead-urls" element={<DeadUrls />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="ads" element={<Advertisements />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />
           </Route>
