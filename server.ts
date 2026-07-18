@@ -5,6 +5,7 @@ import { initializeApp } from "firebase/app";
 import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
 import fs from "fs";
+import { getMonetizationConfig, saveMonetizationConfig } from "./server/monetizationApi.js";
 
 setLogLevel("silent");
 
@@ -220,6 +221,8 @@ async function startServer() {
   const PORT = 3000;
   
   app.use(express.json());
+  app.get("/api/monetization/config", getMonetizationConfig);
+  app.post("/api/monetization/config", saveMonetizationConfig);
 
 
   app.get("/api/admin/snapshot/status", (req, res) => {

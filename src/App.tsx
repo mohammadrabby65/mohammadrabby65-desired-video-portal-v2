@@ -81,6 +81,12 @@ const Profile = lazy(() =>
   })),
 );
 
+const Monetization = lazy(() =>
+  import("./pages/admin/Monetization").then((module) => ({
+    default: module.Monetization,
+  })),
+);
+
 export default function App() {
   const location = useLocation();
 
@@ -183,6 +189,7 @@ export default function App() {
             <Route path="categories" element={<AdminCategories />} />
             <Route path="dead-urls" element={<DeadUrls />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="monetization" element={<Monetization />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />
           </Route>
