@@ -316,6 +316,13 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       
       // Dynamic rendering directly from memory (bypasses EROFS limitation)
       const { posts, categories } = publicDataSnapshot;
+      
+      let finalPosts = posts;
+      if (!finalPosts || finalPosts.length === 0) {
+        const postsSnapshot = await getDocs(query(collection(db, 'posts'), limit(500)));
+        finalPosts = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      }
+
       let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
       xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
       
@@ -337,7 +344,7 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
       }
       
       // Posts/Videos from snapshot
-      const activePosts = posts.filter(p => p.isActive !== false && p.slug);
+      const activePosts = finalPosts.filter((p: any) => p.isActive !== false && p.slug);
       for (const post of activePosts) {
         xml += `  <url>\n    <loc>${escapeXml(`${SITE_URL}/video/${post.slug}`)}</loc>\n`;
         let lastmod = "";
