@@ -49,82 +49,6 @@ function escapeXml(unsafe: string) {
   });
 }
 
-function generateSitemapFile() {
-  try {
-    const { posts, categories } = publicDataSnapshot;
-    
-    // Build XML
-    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-    
-    // Home Page
-    xml += `  <url>\n`;
-    xml += `    <loc>${SITE_URL}/</loc>\n`;
-    xml += `    <changefreq>daily</changefreq>\n`;
-    xml += `    <priority>1.0</priority>\n`;
-    xml += `  </url>\n`;
-    
-    // Add default virtual categories
-    const defaultCats = ["trending", "latest", "popular"];
-    for (const cat of defaultCats) {
-      xml += `  <url>\n`;
-      xml += `    <loc>${escapeXml(`${SITE_URL}/category/${cat}`)}</loc>\n`;
-      xml += `    <changefreq>daily</changefreq>\n`;
-      xml += `    <priority>0.8</priority>\n`;
-      xml += `  </url>\n`;
-    }
-    
-    // Categories from snapshot
-    const activeCategories = categories.filter(c => c.isActive !== false && c.slug);
-    for (const cat of activeCategories) {
-      if (!defaultCats.includes(cat.slug)) {
-        xml += `  <url>\n`;
-        xml += `    <loc>${escapeXml(`${SITE_URL}/category/${cat.slug}`)}</loc>\n`;
-        xml += `    <changefreq>daily</changefreq>\n`;
-        xml += `    <priority>0.8</priority>\n`;
-        xml += `  </url>\n`;
-      }
-    }
-    
-    // Posts/Videos from snapshot
-    const activePosts = posts.filter(p => p.isActive !== false && p.slug);
-    for (const post of activePosts) {
-      xml += `  <url>\n`;
-      xml += `    <loc>${escapeXml(`${SITE_URL}/video/${post.slug}`)}</loc>\n`;
-      
-      let lastmod = "";
-      if (post.publishedAt) {
-        let dateObj;
-        if (typeof post.publishedAt.toDate === "function") {
-          dateObj = post.publishedAt.toDate();
-        } else if (post.publishedAt.seconds) {
-          dateObj = new Date(post.publishedAt.seconds * 1000);
-        } else {
-          dateObj = new Date(post.publishedAt);
-        }
-        if (dateObj && !isNaN(dateObj.getTime())) {
-          if (dateObj > new Date()) {
-            dateObj = new Date();
-          }
-          lastmod = dateObj.toISOString();
-        }
-      }
-      
-      if (lastmod) {
-        xml += `    <lastmod>${lastmod}</lastmod>\n`;
-      }
-      xml += `    <changefreq>weekly</changefreq>\n`;
-      xml += `    <priority>0.7</priority>\n`;
-      xml += `  </url>\n`;
-    }
-    
-    xml += `</urlset>\n`;
-    
-    // Disk writes removed for Vercel EROFS compatibility
-  } catch (err) {
-    console.error("Error generating sitemap.xml:", err);
-  }
-}
 
 
 let snapshotPromise: Promise<void> | null = null;
@@ -177,11 +101,6 @@ async function generateSnapshot() {
     };
     
     console.log(`Snapshot generated. Posts: ${posts.length}, Categories: ${categories.length}`);
-    try {
-      generateSitemapFile();
-    } catch (sitemapErr) {
-      console.error("Failed to generate sitemap.xml after snapshot:", sitemapErr);
-    }
   } catch (err) {
     console.error("Error generating snapshot:", err);
     throw err;
@@ -299,16 +218,6 @@ async function startServer() {
   });
 
   // Dynamic Robots.txt
-  app.get("/robots.txt", (req, res) => {
-    res.type("text/plain");
-    res.send(`User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /admin/*
-Disallow: /api/*
-Sitemap: ${SITE_URL}/sitemap-main.xml`);
-  });
-
   // Dynamic sitemap.xml and sitemap-main.xml Route
   app.get("/robots.txt", (req, res) => {
     const host = req.headers.host || 'www.desiredhub.xyz';
