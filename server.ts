@@ -11,18 +11,7 @@ setLogLevel("silent");
 
 const SECRET_KEY = process.env.VITE_STREAM_SECRET || "local-dev-secret-key-12345";
 
-const firebaseConfig = {
-  projectId: "gen-lang-client-0637384010",
-  appId: "1:15134264747:web:6041c9b4e3b309b476d6ee",
-  apiKey: "AIzaSyDbWSqCXSftREI7Kby3kHvL2vbYwHVKBp4",
-  authDomain: "gen-lang-client-0637384010.firebaseapp.com",
-  storageBucket: "gen-lang-client-0637384010.firebasestorage.app",
-  messagingSenderId: "15134264747",
-  measurementId: ""
-};
-
-const fbApp = initializeApp(firebaseConfig, "server-app");
-const db = initializeFirestore(fbApp, { experimentalForceLongPolling: true }, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2");
+import { db } from "./src/lib/firebase";
 
 export const app = express();
 
@@ -237,7 +226,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       const DYNAMIC_SITE_URL = host.startsWith('www.') ? `https://${host}` : `https://www.${host}`;
 
       const [categoriesSnapshot, postsSnapshot] = await Promise.all([
-        getDocs(query(collection(db, 'categories'))),
+        getDocs(query(collection(db, 'categories'), limit(1000))),
         getDocs(query(collection(db, 'posts'), limit(1000)))
       ]);
 
@@ -292,9 +281,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       
       res.header("Content-Type", "application/xml");
       return res.status(200).send(xml);
-    } catch (err) {
-      console.error("Error serving sitemap.xml fallback:", err);
-      res.status(500).send("Error rendering sitemap");
+    } catch (err: any) {
+      console.error("Sitemap Error:", err);
+      res.status(500).send("Error rendering sitemap: " + err.message);
     }
   });
 
