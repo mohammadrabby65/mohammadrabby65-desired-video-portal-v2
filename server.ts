@@ -120,31 +120,7 @@ function generateSitemapFile() {
     
     xml += `</urlset>\n`;
     
-    // Ensure public folder exists
-    const publicDir = path.join(process.cwd(), "public");
-    if (!fs.existsSync(publicDir)) {
-      fs.mkdirSync(publicDir, { recursive: true });
-    }
-    
-    const outputPath = path.join(publicDir, "sitemap.xml");
-    fs.writeFileSync(outputPath, xml, "utf-8");
-    console.log(`Successfully generated sitemap.xml at ${outputPath}`);
-    
-    const outputPathMain = path.join(publicDir, "sitemap-main.xml");
-    fs.writeFileSync(outputPathMain, xml, "utf-8");
-    console.log(`Successfully generated sitemap-main.xml at ${outputPathMain}`);
-    
-    // Also save in dist if dist exists to ensure runtime fallback works
-    const distDir = path.join(process.cwd(), "dist");
-    if (fs.existsSync(distDir)) {
-      try {
-        fs.writeFileSync(path.join(distDir, "sitemap.xml"), xml, "utf-8");
-        fs.writeFileSync(path.join(distDir, "sitemap-main.xml"), xml, "utf-8");
-        console.log(`Successfully copied sitemap files to dist path`);
-      } catch (err) {
-        console.warn("Could not copy sitemaps to dist:", err);
-      }
-    }
+    // Disk writes removed for Vercel EROFS compatibility
   } catch (err) {
     console.error("Error generating sitemap.xml:", err);
   }
@@ -337,15 +313,8 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
   app.get(["/sitemap.xml", "/sitemap-main.xml"], async (req, res) => {
     try {
       await ensureSnapshot();
-      const isMain = req.path.includes("sitemap-main");
-      const fileName = isMain ? "sitemap-main.xml" : "sitemap.xml";
-      const sitemapPath = path.join(process.cwd(), "public", fileName);
-      if (fs.existsSync(sitemapPath)) {
-        res.header("Content-Type", "application/xml");
-        return res.status(200).sendFile(sitemapPath);
-      }
       
-      // Dynamic rendering fallback if physical file does not exist
+      // Dynamic rendering directly from memory (bypasses EROFS limitation)
       const { posts, categories } = publicDataSnapshot;
       let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
       xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
