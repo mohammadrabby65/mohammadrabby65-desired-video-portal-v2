@@ -310,21 +310,31 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
   });
 
   // Dynamic sitemap.xml and sitemap-main.xml Route
+  app.get("/robots.txt", (req, res) => {
+    const host = req.headers.host || 'www.desiredhub.xyz';
+    const DYNAMIC_SITE_URL = host.startsWith('www.') ? `https://${host}` : `https://www.${host}`;
+    
+    const robotsTxt = `User-agent: *
+Allow: /
+
+Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
+    res.header("Content-Type", "text/plain");
+    return res.status(200).send(robotsTxt);
+  });
+
   app.get(["/sitemap.xml", "/sitemap-main.xml"], async (req, res) => {
     try {
-      await ensureSnapshot();
-      
       const host = req.headers.host || 'www.desiredhub.xyz';
       const DYNAMIC_SITE_URL = host.startsWith('www.') ? `https://${host}` : `https://www.${host}`;
 
-      let { posts, categories } = publicDataSnapshot;
+      const [categoriesSnapshot, postsSnapshot] = await Promise.all([
+        getDocs(query(collection(db, 'categories'))),
+        getDocs(query(collection(db, 'posts'), limit(1000)))
+      ]);
 
-      if (!posts || posts.length === 0) {
-        const postsSnapshot = await getDocs(query(collection(db, 'posts'), limit(500)));
-        posts = postsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      }
-      if (!categories) categories = [];
-      
+      const categories = categoriesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const posts = postsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
       let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
       xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
       
