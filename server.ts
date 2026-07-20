@@ -314,39 +314,41 @@ Sitemap: ${SITE_URL}/sitemap-main.xml`);
     try {
       await ensureSnapshot();
       
-      // Dynamic rendering directly from memory (bypasses EROFS limitation)
-      const { posts, categories } = publicDataSnapshot;
-      
-      let finalPosts = posts;
-      if (!finalPosts || finalPosts.length === 0) {
-        const postsSnapshot = await getDocs(query(collection(db, 'posts'), limit(500)));
-        finalPosts = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      }
+      const host = req.headers.host || 'www.desiredhub.xyz';
+      const DYNAMIC_SITE_URL = host.startsWith('www.') ? `https://${host}` : `https://www.${host}`;
 
+      let { posts, categories } = publicDataSnapshot;
+
+      if (!posts || posts.length === 0) {
+        const postsSnapshot = await getDocs(query(collection(db, 'posts'), limit(500)));
+        posts = postsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+      if (!categories) categories = [];
+      
       let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
       xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
       
       // Home Page
-      xml += `  <url>\n    <loc>${SITE_URL}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
+      xml += `  <url>\n    <loc>${DYNAMIC_SITE_URL}/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
       
       // Add default virtual categories
       const defaultCats = ["trending", "latest", "popular"];
       for (const cat of defaultCats) {
-        xml += `  <url>\n    <loc>${escapeXml(`${SITE_URL}/category/${cat}`)}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+        xml += `  <url>\n    <loc>${escapeXml(`${DYNAMIC_SITE_URL}/category/${cat}`)}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
       }
       
       // Categories from snapshot
-      const activeCategories = categories.filter(c => c.isActive !== false && c.slug);
+      const activeCategories = categories.filter((c: any) => c.isActive !== false && c.slug);
       for (const cat of activeCategories) {
         if (!defaultCats.includes(cat.slug)) {
-          xml += `  <url>\n    <loc>${escapeXml(`${SITE_URL}/category/${cat.slug}`)}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+          xml += `  <url>\n    <loc>${escapeXml(`${DYNAMIC_SITE_URL}/category/${cat.slug}`)}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
         }
       }
       
       // Posts/Videos from snapshot
-      const activePosts = finalPosts.filter((p: any) => p.isActive !== false && p.slug);
+      const activePosts = posts.filter((p: any) => p.isActive !== false && p.slug);
       for (const post of activePosts) {
-        xml += `  <url>\n    <loc>${escapeXml(`${SITE_URL}/video/${post.slug}`)}</loc>\n`;
+        xml += `  <url>\n    <loc>${escapeXml(`${DYNAMIC_SITE_URL}/video/${post.slug}`)}</loc>\n`;
         let lastmod = "";
         if (post.publishedAt) {
           let dateObj;
