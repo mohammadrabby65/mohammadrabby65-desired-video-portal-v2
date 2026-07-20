@@ -214,8 +214,10 @@ async function startServer() {
     
     const robotsTxt = `User-agent: *
 Allow: /
-
-Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api/*
+Sitemap: https://www.desiredhub.xyz/sitemap-main.xml`;
     res.header("Content-Type", "text/plain");
     return res.status(200).send(robotsTxt);
   });
