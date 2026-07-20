@@ -37,7 +37,7 @@ export function Tag() {
   const formattedTagName = tagTitle.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   return (
-    <div className="max-w-[2000px] mx-auto px-4 md:px-6 py-6 md:py-8 min-h-screen">
+    <div className="flex-1 pb-20 pt-8 sm:pt-10">
       <SEO
         title={`${formattedTagName} Videos - DesiredHub`}
         description={`Watch the latest and best videos tagged with ${tagTitle}.`}
@@ -49,8 +49,9 @@ export function Tag() {
         ]}
       />
 
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 tracking-tight">
           #{tagTitle}
         </h1>
       </div>
@@ -75,7 +76,7 @@ export function Tag() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
             {isLoading ? (
                Array.from({ length: 20 }).map((_, i) => (
                  <SkeletonCard key={i} />
@@ -89,18 +90,24 @@ export function Tag() {
           </div>
 
           {hasNextPage && (
-            <div className="mt-8 flex justify-center">
+            <div className="mt-10 sm:mt-12 flex justify-center">
               <button
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full transition-all duration-300 disabled:opacity-50 active:scale-95 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)] hover:shadow-[0_6px_20px_rgba(229,9,20,0.4)] hover:-translate-y-0.5"
               >
-                {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                {isFetchingNextPage ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Loading...
+                  </span>
+                ) : 'Load More'}
               </button>
             </div>
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

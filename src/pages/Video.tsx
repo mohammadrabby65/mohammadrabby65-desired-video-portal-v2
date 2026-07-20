@@ -123,74 +123,77 @@ export function Video() {
           contentUrl: video.videoUrl,
         }}
       />
-      <div className="flex-1 min-w-0 p-4 container mx-auto pb-10 w-full overflow-x-hidden">
-        <nav className="flex text-neutral-400 text-sm mb-4 min-w-0 w-full overflow-hidden">
-          <ol className="flex items-center space-x-2 min-w-0 w-full">
+      <div className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-[1920px] mx-auto pb-20 w-full overflow-x-hidden">
+        <nav className="flex text-neutral-400 text-[13px] font-medium mb-6 min-w-0 w-full overflow-hidden">
+          <ol className="flex items-center space-x-2.5 min-w-0 w-full">
             <li className="shrink-0">
               <Link to="/" className="hover:text-white transition-colors">Home</Link>
             </li>
             {categoryName && categorySlug && (
               <>
-                <li className="shrink-0">/</li>
-                <li className="shrink-0 min-w-0 truncate max-w-[100px] sm:max-w-none">
+                <li className="shrink-0 text-neutral-600">/</li>
+                <li className="shrink-0 min-w-0 truncate max-w-[120px] sm:max-w-none">
                   <Link to={`/category/${categorySlug}`} className="hover:text-white transition-colors truncate block">{categoryName}</Link>
                 </li>
               </>
             )}
-            <li className="shrink-0">/</li>
+            <li className="shrink-0 text-neutral-600">/</li>
             <li className="text-neutral-200 truncate min-w-0" aria-current="page">{video.title}</li>
           </ol>
         </nav>
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 min-w-0 w-full">
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 min-w-0 w-full">
           {/* Main Video Section */}
-          <div className="flex-1 max-w-[1200px] min-w-0">
-            <VideoPlayer videoUrl={video.videoUrl} thumbnailUrl={video.thumbnailUrl} />
+          <div className="flex-1 max-w-[1400px] min-w-0">
+            <div className="rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-800 shadow-2xl shadow-black/50">
+              <VideoPlayer videoUrl={video.videoUrl} thumbnailUrl={video.thumbnailUrl} />
+            </div>
 
-            <div className="mt-4 flex flex-col gap-4 min-w-0 w-full">
-              <h1 className="text-xl md:text-2xl font-bold text-white leading-tight break-words">
+            <div className="mt-6 sm:mt-8 flex flex-col gap-5 min-w-0 w-full">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-tight break-words tracking-tight">
                 {video.title}
               </h1>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-800 pb-4 min-w-0 w-full">
-                <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-400">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 border-b border-neutral-800/60 pb-6 min-w-0 w-full">
+                <div className="flex flex-wrap items-center gap-2 text-[15px] text-neutral-400 font-medium">
                   <span>{formatTimeAgo(video.publishedAt)}</span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full text-sm font-medium transition-colors">
-                    <ThumbsUp className="w-4 h-4" />
-                    <span>Like</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md group">
+                    <ThumbsUp className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
+                    <span className="group-hover:text-white text-neutral-300 transition-colors">Like</span>
                   </button>
                   <button
                     onClick={handleCopyLink}
-                    className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full text-sm font-medium transition-colors"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md group"
                   >
-                    <Copy className="w-4 h-4" />
-                    <span>Copy</span>
+                    <Copy className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
+                    <span className="group-hover:text-white text-neutral-300 transition-colors">Copy</span>
                   </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full text-sm font-medium transition-colors">
-                    <Share2 className="w-4 h-4" />
-                    <span>Share</span>
+                  <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md group">
+                    <Share2 className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
+                    <span className="group-hover:text-white text-neutral-300 transition-colors">Share</span>
                   </button>
                   <button
                     onClick={handleReport}
-                    className="flex items-center gap-2 px-4 py-2 bg-neutral-900 hover:bg-neutral-800 rounded-full text-sm font-medium text-neutral-400 hover:text-red-500 transition-colors"
+                    className="flex items-center gap-2 p-2.5 sm:px-5 sm:py-2.5 bg-neutral-900/80 hover:bg-red-500/10 border border-neutral-800 hover:border-red-500/30 rounded-full text-sm font-semibold text-neutral-400 hover:text-red-500 transition-all duration-300 active:scale-95 shadow-sm group"
+                    title="Report Video"
                   >
-                    <Flag className="w-4 h-4" />
+                    <Flag className="w-4 h-4 group-hover:text-red-500 transition-colors" />
                     <span className="hidden sm:inline">Report</span>
                   </button>
                 </div>
               </div>
 
-              <div className="bg-neutral-900/50 rounded-xl p-4 flex flex-col gap-4">
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="bg-neutral-900/40 backdrop-blur-sm border border-neutral-800/60 rounded-3xl p-5 sm:p-6 flex flex-col gap-5 shadow-inner mt-2">
+                <div className="flex flex-wrap items-center gap-2.5">
                   {video.quality && (
-                    <span className="bg-red-600/90 text-white px-3 py-1.5 rounded-full text-xs font-bold tracking-wider shadow-sm">
+                    <span className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase">
                       {video.quality}
                     </span>
                   )}
                   {video.badges?.map(badge => (
-                    <span key={badge} className="bg-red-600/90 text-white px-3 py-1.5 rounded-full text-xs font-bold tracking-wider shadow-sm">
+                    <span key={badge} className="bg-primary/90 backdrop-blur-md border border-white/10 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase">
                       {badge}
                     </span>
                   ))}
@@ -202,7 +205,7 @@ export function Video() {
                         .replace(/[^a-z0-9]+/g, "-")
                         .replace(/(^-|-$)+/g, "")}`}
                     >
-                      <span className="bg-red-500/10 text-red-500 hover:bg-red-500/20 px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer inline-flex">
+                      <span className="bg-neutral-800/80 border border-neutral-700/50 hover:bg-neutral-700 text-neutral-300 hover:text-white px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all duration-300 cursor-pointer inline-flex shadow-sm active:scale-95">
                         {cat}
                       </span>
                     </Link>
@@ -217,7 +220,7 @@ export function Video() {
                             .replace(/[^a-z0-9]+/g, "-")
                             .replace(/(^-|-$)+/g, "")}`}
                           key={tag}
-                          className="bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors inline-flex max-w-full truncate"
+                          className="text-neutral-500 hover:text-white hover:bg-neutral-800/80 px-3 py-1.5 rounded-full text-[13px] font-medium transition-all duration-300 inline-flex max-w-full truncate active:scale-95"
                         >
                           #{tag}
                         </Link>
@@ -225,7 +228,7 @@ export function Video() {
                       {!isTagsExpanded && video.tags.length > 12 && (
                         <button
                           onClick={() => setIsTagsExpanded(true)}
-                          className="bg-neutral-800 text-neutral-400 hover:bg-neutral-700 hover:text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors inline-flex max-w-full truncate"
+                          className="text-neutral-500 hover:text-white hover:bg-neutral-800/80 px-3 py-1.5 rounded-full text-[13px] font-medium transition-all duration-300 inline-flex max-w-full truncate active:scale-95"
                         >
                           +{video.tags.length - 12} More
                         </button>
@@ -234,25 +237,27 @@ export function Video() {
                   )}
                 </div>
 
-                <p className="text-neutral-300 text-sm md:text-base leading-relaxed whitespace-pre-wrap break-words mt-1">
+                <p className="text-neutral-300 text-[15px] sm:text-base leading-relaxed whitespace-pre-wrap break-words">
                   {video.description}
                 </p>
               </div>
 
               {/* Prev / Next */}
               {adjacent && (adjacent.prev || adjacent.next) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
                   {adjacent.next ? (
                     <Link
                       to={`/video/${adjacent.next.slug}`}
-                      className="flex items-center gap-3 bg-neutral-900 hover:bg-neutral-800 p-4 rounded-xl transition-colors group"
+                      className="flex items-center gap-4 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 p-5 rounded-2xl transition-all duration-300 group active:scale-[0.98] shadow-sm hover:shadow-md"
                     >
-                      <ChevronLeft className="w-5 h-5 text-neutral-500 group-hover:text-white transition-colors" />
+                      <div className="bg-neutral-800 group-hover:bg-neutral-700 p-2 rounded-full transition-colors shrink-0">
+                        <ChevronLeft className="w-5 h-5 text-neutral-400 group-hover:text-white transition-colors" />
+                      </div>
                       <div className="min-w-0">
-                        <div className="text-xs text-neutral-500 mb-1">
+                        <div className="text-[11px] font-bold text-neutral-500 mb-1 tracking-wider uppercase">
                           Previous Video
                         </div>
-                        <div className="text-sm font-semibold text-white truncate">
+                        <div className="text-[15px] font-semibold text-neutral-200 group-hover:text-white truncate transition-colors">
                           {adjacent.next.title}
                         </div>
                       </div>
@@ -263,17 +268,19 @@ export function Video() {
                   {adjacent.prev ? (
                     <Link
                       to={`/video/${adjacent.prev.slug}`}
-                      className="flex items-center justify-end text-right gap-3 bg-neutral-900 hover:bg-neutral-800 p-4 rounded-xl transition-colors group"
+                      className="flex items-center justify-end text-right gap-4 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 p-5 rounded-2xl transition-all duration-300 group active:scale-[0.98] shadow-sm hover:shadow-md"
                     >
                       <div className="min-w-0">
-                        <div className="text-xs text-neutral-500 mb-1">
+                        <div className="text-[11px] font-bold text-neutral-500 mb-1 tracking-wider uppercase">
                           Next Video
                         </div>
-                        <div className="text-sm font-semibold text-white truncate">
+                        <div className="text-[15px] font-semibold text-neutral-200 group-hover:text-white truncate transition-colors">
                           {adjacent.prev.title}
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-white transition-colors" />
+                      <div className="bg-neutral-800 group-hover:bg-neutral-700 p-2 rounded-full transition-colors shrink-0">
+                        <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-white transition-colors" />
+                      </div>
                     </Link>
                   ) : (
                     <div></div>

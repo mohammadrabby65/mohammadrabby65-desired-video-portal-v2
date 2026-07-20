@@ -13,6 +13,9 @@
   --color-neutral-900: var(--neutral-900);
   --color-neutral-950: var(--neutral-950);
   
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  
   --color-white: var(--color-text-white);
   --color-pure-white: #ffffff;
 }
@@ -27,34 +30,22 @@
   }
 }
 
-:root, :root.light {
-  --neutral-50: #111827;
-  --neutral-100: #1f2937;
-  --neutral-200: #374151;
-  --neutral-300: #4b5563;
-  --neutral-400: #6b7280;
-  --neutral-500: #9ca3af;
-  --neutral-600: #d1d5db;
-  --neutral-700: #e5e7eb;
-  --neutral-800: #f3f4f6;
-  --neutral-900: #ffffff;
-  --neutral-950: #f9fafb;
-  --color-text-white: #030712;
-}
-
-:root.dark {
-  --neutral-50: #fafafa;
-  --neutral-100: #f5f5f5;
-  --neutral-200: #e5e5e5;
-  --neutral-300: #d4d4d4;
-  --neutral-400: #a3a3a3;
+:root, :root.light, :root.dark {
+  /* Premium Streaming Dark Theme Colors */
+  --neutral-50: #ffffff;
+  --neutral-100: #fafafa;
+  --neutral-200: #f5f5f5;
+  --neutral-300: #e5e5e5;
+  --neutral-400: #AFAFAF; /* Secondary Text */
   --neutral-500: #737373;
   --neutral-600: #525252;
-  --neutral-700: #404040;
-  --neutral-800: #262626;
-  --neutral-900: #171717;
-  --neutral-950: #0a0a0a;
+  --neutral-700: #262626;
+  --neutral-800: rgba(255, 255, 255, 0.08); /* Borders / Hover */
+  --neutral-900: #141417; /* Cards */
+  --neutral-950: #0B0B0D; /* Background */
   --color-text-white: #ffffff;
+  --primary: #E50914;
+  --accent: #FF3D47;
 }
 
 /* Force the video player to always render in its intended dark theme, preserving high contrast controls and dark overlay styling regardless of the website light/dark theme switch */
@@ -79,4 +70,41 @@ video,
 html, body {
   overflow-x: hidden;
   width: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--neutral-950);
+  color: var(--color-text-white);
+  animation: fade-in 0.4s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.mask-image-fade-edges {
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+::selection {
+  background: rgba(229, 9, 20, 0.3);
+  color: #fff;
 }

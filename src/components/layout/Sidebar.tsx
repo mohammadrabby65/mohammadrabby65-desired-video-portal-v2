@@ -57,9 +57,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link
             to="/"
             onClick={onClose}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold transition-all duration-200 ${
               location.pathname === '/'
-                ? 'bg-neutral-800 text-white'
+                ? 'bg-primary/10 text-primary'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
             }`}
           >
@@ -83,9 +83,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 key={cat.id}
                 to={`/category/${cat.slug}`}
                 onClick={onClose}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
                   location.pathname === `/category/${cat.slug}`
-                    ? 'bg-neutral-800 text-white'
+                    ? 'bg-primary/10 text-primary'
                     : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
                 }`}
               >
@@ -101,9 +101,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link
             to="/category/trending"
             onClick={onClose}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
               location.pathname === '/category/trending'
-                ? 'bg-neutral-800 text-white'
+                ? 'bg-orange-500/10 text-orange-500'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
             }`}
           >
@@ -114,9 +114,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link
             to="/category/latest"
             onClick={onClose}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
               location.pathname === '/category/latest'
-                ? 'bg-neutral-800 text-white'
+                ? 'bg-blue-500/10 text-blue-500'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
             }`}
           >

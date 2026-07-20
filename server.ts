@@ -230,8 +230,8 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         getDocs(query(collection(db, 'posts'), limit(1000)))
       ]);
 
-      const categories = categoriesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      const posts = postsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const categories = categoriesSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const posts = postsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as any));
 
       let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
       xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';

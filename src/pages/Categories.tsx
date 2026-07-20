@@ -40,7 +40,7 @@ export function Categories() {
   };
 
   return (
-    <div className="flex-1 pb-16 pt-8">
+    <div className="flex-1 pb-20 pt-8 sm:pt-10">
       <SEO 
         title="All Categories" 
         description="Browse all video categories."
@@ -50,7 +50,7 @@ export function Categories() {
       </Helmet>
       
       <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold text-white mb-8">Categories</h1>
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-8 tracking-tight">Categories</h1>
         
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -68,7 +68,7 @@ export function Categories() {
               <Link 
                 key={cat.id} 
                 to={`/category/${cat.slug}`}
-                className="group relative aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-neutral-700 transition-colors block"
+                className="group relative aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900/60 border border-neutral-800/60 hover:border-neutral-700 transition-all duration-300 shadow-sm hover:shadow-md block active:scale-95"
               >
                 {cat.thumbnailUrl ? (
                   <img 
@@ -88,7 +88,7 @@ export function Categories() {
                 
                 {/* Content */}
                 <div className="absolute inset-x-0 bottom-0 p-4">
-                  <h3 className="text-white font-bold text-lg mb-1">{cat.name}</h3>
+                  <h3 className="text-white font-bold text-lg mb-1 drop-shadow-md group-hover:text-primary transition-colors">{cat.name}</h3>
                 </div>
               </Link>
             ))}

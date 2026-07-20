@@ -58,7 +58,7 @@ export function Category() {
   };
 
   return (
-    <div className="flex-1 pb-16 pt-8">
+    <div className="flex-1 pb-20 pt-8 sm:pt-10">
       <SEO
         title={`${categoryName} Porn Videos - DesiredHub`}
         description={`Watch the best ${categoryName} sex videos on DesiredHub. Premium free porn updated daily.`}
@@ -68,31 +68,31 @@ export function Category() {
           { name: categoryName, item: `/category/${slug}` }
         ]}
       />
-      <section className="container mx-auto px-4 mb-16">
-        <nav className="flex text-neutral-400 text-sm mb-4">
-          <ol className="flex items-center space-x-2">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+        <nav className="flex text-neutral-400 text-[13px] font-medium mb-6">
+          <ol className="flex items-center space-x-2.5">
             <li>
               <Link to="/" className="hover:text-white transition-colors">Home</Link>
             </li>
-            <li>/</li>
+            <li className="text-neutral-600">/</li>
             <li className="text-neutral-200 truncate" aria-current="page">{categoryName}</li>
           </ol>
         </nav>
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white capitalize">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white capitalize tracking-tight">
                 {categoryName} Videos
               </h1>
             </div>
 
-            <div className="relative">
+            <div className="relative z-10">
               <button
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-sm font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition-colors w-full sm:w-auto justify-between"
+                className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 rounded-full text-[13px] font-semibold text-neutral-300 hover:text-white transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md w-full sm:w-auto justify-between group"
               >
                 Sort by: {SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label}
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
               </button>
 
               {isSortOpen && (
@@ -101,7 +101,7 @@ export function Category() {
                     className="fixed inset-0 z-10"
                     onClick={() => setIsSortOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-full sm:w-48 bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl z-20 py-1">
+                  <div className="absolute right-0 mt-2 w-full sm:w-56 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/50 rounded-2xl shadow-2xl z-20 p-2 origin-top-right animate-fade-in">
                     {SORT_OPTIONS.map((option) => (
                       <button
                         key={option.value}
@@ -109,10 +109,10 @@ export function Category() {
                           setSortBy(option.value);
                           setIsSortOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                        className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-all duration-200 rounded-xl ${
                           sortBy === option.value
-                            ? "bg-neutral-800 text-white"
-                            : "text-neutral-400 hover:bg-neutral-800/50 hover:text-white"
+                            ? "bg-primary/20 text-primary"
+                            : "text-neutral-300 hover:bg-neutral-800/80 hover:text-white"
                         }`}
                       >
                         {option.label}
@@ -124,7 +124,7 @@ export function Category() {
             </div>
           </div>
           {categoryData?.description && (
-            <p className="text-neutral-400 mt-2 max-w-3xl">
+          <p className="text-neutral-400 text-[15px] max-w-3xl leading-relaxed">
               {categoryData.description}
             </p>
           )}
@@ -148,7 +148,7 @@ export function Category() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 lg:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
               {isLoading || isCategoryPending
                 ? Array.from({ length: 20 }).map((_, i) => (
                     <SkeletonCard key={i} />
@@ -162,13 +162,18 @@ export function Category() {
             </div>
 
             {hasNextPage && (
-              <div className="mt-8 flex justify-center">
+              <div className="mt-10 sm:mt-12 flex justify-center">
                 <button
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
-                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                  className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full transition-all duration-300 disabled:opacity-50 active:scale-95 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)] hover:shadow-[0_6px_20px_rgba(229,9,20,0.4)] hover:-translate-y-0.5"
                 >
-                  {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                  {isFetchingNextPage ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Loading...
+                    </span>
+                  ) : 'Load More'}
                 </button>
               </div>
             )}
