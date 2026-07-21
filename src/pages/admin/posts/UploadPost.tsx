@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { collection, doc, setDoc, getDoc, serverTimestamp, updateDoc, query, where, getDocs, limit, addDoc, deleteField } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { VideoPost } from '../../../types';
-import { ArrowLeft, Save, Loader2, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 
 export function UploadPost() {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +24,8 @@ export function UploadPost() {
     featured: false,
     trending: false,
     quality: '',
-    badges: [] as string[]
+    badges: [] as string[],
+    gallery: [''] as string[]
   });
 
   const [loading, setLoading] = useState(false);
@@ -134,7 +135,8 @@ export function UploadPost() {
               featured: data.featured,
               trending: data.trending,
               quality: data.quality || '',
-              badges: data.badges || []
+              badges: data.badges || [],
+              gallery: data.gallery && data.gallery.length > 0 ? data.gallery : ['']
             });
           } else {
             navigate('/admin/posts');
@@ -226,6 +228,26 @@ export function UploadPost() {
         postData.quality = formData.quality.trim();
       } else if (isEditMode) {
         postData.quality = deleteField();
+      }
+
+      // Extract valid gallery URLs
+      const validGalleryUrls = Array.from(new Set(
+        formData.gallery.map(url => url.trim()).filter(url => {
+          if (!url) return false;
+          try {
+            const parsed = new URL(url);
+            const ext = parsed.pathname.split('.').pop()?.toLowerCase();
+            return ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'].includes(ext || '');
+          } catch {
+            return false;
+          }
+        })
+      ));
+
+      if (validGalleryUrls.length > 0) {
+        postData.gallery = validGalleryUrls;
+      } else if (isEditMode) {
+        postData.gallery = deleteField();
       }
 
       if (isEditMode && id) {
@@ -472,6 +494,59 @@ export function UploadPost() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Video Gallery */}
+        <div className="bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-xl p-5 sm:p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-neutral-800 p-2 rounded-lg">
+                <ImageIcon className="w-4 h-4 text-neutral-400" />
+              </div>
+              <h3 className="text-sm font-semibold text-white">Video Gallery (Optional)</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, gallery: [...formData.gallery, ''] })}
+              className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white rounded-lg text-sm font-medium transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              Add Image
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            {formData.gallery.map((url, index) => (
+              <div key={index} className="flex items-start gap-3 group animate-fade-in">
+                <div className="flex-1">
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => {
+                      const newGallery = [...formData.gallery];
+                      newGallery[index] = e.target.value;
+                      setFormData({ ...formData, gallery: newGallery });
+                    }}
+                    className="w-full bg-neutral-950/50 border border-neutral-800/80 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500 transition-colors"
+                    placeholder={`Image URL ${index + 1}`}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newGallery = formData.gallery.length > 1 
+                      ? formData.gallery.filter((_, i) => i !== index)
+                      : ['']; // Keep at least one empty field
+                    setFormData({ ...formData, gallery: newGallery });
+                  }}
+                  className="p-2.5 bg-neutral-900 border border-neutral-800 hover:border-red-500/50 text-neutral-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all flex-shrink-0"
+                  title={formData.gallery.length === 1 ? "Clear Image" : "Remove Image"}
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
 
