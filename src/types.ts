@@ -11,7 +11,6 @@ export interface VideoPost {
   duration: string;
   quality?: string;
   badges?: string[];
-  gallery?: string[];
   publishedAt: any;
   views: number;
   featured: boolean;

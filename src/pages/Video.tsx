@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useVideoBySlug, useAdjacentVideos } from "../hooks/useVideos";
 import { VideoPlayer } from "../components/video/VideoPlayer";
-import { VideoGallery } from "../components/video/VideoGallery";
 import { RelatedVideos } from "../components/video/RelatedVideos";
 import { SEO } from "../components/seo/SEO";
 import { formatTimeAgo } from "../lib/utils";
@@ -237,8 +236,6 @@ export function Video() {
                     </>
                   )}
                 </div>
-
-                <VideoGallery images={video.gallery} />
 
                 <p className="text-neutral-300 text-[15px] sm:text-base leading-relaxed whitespace-pre-wrap break-words">
                   {video.description}
