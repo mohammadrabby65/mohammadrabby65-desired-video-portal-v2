@@ -73,21 +73,13 @@ export function VideoGallery({ images }: VideoGalleryProps) {
   };
 
   return (
-    <div className="w-full min-w-0 py-2">
-      <div className="flex items-center gap-3 mb-5">
-        <div className="bg-neutral-900/60 p-2.5 rounded-xl border border-neutral-800/60 shadow-sm">
-          <ImageIcon className="w-5 h-5 text-neutral-400" />
-        </div>
-        <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Gallery</h3>
-      </div>
-
-      {/* Horizontal Scroll Gallery */}
-      <div className="flex overflow-x-auto gap-4 sm:gap-5 pb-6 scrollbar-hide snap-x snap-mandatory">
+    <div className="w-full min-w-0 my-6">
+      <div className="flex overflow-x-auto gap-4 sm:gap-5 pb-4 pt-2 scrollbar-hide snap-x snap-mandatory scroll-smooth px-2 -mx-2">
         {images.map((img, idx) => (
           <button
             key={idx}
             onClick={() => openLightbox(idx)}
-            className="relative flex-none w-[280px] sm:w-[320px] aspect-[16/9] rounded-2xl overflow-hidden group cursor-pointer border border-neutral-800/60 hover:border-neutral-700 transition-all duration-300 shadow-md hover:shadow-xl bg-neutral-900 snap-center active:scale-[0.98]"
+            className="relative flex-none w-[120px] sm:w-[140px] md:w-[160px] aspect-[9/16] rounded-2xl overflow-hidden group cursor-pointer border border-neutral-800/50 hover:border-neutral-600 transition-all duration-300 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_24px_-6px_rgba(0,0,0,0.7)] bg-neutral-900 snap-center active:scale-[0.96]"
             aria-label={`View image ${idx + 1} of ${images.length}`}
           >
             <div className="absolute inset-0 bg-neutral-800/50 animate-pulse" />
@@ -95,9 +87,10 @@ export function VideoGallery({ images }: VideoGalleryProps) {
               src={img}
               alt={`Gallery image ${idx + 1}`}
               loading="lazy"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
           </button>
         ))}
       </div>

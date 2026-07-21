@@ -154,12 +154,13 @@ export function Video() {
                 {video.title}
               </h1>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 border-b border-neutral-800/60 pb-6 min-w-0 w-full">
-                <div className="flex flex-wrap items-center gap-2 text-[15px] text-neutral-400 font-medium">
-                  <span>{formatTimeAgo(video.publishedAt)}</span>
-                </div>
+              <div className="flex flex-wrap items-center gap-2 text-[15px] text-neutral-400 font-medium mt-3">
+                <span>{formatTimeAgo(video.publishedAt)}</span>
+              </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+              <VideoGallery images={video.gallery} />
+
+              <div className="flex flex-wrap items-center gap-3 border-b border-neutral-800/60 pb-6 min-w-0 w-full mt-2">
                   <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md group">
                     <ThumbsUp className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
                     <span className="group-hover:text-white text-neutral-300 transition-colors">Like</span>
@@ -184,9 +185,8 @@ export function Video() {
                     <span className="hidden sm:inline">Report</span>
                   </button>
                 </div>
-              </div>
 
-              <div className="bg-neutral-900/40 backdrop-blur-sm border border-neutral-800/60 rounded-3xl p-5 sm:p-6 flex flex-col gap-5 shadow-inner mt-2">
+              <div className="bg-neutral-900/40 backdrop-blur-sm border border-neutral-800/60 rounded-3xl p-5 sm:p-6 flex flex-col gap-5 shadow-inner mt-4">
                 <div className="flex flex-wrap items-center gap-2.5">
                   {video.quality && (
                     <span className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase">
@@ -237,8 +237,6 @@ export function Video() {
                     </>
                   )}
                 </div>
-
-                <VideoGallery images={video.gallery} />
 
                 <p className="text-neutral-300 text-[15px] sm:text-base leading-relaxed whitespace-pre-wrap break-words">
                   {video.description}
