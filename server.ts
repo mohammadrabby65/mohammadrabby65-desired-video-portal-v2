@@ -1,5 +1,4 @@
 import express from "express";
-import * as admin from "firebase-admin";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
@@ -16,29 +15,6 @@ import { db } from "./src/lib/firebase";
 
 export const app = express();
 
-let adminDb: admin.firestore.Firestore | null = null;
-try {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-    }
-    adminDb = admin.firestore();
-  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.applicationDefault()
-      });
-    }
-    adminDb = admin.firestore();
-  } else {
-    console.warn("WARNING: Firebase Admin SDK not initialized. Snapshot generation will fail. Please provide FIREBASE_SERVICE_ACCOUNT_KEY.");
-  }
-} catch (error) {
-  console.error("Failed to initialize Firebase Admin:", error);
-}
 
 let publicDataSnapshot: {
   posts: any[];
@@ -79,23 +55,17 @@ async function ensureSnapshot() {
 
 async function generateSnapshot() {
   console.log("Generating data snapshot...");
-  if (!adminDb) {
-    console.warn("Admin SDK not initialized. Skipping snapshot.");
-    return;
-  }
   try {
-    const catSnap = await adminDb.collection('categories').orderBy('name', 'asc').limit(1000).get();
+    const catSnap = await getDocs(query(collection(db, 'categories'), orderBy('name', 'asc'), limit(1000)));
     const categories = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    const postSnap = await adminDb.collection('posts').limit(1000).get();
+    const postSnap = await getDocs(query(collection(db, 'posts'), limit(1000)));
     const posts = postSnap.docs.map(doc => {
       const data = doc.data();
       let publishedAtMs = 0;
       if (data.publishedAt) {
         if (typeof data.publishedAt.toDate === 'function') {
           publishedAtMs = data.publishedAt.toDate().getTime();
-        } else if (data.publishedAt._seconds) {
-          publishedAtMs = data.publishedAt._seconds * 1000;
         } else if (data.publishedAt.seconds) {
           publishedAtMs = data.publishedAt.seconds * 1000;
         } else {
@@ -336,7 +306,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 100);
 
       let filtered = publicDataSnapshot.posts;
+      fs.writeFileSync("/tmp/debug1.json", JSON.stringify({filtered: filtered.length}));
 
+      fs.writeFileSync("/tmp/debug2.json", JSON.stringify({filtered: filtered.length}));
       if (searchQuery) {
         const queryStr = (searchQuery as string).trim().toLowerCase();
         if (queryStr) {
@@ -364,6 +336,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
          filtered = [...filtered].sort((a, b) => b._publishedAtMs - a._publishedAtMs);
       }
 
+      fs.writeFileSync("/tmp/debug3.json", JSON.stringify({filtered: filtered.length}));
       let startIndex = 0;
       if (lastId) {
         const lastIdx = filtered.findIndex(v => v.id === lastId);
@@ -371,6 +344,8 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
           startIndex = lastIdx + 1;
         }
       }
+      console.log("filtered:", filtered.length, "start:", startIndex, "limit:", limitNum);
+      fs.writeFileSync("/tmp/debug.json", JSON.stringify({filtered: filtered.length, start: startIndex, limit: limitNum}));
 
       const paginatedDocs = filtered.slice(startIndex, startIndex + limitNum);
 
@@ -406,6 +381,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         v.categories.some((c: string) => categories.includes(c))
       );
 
+      fs.writeFileSync("/tmp/debug3.json", JSON.stringify({filtered: filtered.length}));
       let startIndex = 0;
       if (lastId) {
         const lastIdx = filtered.findIndex(v => v.id === lastId);
