@@ -15,6 +15,7 @@ import {
   Copy,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 
 const formatIsoDuration = (duration: string) => {
@@ -176,6 +177,15 @@ export function Video() {
                     <Share2 className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
                     <span className="group-hover:text-white text-neutral-300 transition-colors">Share</span>
                   </button>
+                  <a
+                    href="https://www.effectivecpmnetwork.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md group"
+                  >
+                    <Download className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
+                    <span className="group-hover:text-white text-neutral-300 transition-colors">Download</span>
+                  </a>
                   <button
                     onClick={handleReport}
                     className="flex items-center gap-2 p-2.5 sm:px-5 sm:py-2.5 bg-neutral-900/80 hover:bg-red-500/10 border border-neutral-800 hover:border-red-500/30 rounded-full text-sm font-semibold text-neutral-400 hover:text-red-500 transition-all duration-300 active:scale-95 shadow-sm group"
