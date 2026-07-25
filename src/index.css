@@ -76,7 +76,6 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--neutral-950);
   color: var(--color-text-white);
-  animation: fade-in 0.4s ease-out;
 }
 
 @keyframes fade-in {
