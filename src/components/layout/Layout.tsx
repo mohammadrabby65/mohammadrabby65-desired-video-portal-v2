@@ -4,9 +4,11 @@ import { Menu, User } from "lucide-react";
 import { LiveSearch } from "./LiveSearch";
 import { Sidebar } from "./Sidebar";
 import { AdInjector } from "./AdInjector";
+import { usePopunderRecovery } from "../../hooks/usePopunderRecovery";
 
 export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  usePopunderRecovery();
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col w-full overflow-x-hidden relative selection:bg-primary/30 selection:text-white">

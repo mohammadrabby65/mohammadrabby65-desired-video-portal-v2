@@ -12,7 +12,7 @@ interface VideoCardProps {
 
 export const VideoCard = memo(function VideoCard({ video, priority = false }: VideoCardProps) {
   return (
-    <Link to={`/video/${video.slug}`} className="group flex flex-col gap-3">
+    <Link to={`/video/${video.slug}`} className="group flex flex-col gap-3" onClick={() => sessionStorage.setItem("intendedVideo", `/video/${video.slug}`)}>
       <div className="relative aspect-video rounded-xl overflow-hidden bg-neutral-900 border border-neutral-800 isolate">
         
         {/* CSS Skeleton Base */}
