@@ -288,6 +288,15 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
 
   app.get("/api/categories", async (req, res) => {
     try {
+      if (publicDataSnapshot.categories.length === 0) {
+        const catSnap = await getDocs(query(collection(db, 'categories'), orderBy('name', 'asc'), limit(100)));
+        const cats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return res.status(200).set({
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=600'
+        }).json(cats.filter((c: any) => c.isActive !== false));
+      }
+
       await ensureSnapshot();
       res.status(200).set({
         'Content-Type': 'application/json',
@@ -299,36 +308,50 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
-  function matchesCategory(videoCategories: string[] | undefined, catQuery: string): boolean {
-    if (!videoCategories || !Array.isArray(videoCategories) || !catQuery || catQuery === 'All') return false;
-    const target = catQuery.trim().toLowerCase();
-    
-    const matchedCat = (publicDataSnapshot.categories || []).find((c: any) => 
-      (c.slug && c.slug.toLowerCase() === target) || 
-      (c.name && c.name.toLowerCase() === target) ||
-      (c.id && c.id.toLowerCase() === target)
-    );
-
-    const targets = new Set<string>();
-    targets.add(target);
-    if (matchedCat) {
-      if (matchedCat.name) targets.add(matchedCat.name.toLowerCase());
-      if (matchedCat.slug) targets.add(matchedCat.slug.toLowerCase());
-    }
-
-    return videoCategories.some(catItem => {
-      if (!catItem) return false;
-      const catItemLower = catItem.toLowerCase();
-      const catItemSlug = catItemLower.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      return Array.from(targets).some(t => catItemLower === t || catItemSlug === t);
-    });
-  }
-
   app.get("/api/videos", async (req, res) => {
     try {
-      await ensureSnapshot();
       const { category, tag, q: searchQuery, sortBy, limitCount = "20", lastId } = req.query;
       const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 100);
+
+      if (publicDataSnapshot.posts.length === 0 && !searchQuery && !lastId) {
+        let q = collection(db, 'posts');
+        let constraints = [];
+        if (category) constraints.push(where('categories', 'array-contains', category as string));
+        if (tag) constraints.push(where('tags', 'array-contains', tag as string));
+        constraints.push(orderBy('publishedAt', 'desc'));
+        constraints.push(limit(limitNum + 1));
+        
+        try {
+          const snap = await getDocs(query(q, ...constraints));
+          const posts = snap.docs.map(doc => {
+            const data = doc.data();
+            let publishedAtMs = 0;
+            if (data.publishedAt) {
+              if (typeof data.publishedAt.toDate === 'function') {
+                publishedAtMs = data.publishedAt.toDate().getTime();
+              } else if (data.publishedAt.seconds) {
+                publishedAtMs = data.publishedAt.seconds * 1000;
+              } else {
+                publishedAtMs = new Date(data.publishedAt).getTime();
+              }
+            }
+            return { id: doc.id, ...data, _publishedAtMs: publishedAtMs };
+          });
+          
+          const hasMore = posts.length > limitNum;
+          const slice = posts.slice(0, limitNum);
+          
+          return res.json({
+            videos: slice,
+            nextCursor: hasMore ? slice[slice.length - 1].id : null,
+            total: 0
+          });
+        } catch (fbErr) {
+          console.error("Fallback query failed, waiting for snapshot:", fbErr);
+        }
+      }
+
+      await ensureSnapshot();
 
       let filtered = publicDataSnapshot.posts;
       fs.writeFileSync("/tmp/debug1.json", JSON.stringify({filtered: filtered.length}));
@@ -346,7 +369,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
            });
         }
       } else if (category && category !== 'All') {
-         filtered = filtered.filter(v => matchesCategory(v.categories, category as string));
+         filtered = filtered.filter(v => v.categories && v.categories.includes(category));
       } else if (tag) {
          filtered = filtered.filter(v => v.tags && v.tags.includes(tag));
       }
@@ -561,111 +584,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }).end(html);
     } catch (e) {
       console.error("Search SEO Injection Error:", e);
-      next();
-    }
-  });
-
-  app.get("/category/:slug", async (req, res, next) => {
-    try {
-      await ensureSnapshot();
-      const rawSlug = req.params.slug;
-      if (!rawSlug) return next();
-
-      const slugLower = rawSlug.trim().toLowerCase();
-
-      const catObj = (publicDataSnapshot.categories || []).find((c: any) => 
-        (c.slug && c.slug.toLowerCase() === slugLower) ||
-        (c.name && c.name.toLowerCase() === slugLower)
-      );
-
-      const matchingVideos = publicDataSnapshot.posts.filter((v: any) =>
-        matchesCategory(v.categories, rawSlug)
-      );
-
-      let catName = catObj?.name || (rawSlug.charAt(0).toUpperCase() + rawSlug.slice(1).replace(/-/g, " "));
-
-      let template = "";
-      if (process.env.NODE_ENV !== "production") {
-        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
-        template = await vite.transformIndexHtml(req.originalUrl, template);
-      } else {
-        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
-      }
-
-      const seoTitleStr = catObj?.seoTitle || `${catName} Videos - DesiredHub`;
-      const title = escapeHtml(seoTitleStr);
-      const seoDescStr = catObj?.seoDescription || catObj?.description || `Watch the latest free ${catName} videos in HD quality on DesiredHub. Updated daily with fast streaming.`;
-      const description = escapeHtml(seoDescStr);
-      const canonicalSlug = catObj?.slug || slugLower;
-      const currentUrl = escapeHtml(`${SITE_URL}/category/${canonicalSlug}`);
-      const image = escapeHtml((matchingVideos[0] && matchingVideos[0].thumbnailUrl) || `${SITE_URL}/favicon-32x32.png`);
-
-      const collectionJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "CollectionPage",
-        "name": `${catName} Videos`,
-        "description": seoDescStr,
-        "url": `${SITE_URL}/category/${canonicalSlug}`,
-        "mainEntity": {
-          "@type": "ItemList",
-          "itemListElement": matchingVideos.slice(0, 20).map((v: any, index: number) => ({
-            "@type": "ListItem",
-            "position": index + 1,
-            "url": `${SITE_URL}/video/${v.slug}`,
-            "name": v.title
-          }))
-        }
-      };
-
-      const breadcrumbsJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Home",
-            "item": SITE_URL
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": catName,
-            "item": `${SITE_URL}/category/${canonicalSlug}`
-          }
-        ]
-      };
-
-      const seoTags = `
-        <title data-rh="true">${title}</title>
-        <meta data-rh="true" name="description" content="${description}" />
-        <link data-rh="true" rel="canonical" href="${currentUrl}" />
-        <meta data-rh="true" property="og:site_name" content="DesiredHub" />
-        <meta data-rh="true" property="og:locale" content="en_US" />
-        <meta data-rh="true" property="og:type" content="website" />
-        <meta data-rh="true" property="og:url" content="${currentUrl}" />
-        <meta data-rh="true" property="og:title" content="${title}" />
-        <meta data-rh="true" property="og:description" content="${description}" />
-        <meta data-rh="true" property="og:image" content="${image}" />
-        <meta data-rh="true" property="og:image:width" content="1200" />
-        <meta data-rh="true" property="og:image:height" content="630" />
-        <meta data-rh="true" name="twitter:card" content="summary_large_image" />
-        <meta data-rh="true" name="twitter:url" content="${currentUrl}" />
-        <meta data-rh="true" name="twitter:title" content="${title}" />
-        <meta data-rh="true" name="twitter:description" content="${description}" />
-        <meta data-rh="true" name="twitter:image" content="${image}" />
-        <script data-rh="true" type="application/ld+json">${JSON.stringify(collectionJsonLd)}</script>
-        <script data-rh="true" type="application/ld+json">${JSON.stringify(breadcrumbsJsonLd)}</script>
-      `;
-
-      const html = template.replace("<title>DesiredHub</title>", seoTags);
-
-      res.status(200).set({
-        'Content-Type': 'text/html',
-        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60'
-      }).end(html);
-    } catch (e) {
-      console.error("Category SEO Injection Error:", e);
       next();
     }
   });
