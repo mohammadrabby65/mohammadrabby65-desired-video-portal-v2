@@ -1,41 +1,63 @@
 const fs = require('fs');
+let code = fs.readFileSync('server.ts', 'utf8');
 
-let serverStr = fs.readFileSync('server.ts', 'utf-8');
+code = code.replace(
+`    fs.writeFileSync(path.join(process.cwd(), 'data-snapshot.json'), JSON.stringify(publicDataSnapshot));
+    console.log(\`Snapshot generated. Posts: \${posts.length}, Categories: \${categories.length}\`);
+  } catch (err) {
+    console.error("Error generating snapshot:", err);
+  }`,
+`    fs.writeFileSync(path.join(process.cwd(), 'data-snapshot.json'), JSON.stringify(publicDataSnapshot));
+    console.log(\`Snapshot generated. Posts: \${posts.length}, Categories: \${categories.length}\`);
+  } catch (err) {
+    console.error("Error generating snapshot:", err);
+    throw err;
+  }`
+);
 
-if (!serverStr.includes('function injectRandomVideos')) {
-  const injectFn = `
-function injectRandomVideos(template: string) {
-  if (!publicDataSnapshot || !publicDataSnapshot.posts || publicDataSnapshot.posts.length === 0) {
-    return template;
-  }
-  const clientPool = [...publicDataSnapshot.posts].sort(() => 0.5 - Math.random()).slice(0, 50);
-  const initial12 = clientPool.slice(0, 12);
-  
-  const ssrHtml = \`
-    <div id="seo-random-videos" class="sr-only">
-      <h2>Random Videos</h2>
-      \${initial12.map((v: any) => \`<a href="/video/\${v.slug}">\${escapeHtml(v.title)}</a>\`).join('\\n')}
-    </div>
-  \`;
-  
-  const scriptTag = \`<script>window.__RANDOM_VIDEOS_POOL__ = \${JSON.stringify(clientPool).replace(/</g, '\\\\u003c')};</script>\`;
-  
-  return template.replace('</body>', \`\${ssrHtml}\\n\${scriptTag}\\n</body>\`);
-}
+const statusEndpoint = `
+  app.get("/api/admin/snapshot/status", (req, res) => {
+    try {
+      const stats = fs.statSync(path.join(process.cwd(), 'data-snapshot.json'));
+      res.json({
+        status: publicDataSnapshot.lastUpdated > 0 ? "Success" : "Never Generated",
+        lastUpdated: publicDataSnapshot.lastUpdated,
+        postsCount: publicDataSnapshot.posts.length,
+        categoriesCount: publicDataSnapshot.categories.length,
+        sizeKb: Math.round(stats.size / 1024)
+      });
+    } catch (e) {
+      res.json({
+        status: publicDataSnapshot.lastUpdated > 0 ? "Failed" : "Never Generated",
+        lastUpdated: publicDataSnapshot.lastUpdated,
+        postsCount: publicDataSnapshot.posts.length,
+        categoriesCount: publicDataSnapshot.categories.length,
+        sizeKb: 0
+      });
+    }
+  });
+
+  app.post("/api/admin/snapshot/generate", async (req, res) => {
+    try {
+      await generateSnapshot();
+      res.json({ success: true, lastUpdated: publicDataSnapshot.lastUpdated });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || 'Failed to generate snapshot' });
+    }
+  });
 `;
 
-  serverStr = serverStr.replace('// Helper to format ISO 8601 duration', injectFn + '\n// Helper to format ISO 8601 duration');
-}
+code = code.replace(
+`  app.post("/api/admin/snapshot/generate", async (req, res) => {
+    await generateSnapshot();
+    res.json({ success: true, lastUpdated: publicDataSnapshot.lastUpdated });
+  });`,
+statusEndpoint
+);
 
-serverStr = serverStr.replace(/const html = template\.replace\("<title>DesiredHub<\/title>", seoTags\);\n\s*res\.status/g, 'let html = template.replace("<title>DesiredHub</title>", seoTags);\n      html = injectRandomVideos(html);\n\n      res.status');
+code = code.replace(
+`setInterval(generateSnapshot, 60 * 60 * 1000);`,
+`setInterval(() => generateSnapshot().catch(console.error), 60 * 60 * 1000);`
+);
 
-serverStr = serverStr.replace(/res\.sendFile\(path\.join\(distPath, 'index\.html'\)\);/g, `let template = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
-      let html = injectRandomVideos(template);
-      res.status(200).set({ 'Content-Type': 'text/html' }).end(html);`);
-      
-// Ensure fs is imported
-if (!serverStr.includes('import fs from')) {
-  serverStr = serverStr.replace('import path from "path";', 'import path from "path";\nimport fs from "fs";');
-}
-
-fs.writeFileSync('server.ts', serverStr);
+fs.writeFileSync('server.ts', code);

@@ -41,12 +41,20 @@ export function Home() {
   const videos = data?.pages.flat() || [];
 
   const { data: rawCategories = [] } = usePublicCategories(false);
-
   const categories = useMemo(() => {
     return [...rawCategories]
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
       .slice(0, 20);
   }, [rawCategories]);
+
+  const [randomVideos, setRandomVideos] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (videos.length > 0 && randomVideos.length === 0) {
+      const shuffled = [...videos].sort(() => 0.5 - Math.random());
+      setRandomVideos(shuffled.slice(0, 12));
+    }
+  }, [videos, randomVideos.length]);
 
   return (
     <div className="flex-1 pb-20 pt-8 sm:pt-12">
@@ -58,7 +66,6 @@ export function Home() {
           { name: "Home", item: "/" }
         ]}
       />
-
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-20">
         <div className="mb-10 sm:mb-14">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-8">
@@ -77,7 +84,6 @@ export function Home() {
                 <span>Sort by: <span className="text-white ml-1">{SORT_OPTIONS.find(opt => opt.value === sortBy)?.label}</span></span>
                 <ChevronDown className={`w-4 h-4 ${isSortOpen ? 'rotate-180 text-white' : 'text-neutral-400 group-hover:text-white'}`} />
               </button>
-
               {isSortOpen && (
                 <>
                   <div 
@@ -156,7 +162,6 @@ export function Home() {
                 Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={`fetching-${i}`} />)
               )}
             </div>
-
             {hasNextPage && (
               <div className="mt-14 sm:mt-20 flex justify-center">
                 <button
@@ -176,7 +181,7 @@ export function Home() {
           </>
         )}
       </section>
-
+      
       {/* Description Section */}
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">
         <div className="bg-neutral-900/40 backdrop-blur-md border border-neutral-800/60 rounded-3xl p-6 sm:p-10 shadow-lg">
@@ -188,6 +193,23 @@ export function Home() {
           </p>
         </div>
       </section>
+
+      {/* Random Videos Section */}
+      {randomVideos.length > 0 && (
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-20">
+          <div className="mb-10 sm:mb-14">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight flex items-center gap-3">
+              Random Videos
+            </h2>
+            <div className="h-1.5 w-12 bg-primary rounded-full mt-3 opacity-90 shadow-[0_0_12px_rgba(229,9,20,0.6)]" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 xl:gap-10">
+            {randomVideos.map((video) => (
+              <VideoCard key={`random-${video.id}`} video={video} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <TelegramWelcomeCard />
     </div>
