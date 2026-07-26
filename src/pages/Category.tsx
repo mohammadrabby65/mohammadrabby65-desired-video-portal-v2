@@ -25,7 +25,7 @@ export function Category() {
 
   // Try to find the exact category name by slug from categories API
   const { data: categories = [], isPending: isCategoryPending } = usePublicCategories();
-  const categoryData = categories.find((cat) => cat.slug === slug) || null;
+  const categoryData = categories.find((cat) => cat.slug?.toLowerCase() === slug?.toLowerCase() || cat.name?.toLowerCase() === slug?.toLowerCase()) || null;
 
   const categoryName =
     categoryData?.name ||
