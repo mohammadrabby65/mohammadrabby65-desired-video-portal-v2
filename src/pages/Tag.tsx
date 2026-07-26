@@ -1,4 +1,5 @@
 import { useParams } from "react-router-dom";
+import { useMemo } from "react";
 import { SEO } from "../components/seo/SEO";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
@@ -11,9 +12,9 @@ export function Tag() {
   // Tag slug to normal string (e.g., action-movies -> action movies)
   const tagTitle = slug ? slug.replace(/-/g, " ") : "Tag";
 
-  const filter: PaginationFilter = {
+  const filter: PaginationFilter = useMemo(() => ({
     tag: tagTitle,
-  };
+  }), [tagTitle]);
 
   const {
     data,
@@ -26,13 +27,13 @@ export function Tag() {
 
   const videos = data?.pages.flat() || [];
 
-  const jsonLd = {
+  const jsonLd = useMemo(() => ({
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: `Videos tagged with ${tagTitle}`,
     description: `Browse the best videos tagged with ${tagTitle}.`,
     url: typeof window !== "undefined" ? window.location.href : "",
-  };
+  }), [tagTitle]);
 
   const formattedTagName = tagTitle.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
@@ -76,7 +77,7 @@ export function Tag() {
         </div>
       ) : (
         <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 xl:gap-10">
             {isLoading ? (
                Array.from({ length: 20 }).map((_, i) => (
                  <SkeletonCard key={i} />
@@ -94,11 +95,11 @@ export function Tag() {
               <button
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full transition-all duration-300 disabled:opacity-50 active:scale-95 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)] hover:shadow-[0_6px_20px_rgba(229,9,20,0.4)] hover:-translate-y-0.5"
+                className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full disabled:opacity-50 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)]"
               >
                 {isFetchingNextPage ? (
                   <span className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full " />
                     Loading...
                   </span>
                 ) : 'Load More'}

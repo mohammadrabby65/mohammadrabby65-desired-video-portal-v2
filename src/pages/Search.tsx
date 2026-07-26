@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router-dom';
+import { useMemo } from 'react';
 import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
@@ -8,9 +9,9 @@ export function Search() {
   const [searchParams] = useSearchParams();
   const queryText = searchParams.get('q') || '';
 
-  const filter: PaginationFilter = {
+  const filter: PaginationFilter = useMemo(() => ({
     searchQuery: queryText,
-  };
+  }), [queryText]);
 
   const {
     data,
@@ -71,11 +72,11 @@ export function Search() {
                 <button
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
-                  className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full transition-all duration-300 disabled:opacity-50 active:scale-95 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)] hover:shadow-[0_6px_20px_rgba(229,9,20,0.4)] hover:-translate-y-0.5"
+                  className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full disabled:opacity-50 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)]"
                 >
                   {isFetchingNextPage ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full " />
                       Loading...
                     </span>
                   ) : 'Load More'}

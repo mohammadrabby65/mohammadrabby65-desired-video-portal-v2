@@ -26,7 +26,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 bottom-0 w-64 bg-neutral-950 border-r border-neutral-800 z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 bottom-0 w-64 bg-neutral-950 border-r border-neutral-800 z-50 transform    ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } overflow-y-auto`}
       >
@@ -47,7 +47,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </Link>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-neutral-800 rounded-full transition-colors"
+            className="p-2 hover:bg-neutral-800 rounded-full "
           >
             <X className="w-5 h-5 text-neutral-400" />
           </button>
@@ -57,7 +57,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link
             to="/"
             onClick={onClose}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold transition-all duration-200 ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold   ${
               location.pathname === '/'
                 ? 'bg-primary/10 text-primary'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
@@ -72,7 +72,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <List className="w-4 h-4" />
               Categories
             </div>
-            <Link to="/categories" onClick={onClose} className="hover:text-white transition-colors">View All</Link>
+            <Link to="/categories" onClick={onClose} className="hover:text-white ">View All</Link>
           </div>
 
           {isLoading ? (
@@ -83,7 +83,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 key={cat.id}
                 to={`/category/${cat.slug}`}
                 onClick={onClose}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold   ${
                   location.pathname === `/category/${cat.slug}`
                     ? 'bg-primary/10 text-primary'
                     : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
@@ -101,7 +101,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link
             to="/category/trending"
             onClick={onClose}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold   ${
               location.pathname === '/category/trending'
                 ? 'bg-orange-500/10 text-orange-500'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
@@ -114,7 +114,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link
             to="/category/latest"
             onClick={onClose}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-200 ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold   ${
               location.pathname === '/category/latest'
                 ? 'bg-blue-500/10 text-blue-500'
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'

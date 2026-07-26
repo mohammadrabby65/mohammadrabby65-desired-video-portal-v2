@@ -79,25 +79,25 @@ export function VideoGallery({ images }: VideoGalleryProps) {
           <button
             key={idx}
             onClick={() => openLightbox(idx)}
-            className="relative flex-none w-[120px] sm:w-[140px] md:w-[160px] aspect-[9/16] rounded-2xl overflow-hidden group cursor-pointer border border-neutral-800/50 hover:border-neutral-600 transition-all duration-300 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_24px_-6px_rgba(0,0,0,0.7)] bg-neutral-900 snap-center active:scale-[0.96]"
+            className="relative flex-none w-[120px] sm:w-[140px] md:w-[160px] aspect-[9/16] rounded-2xl overflow-hidden group cursor-pointer border border-neutral-800/50 hover:border-neutral-600   shadow-[0_8px_20px_-6px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_24px_-6px_rgba(0,0,0,0.7)] bg-neutral-900 snap-center active:scale-[0.96]"
             aria-label={`View image ${idx + 1} of ${images.length}`}
           >
-            <div className="absolute inset-0 bg-neutral-800/50 animate-pulse" />
+            <div className="absolute inset-0 bg-neutral-800/50 " />
             <img
               src={img}
               alt={`Gallery image ${idx + 1}`}
               loading="lazy"
               decoding="async"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+              className="absolute inset-0 w-full h-full object-cover    group-"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10  " />
           </button>
         ))}
       </div>
 
       {/* Lightbox */}
       {lightboxOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl transition-opacity animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl  ">
           {/* Header */}
           <div className="absolute top-0 inset-x-0 p-4 sm:p-6 flex items-center justify-between z-10 bg-gradient-to-b from-black/80 to-transparent">
             <div className="text-white/80 font-medium text-sm sm:text-base tracking-wider bg-black/40 px-4 py-1.5 rounded-full backdrop-blur-md border border-white/10">
@@ -105,7 +105,7 @@ export function VideoGallery({ images }: VideoGalleryProps) {
             </div>
             <button
               onClick={closeLightbox}
-              className="p-2 sm:p-3 bg-black/40 hover:bg-white/10 rounded-full text-white/80 hover:text-white transition-all duration-200 backdrop-blur-md border border-white/10 active:scale-90"
+              className="p-2 sm:p-3 bg-black/40 hover:bg-white/10 rounded-full text-white/80 hover:text-white   backdrop-blur-md border border-white/10 "
               aria-label="Close lightbox"
             >
               <X className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -115,7 +115,7 @@ export function VideoGallery({ images }: VideoGalleryProps) {
           {/* Navigation Prev */}
           <button
             onClick={goToPrev}
-            className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 p-3 sm:p-4 bg-black/40 hover:bg-white/10 rounded-full text-white/80 hover:text-white transition-all duration-200 backdrop-blur-md border border-white/10 z-10 hidden sm:flex active:scale-90"
+            className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 p-3 sm:p-4 bg-black/40 hover:bg-white/10 rounded-full text-white/80 hover:text-white   backdrop-blur-md border border-white/10 z-10 hidden sm:flex "
             aria-label="Previous image"
           >
             <ChevronLeft className="w-6 h-6 sm:w-8 sm:h-8" />
@@ -124,7 +124,7 @@ export function VideoGallery({ images }: VideoGalleryProps) {
           {/* Navigation Next */}
           <button
             onClick={goToNext}
-            className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 p-3 sm:p-4 bg-black/40 hover:bg-white/10 rounded-full text-white/80 hover:text-white transition-all duration-200 backdrop-blur-md border border-white/10 z-10 hidden sm:flex active:scale-90"
+            className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 p-3 sm:p-4 bg-black/40 hover:bg-white/10 rounded-full text-white/80 hover:text-white   backdrop-blur-md border border-white/10 z-10 hidden sm:flex "
             aria-label="Next image"
           >
             <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
@@ -141,7 +141,7 @@ export function VideoGallery({ images }: VideoGalleryProps) {
             <img
               src={images[currentIndex]}
               alt={`Gallery view ${currentIndex + 1}`}
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-300"
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl  "
               onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the image
             />
           </div>

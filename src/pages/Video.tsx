@@ -56,7 +56,7 @@ export function Video() {
   if (isLoading) {
     return (
       <div className="flex-1 min-w-0 p-4 container mx-auto">
-        <div className="animate-pulse flex flex-col lg:flex-row gap-6 min-w-0 w-full">
+        <div className=" flex flex-col lg:flex-row gap-6 min-w-0 w-full">
           <div className="flex-1">
             <div className="w-full aspect-video bg-neutral-900 rounded-xl mb-4" />
             <div className="h-8 bg-neutral-900 rounded w-3/4 mb-2" />
@@ -129,13 +129,13 @@ export function Video() {
         <nav className="flex text-neutral-400 text-[13px] font-medium mb-6 min-w-0 w-full overflow-hidden">
           <ol className="flex items-center space-x-2.5 min-w-0 w-full">
             <li className="shrink-0">
-              <Link to="/" className="hover:text-white transition-colors">Home</Link>
+              <Link to="/" className="hover:text-white ">Home</Link>
             </li>
             {categoryName && categorySlug && (
               <>
                 <li className="shrink-0 text-neutral-600">/</li>
                 <li className="shrink-0 min-w-0 truncate max-w-[120px] sm:max-w-none">
-                  <Link to={`/category/${categorySlug}`} className="hover:text-white transition-colors truncate block">{categoryName}</Link>
+                  <Link to={`/category/${categorySlug}`} className="hover:text-white  truncate block">{categoryName}</Link>
                 </li>
               </>
             )}
@@ -162,36 +162,36 @@ export function Video() {
               <VideoGallery images={video.gallery} />
 
               <div className="flex flex-wrap items-center gap-3 border-b border-neutral-800/60 pb-6 min-w-0 w-full mt-2">
-                  <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md group">
-                    <ThumbsUp className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
-                    <span className="group-hover:text-white text-neutral-300 transition-colors">Like</span>
+                  <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group">
+                    <ThumbsUp className="w-4 h-4 text-neutral-400 group-hover:text-white " />
+                    <span className="group-hover:text-white text-neutral-300 ">Like</span>
                   </button>
                   <button
                     onClick={handleCopyLink}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md group"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group"
                   >
-                    <Copy className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
-                    <span className="group-hover:text-white text-neutral-300 transition-colors">Copy</span>
+                    <Copy className="w-4 h-4 text-neutral-400 group-hover:text-white " />
+                    <span className="group-hover:text-white text-neutral-300 ">Copy</span>
                   </button>
-                  <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md group">
-                    <Share2 className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
-                    <span className="group-hover:text-white text-neutral-300 transition-colors">Share</span>
+                  <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group">
+                    <Share2 className="w-4 h-4 text-neutral-400 group-hover:text-white " />
+                    <span className="group-hover:text-white text-neutral-300 ">Share</span>
                   </button>
                   <a
                     href="https://www.effectivecpmnetwork.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md group"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group"
                   >
-                    <Download className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
-                    <span className="group-hover:text-white text-neutral-300 transition-colors">Download</span>
+                    <Download className="w-4 h-4 text-neutral-400 group-hover:text-white " />
+                    <span className="group-hover:text-white text-neutral-300 ">Download</span>
                   </a>
                   <button
                     onClick={handleReport}
-                    className="flex items-center gap-2 p-2.5 sm:px-5 sm:py-2.5 bg-neutral-900/80 hover:bg-red-500/10 border border-neutral-800 hover:border-red-500/30 rounded-full text-sm font-semibold text-neutral-400 hover:text-red-500 transition-all duration-300 active:scale-95 shadow-sm group"
+                    className="flex items-center gap-2 p-2.5 sm:px-5 sm:py-2.5 bg-neutral-900/80 hover:bg-red-500/10 border border-neutral-800 hover:border-red-500/30 rounded-full text-sm font-semibold text-neutral-400 hover:text-red-500    shadow-sm group"
                     title="Report Video"
                   >
-                    <Flag className="w-4 h-4 group-hover:text-red-500 transition-colors" />
+                    <Flag className="w-4 h-4 group-hover:text-red-500 " />
                     <span className="hidden sm:inline">Report</span>
                   </button>
                 </div>
@@ -216,7 +216,7 @@ export function Video() {
                         .replace(/[^a-z0-9]+/g, "-")
                         .replace(/(^-|-$)+/g, "")}`}
                     >
-                      <span className="bg-neutral-800/80 border border-neutral-700/50 hover:bg-neutral-700 text-neutral-300 hover:text-white px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all duration-300 cursor-pointer inline-flex shadow-sm active:scale-95">
+                      <span className="bg-neutral-800/80 border border-neutral-700/50 hover:bg-neutral-700 text-neutral-300 hover:text-white px-4 py-1.5 rounded-full text-[13px] font-semibold   cursor-pointer inline-flex shadow-sm ">
                         {cat}
                       </span>
                     </Link>
@@ -231,7 +231,7 @@ export function Video() {
                             .replace(/[^a-z0-9]+/g, "-")
                             .replace(/(^-|-$)+/g, "")}`}
                           key={tag}
-                          className="text-neutral-500 hover:text-white hover:bg-neutral-800/80 px-3 py-1.5 rounded-full text-[13px] font-medium transition-all duration-300 inline-flex max-w-full truncate active:scale-95"
+                          className="text-neutral-500 hover:text-white hover:bg-neutral-800/80 px-3 py-1.5 rounded-full text-[13px] font-medium   inline-flex max-w-full truncate "
                         >
                           #{tag}
                         </Link>
@@ -239,7 +239,7 @@ export function Video() {
                       {!isTagsExpanded && video.tags.length > 12 && (
                         <button
                           onClick={() => setIsTagsExpanded(true)}
-                          className="text-neutral-500 hover:text-white hover:bg-neutral-800/80 px-3 py-1.5 rounded-full text-[13px] font-medium transition-all duration-300 inline-flex max-w-full truncate active:scale-95"
+                          className="text-neutral-500 hover:text-white hover:bg-neutral-800/80 px-3 py-1.5 rounded-full text-[13px] font-medium   inline-flex max-w-full truncate "
                         >
                           +{video.tags.length - 12} More
                         </button>
@@ -259,16 +259,16 @@ export function Video() {
                   {adjacent.next ? (
                     <Link
                       to={`/video/${adjacent.next.slug}`}
-                      className="flex items-center gap-4 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 p-5 rounded-2xl transition-all duration-300 group active:scale-[0.98] shadow-sm hover:shadow-md"
+                      className="flex items-center gap-4 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 p-5 rounded-2xl   group active:scale-[0.98] shadow-sm hover:shadow-md"
                     >
-                      <div className="bg-neutral-800 group-hover:bg-neutral-700 p-2 rounded-full transition-colors shrink-0">
-                        <ChevronLeft className="w-5 h-5 text-neutral-400 group-hover:text-white transition-colors" />
+                      <div className="bg-neutral-800 group-hover:bg-neutral-700 p-2 rounded-full  shrink-0">
+                        <ChevronLeft className="w-5 h-5 text-neutral-400 group-hover:text-white " />
                       </div>
                       <div className="min-w-0">
                         <div className="text-[11px] font-bold text-neutral-500 mb-1 tracking-wider uppercase">
                           Previous Video
                         </div>
-                        <div className="text-[15px] font-semibold text-neutral-200 group-hover:text-white truncate transition-colors">
+                        <div className="text-[15px] font-semibold text-neutral-200 group-hover:text-white truncate ">
                           {adjacent.next.title}
                         </div>
                       </div>
@@ -279,18 +279,18 @@ export function Video() {
                   {adjacent.prev ? (
                     <Link
                       to={`/video/${adjacent.prev.slug}`}
-                      className="flex items-center justify-end text-right gap-4 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 p-5 rounded-2xl transition-all duration-300 group active:scale-[0.98] shadow-sm hover:shadow-md"
+                      className="flex items-center justify-end text-right gap-4 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 p-5 rounded-2xl   group active:scale-[0.98] shadow-sm hover:shadow-md"
                     >
                       <div className="min-w-0">
                         <div className="text-[11px] font-bold text-neutral-500 mb-1 tracking-wider uppercase">
                           Next Video
                         </div>
-                        <div className="text-[15px] font-semibold text-neutral-200 group-hover:text-white truncate transition-colors">
+                        <div className="text-[15px] font-semibold text-neutral-200 group-hover:text-white truncate ">
                           {adjacent.prev.title}
                         </div>
                       </div>
-                      <div className="bg-neutral-800 group-hover:bg-neutral-700 p-2 rounded-full transition-colors shrink-0">
-                        <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-white transition-colors" />
+                      <div className="bg-neutral-800 group-hover:bg-neutral-700 p-2 rounded-full  shrink-0">
+                        <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-white " />
                       </div>
                     </Link>
                   ) : (

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useRelatedVideos } from '../../hooks/useVideos';
 import { VideoCard } from '../ui/VideoCard';
 import { SkeletonCard } from '../ui/SkeletonCard';
@@ -9,7 +9,7 @@ interface RelatedVideosProps {
   tags: string[];
 }
 
-export function RelatedVideos({ videoId, categories, tags }: RelatedVideosProps) {
+export const RelatedVideos = memo(function RelatedVideos({ videoId, categories, tags }: RelatedVideosProps) {
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useRelatedVideos(videoId, categories, tags);
   
   const displayVideos = data?.pages.flatMap(page => page.videos) || [];
@@ -35,11 +35,10 @@ export function RelatedVideos({ videoId, categories, tags }: RelatedVideosProps)
           <button
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
-            className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full transition-all duration-300 disabled:opacity-50 active:scale-95 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)] hover:shadow-[0_6px_20px_rgba(229,9,20,0.4)] hover:-translate-y-0.5"
+            className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full disabled:opacity-50 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)]"
           >
             {isFetchingNextPage ? (
               <span className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Loading...
               </span>
             ) : 'See More'}
@@ -48,4 +47,4 @@ export function RelatedVideos({ videoId, categories, tags }: RelatedVideosProps)
       )}
     </div>
   );
-}
+});

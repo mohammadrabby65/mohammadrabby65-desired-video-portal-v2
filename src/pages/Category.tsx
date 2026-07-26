@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { SEO } from "../components/seo/SEO";
@@ -33,10 +33,10 @@ export function Category() {
       ? slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, " ")
       : "Category");
 
-  const filter: PaginationFilter = {
+  const filter: PaginationFilter = useMemo(() => ({
     category: slug,
     sortBy
-  };
+  }), [slug, sortBy]);
 
   const {
     data,
@@ -49,13 +49,13 @@ export function Category() {
 
   const videos = data?.pages.flat() || [];
 
-  const jsonLd = {
+  const jsonLd = useMemo(() => ({
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: `${categoryName} Videos`,
     description: `Browse the best ${categoryName} videos.`,
     url: typeof window !== "undefined" ? window.location.href : "",
-  };
+  }), [categoryName]);
 
   return (
     <div className="flex-1 pb-20 pt-8 sm:pt-10">
@@ -72,7 +72,7 @@ export function Category() {
         <nav className="flex text-neutral-400 text-[13px] font-medium mb-6">
           <ol className="flex items-center space-x-2.5">
             <li>
-              <Link to="/" className="hover:text-white transition-colors">Home</Link>
+              <Link to="/" className="hover:text-white">Home</Link>
             </li>
             <li className="text-neutral-600">/</li>
             <li className="text-neutral-200 truncate" aria-current="page">{categoryName}</li>
@@ -89,10 +89,10 @@ export function Category() {
             <div className="relative z-10">
               <button
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 rounded-full text-[13px] font-semibold text-neutral-300 hover:text-white transition-all duration-300 active:scale-95 shadow-sm hover:shadow-md w-full sm:w-auto justify-between group"
+                className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 rounded-full text-[13px] font-semibold text-neutral-300 hover:text-white shadow-sm hover:shadow-md w-full sm:w-auto justify-between group"
               >
                 Sort by: {SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label}
-                <ChevronDown className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
+                <ChevronDown className="w-4 h-4 text-neutral-400 group-hover:text-white" />
               </button>
 
               {isSortOpen && (
@@ -101,7 +101,7 @@ export function Category() {
                     className="fixed inset-0 z-10"
                     onClick={() => setIsSortOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-full sm:w-56 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/50 rounded-2xl shadow-2xl z-20 p-2 origin-top-right animate-fade-in">
+                  <div className="absolute right-0 mt-2 w-full sm:w-56 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/50 rounded-2xl shadow-2xl z-20 p-2 origin-top-right">
                     {SORT_OPTIONS.map((option) => (
                       <button
                         key={option.value}
@@ -109,7 +109,7 @@ export function Category() {
                           setSortBy(option.value);
                           setIsSortOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-all duration-200 rounded-xl ${
+                        className={`w-full text-left px-4 py-2.5 text-sm font-medium rounded-xl ${
                           sortBy === option.value
                             ? "bg-primary/20 text-primary"
                             : "text-neutral-300 hover:bg-neutral-800/80 hover:text-white"
@@ -148,7 +148,7 @@ export function Category() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 xl:gap-10">
               {isLoading || isCategoryPending
                 ? Array.from({ length: 20 }).map((_, i) => (
                     <SkeletonCard key={i} />
@@ -166,11 +166,11 @@ export function Category() {
                 <button
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
-                  className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full transition-all duration-300 disabled:opacity-50 active:scale-95 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)] hover:shadow-[0_6px_20px_rgba(229,9,20,0.4)] hover:-translate-y-0.5"
+                  className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full disabled:opacity-50 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)]"
                 >
                   {isFetchingNextPage ? (
                     <span className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full " />
                       Loading...
                     </span>
                   ) : 'Load More'}

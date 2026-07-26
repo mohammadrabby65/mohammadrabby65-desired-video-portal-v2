@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
@@ -25,9 +25,9 @@ export function Home() {
   const [sortBy, setSortBy] = useState<PaginationFilter['sortBy']>('publishedAt');
   const [isSortOpen, setIsSortOpen] = useState(false);
 
-  const filter: PaginationFilter = {
+  const filter: PaginationFilter = useMemo(() => ({
     sortBy,
-  };
+  }), [sortBy]);
 
   const {
     data,
@@ -41,9 +41,11 @@ export function Home() {
   const videos = data?.pages.flat() || [];
 
   const { data: rawCategories = [] } = usePublicCategories(false);
-  const categories = [...rawCategories]
-    .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
-    .slice(0, 20);
+  const categories = useMemo(() => {
+    return [...rawCategories]
+      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+      .slice(0, 20);
+  }, [rawCategories]);
 
   return (
     <div className="flex-1 pb-20 pt-8 sm:pt-12">
@@ -68,19 +70,18 @@ export function Home() {
             <div className="relative">
               <button
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className="flex items-center justify-between w-full sm:w-auto gap-3 px-5 py-2.5 bg-neutral-900/60 backdrop-blur-md border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/80 rounded-full text-sm font-medium text-neutral-300 hover:text-white transition-all duration-300 shadow-sm hover:shadow-md group"
+                className="flex items-center justify-between w-full sm:w-auto gap-3 px-5 py-2.5 bg-neutral-900/60 backdrop-blur-md border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/80 rounded-full text-sm font-medium text-neutral-300 hover:text-white shadow-sm hover:shadow-md group"
               >
                 <span>Sort by: <span className="text-white ml-1">{SORT_OPTIONS.find(opt => opt.value === sortBy)?.label}</span></span>
-                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isSortOpen ? 'rotate-180 text-white' : 'text-neutral-400 group-hover:text-white'}`} />
+                <ChevronDown className={`w-4 h-4 ${isSortOpen ? 'rotate-180 text-white' : 'text-neutral-400 group-hover:text-white'}`} />
               </button>
-
               {isSortOpen && (
                 <>
                   <div 
                     className="fixed inset-0 z-10" 
                     onClick={() => setIsSortOpen(false)}
                   />
-                  <div className="absolute right-0 mt-3 w-full sm:w-56 bg-neutral-900/95 backdrop-blur-xl border border-neutral-800 rounded-2xl shadow-2xl z-20 py-2 origin-top-right transition-all duration-200">
+                  <div className="absolute right-0 mt-3 w-full sm:w-56 bg-neutral-900/95 backdrop-blur-xl border border-neutral-800 rounded-2xl shadow-2xl z-20 py-2 origin-top-right">
                     {SORT_OPTIONS.map((option) => (
                       <button
                         key={option.value || 'none'}
@@ -88,7 +89,7 @@ export function Home() {
                           setSortBy(option.value);
                           setIsSortOpen(false);
                         }}
-                        className={`w-full text-left px-5 py-2.5 text-sm font-medium transition-all duration-200 ${
+                        className={`w-full text-left px-5 py-2.5 text-sm font-medium ${
                           sortBy === option.value
                             ? 'bg-neutral-800/80 text-primary'
                             : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-white hover:pl-6'
@@ -110,7 +111,7 @@ export function Home() {
                   <NavLink 
                     to={`/category/${cat.slug}`} 
                     className={({ isActive }) => 
-                      `whitespace-nowrap transition-all duration-300 hover:scale-105 active:scale-95 ${isActive ? 'text-primary font-semibold drop-shadow-[0_0_12px_rgba(229,9,20,0.5)]' : 'text-neutral-400 hover:text-white'}`
+                      `whitespace-nowrap ${isActive ? 'text-primary font-semibold drop-shadow-[0_0_12px_rgba(229,9,20,0.5)]' : 'text-neutral-400 hover:text-white'}`
                     }
                   >
                     {cat.name}
@@ -152,17 +153,16 @@ export function Home() {
                 Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={`fetching-${i}`} />)
               )}
             </div>
-
             {hasNextPage && (
               <div className="mt-14 sm:mt-20 flex justify-center">
                 <button
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
-                  className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full transition-all duration-300 disabled:opacity-50 active:scale-95 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)] hover:shadow-[0_6px_20px_rgba(229,9,20,0.4)] hover:-translate-y-0.5"
+                  className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full disabled:opacity-50 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)]"
                 >
                   {isFetchingNextPage ? (
                     <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full " />
                       Loading...
                     </span>
                   ) : 'Load More'}

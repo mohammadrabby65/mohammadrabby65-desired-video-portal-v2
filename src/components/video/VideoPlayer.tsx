@@ -303,7 +303,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
     >
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
-          <Loader2 className="w-10 h-10 text-red-500 animate-spin" />
+          <Loader2 className="w-10 h-10 text-red-500 " />
         </div>
       )}
 
@@ -349,18 +349,18 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
             <img 
               src={thumbnailUrl} 
               alt="Video poster" 
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover/poster:scale-105"
+              className="absolute inset-0 w-full h-full object-cover   ease-out group-hover/poster:scale-105"
               referrerPolicy="no-referrer"
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/50" />
           
-          <div className="absolute inset-0 flex flex-col items-center justify-center scale-95 group-hover/poster:scale-100 transition-transform duration-500">
-            <div className="w-24 h-24 bg-primary/90 text-white rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(229,9,20,0.4)] transition-all duration-300 group-hover/poster:bg-primary group-hover/poster:shadow-[0_0_60px_rgba(229,9,20,0.6)] backdrop-blur-md border border-white/20">
+          <div className="absolute inset-0 flex flex-col items-center justify-center scale-95 group-hover/poster:scale-100  ">
+            <div className="w-24 h-24 bg-primary/90 text-white rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(229,9,20,0.4)]   group-hover/poster:bg-primary group-hover/poster:shadow-[0_0_60px_rgba(229,9,20,0.6)] backdrop-blur-md border border-white/20">
               <Play className="w-12 h-12 ml-2" fill="currentColor" />
             </div>
             {playError && (
-              <div className="mt-6 px-6 py-2.5 bg-black/60 backdrop-blur-md text-white rounded-full font-medium border border-red-500/50 animate-pulse tracking-wide shadow-lg">
+              <div className="mt-6 px-6 py-2.5 bg-black/60 backdrop-blur-md text-white rounded-full font-medium border border-red-500/50  tracking-wide shadow-lg">
                 Tap to Play Again
               </div>
             )}
@@ -371,23 +371,23 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
       {/* Controls Overlay */}
       {!showPoster && (
         <div
-          className={`absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/90 via-transparent to-transparent transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 cursor-none"}`}
+          className={`absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/90 via-transparent to-transparent   ${showControls ? "opacity-100" : "opacity-0 cursor-none"}`}
         >
           <div className="p-4 sm:p-6 flex flex-col gap-3 w-full">
             {/* Progress Bar */}
             <div
               ref={progressRef}
-              className="w-full h-1.5 sm:h-2 bg-neutral-600/40 rounded-full cursor-pointer group/progress relative overflow-visible hover:scale-y-125 transition-transform duration-200"
+              className="w-full h-1.5 sm:h-2 bg-neutral-600/40 rounded-full cursor-pointer group/progress relative overflow-visible hover:scale-y-125  "
               onClick={handleProgressClick}
             >
-              <div className="absolute inset-0 bg-white/20 rounded-full hover:bg-white/30 transition-colors" />
+              <div className="absolute inset-0 bg-white/20 rounded-full hover:bg-white/30 " />
               <div
-                className="absolute top-0 left-0 h-full bg-primary rounded-full group-hover/progress:bg-red-500 transition-colors"
+                className="absolute top-0 left-0 h-full bg-primary rounded-full group-hover/progress:bg-red-500 "
                 style={{
                   width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
                 }}
               >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] opacity-0 group-hover/progress:opacity-100 transition-opacity duration-200 scale-50 group-hover/progress:scale-100" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] opacity-0 group-hover/progress:opacity-100   scale-50 group-hover/progress:scale-100" />
               </div>
             </div>
 
@@ -395,7 +395,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
               <div className="flex items-center gap-4 sm:gap-6 flex-wrap sm:flex-nowrap">
                 <button
                   onClick={togglePlay}
-                  className="text-white hover:text-primary transition-all duration-200 focus:outline-none active:scale-90 hover:scale-110"
+                  className="text-white hover:text-primary   focus:outline-none active:scale-90 hover:scale-110"
                 >
                   {isPlaying ? (
                     <Pause className="w-6 h-6 sm:w-7 sm:h-7" fill="currentColor" />
@@ -407,7 +407,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
                 <div className="flex items-center gap-3 group/volume">
                   <button
                     onClick={toggleMute}
-                    className="text-white hover:text-primary transition-all duration-200 focus:outline-none active:scale-90 hover:scale-110"
+                    className="text-white hover:text-primary   focus:outline-none active:scale-90 hover:scale-110"
                   >
                     {isMuted || volume === 0 ? (
                       <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -422,7 +422,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
                     step="0.05"
                     value={isMuted ? 0 : volume}
                     onChange={handleVolumeChange}
-                    className="w-0 group-hover/volume:w-20 sm:group-hover/volume:w-24 transition-all duration-300 opacity-0 group-hover/volume:opacity-100 accent-primary h-1.5 cursor-pointer rounded-full bg-white/20"
+                    className="w-0 group-hover/volume:w-20 sm:group-hover/volume:w-24   opacity-0 group-hover/volume:opacity-100 accent-primary h-1.5 cursor-pointer rounded-full bg-white/20"
                   />
                 </div>
 
@@ -434,21 +434,21 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
               <div className="flex items-center gap-4 sm:gap-5 relative">
                 <button
                   onClick={togglePiP}
-                  className="text-white hover:text-primary transition-all duration-200 focus:outline-none active:scale-90 hover:scale-110"
+                  className="text-white hover:text-primary   focus:outline-none active:scale-90 hover:scale-110"
                 >
                   <PictureInPicture className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
 
                 <button
                   onClick={() => setShowSettings(!showSettings)}
-                  className={`text-white hover:text-primary transition-all duration-300 focus:outline-none active:scale-90 ${showSettings ? 'rotate-90' : 'hover:rotate-45'}`}
+                  className={`text-white hover:text-primary   focus:outline-none active:scale-90 ${showSettings ? 'rotate-90' : 'hover:rotate-45'}`}
                 >
                   <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
 
                 <button
                   onClick={toggleFullscreen}
-                  className="text-white hover:text-primary transition-all duration-200 focus:outline-none active:scale-90 hover:scale-110"
+                  className="text-white hover:text-primary   focus:outline-none active:scale-90 hover:scale-110"
                 >
                   {isFullscreen ? (
                     <Minimize className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -459,7 +459,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
 
                 {/* Settings Menu */}
                 {showSettings && (
-                  <div className="absolute bottom-full right-0 mb-5 bg-neutral-900/90 backdrop-blur-xl border border-neutral-700/50 rounded-2xl shadow-2xl p-3 min-w-[200px] text-sm z-20 origin-bottom-right transition-all animate-fade-in">
+                  <div className="absolute bottom-full right-0 mb-5 bg-neutral-900/90 backdrop-blur-xl border border-neutral-700/50 rounded-2xl shadow-2xl p-3 min-w-[200px] text-sm z-20 origin-bottom-right  ">
                     <div className="mb-3">
                       <div className="text-neutral-400 text-[10px] font-bold px-3 mb-2 uppercase tracking-widest">
                         Playback Speed
@@ -468,7 +468,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
                         <button
                           key={rate}
                           onClick={() => changeSpeed(rate)}
-                          className={`w-full text-left px-4 py-2 rounded-xl transition-all duration-200 font-medium ${playbackRate === rate ? "bg-primary/20 text-primary" : "text-neutral-200 hover:bg-neutral-800/80 hover:text-white"}`}
+                          className={`w-full text-left px-4 py-2 rounded-xl   font-medium ${playbackRate === rate ? "bg-primary/20 text-primary" : "text-neutral-200 hover:bg-neutral-800/80 hover:text-white"}`}
                         >
                           {rate === 1 ? "Normal" : `${rate}x`}
                         </button>
@@ -482,7 +482,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
                         </div>
                         <button
                           onClick={() => changeQuality(-1)}
-                          className={`w-full text-left px-4 py-2 rounded-xl transition-all duration-200 font-medium ${currentLevel === -1 ? "bg-primary/20 text-primary" : "text-neutral-200 hover:bg-neutral-800/80 hover:text-white"}`}
+                          className={`w-full text-left px-4 py-2 rounded-xl   font-medium ${currentLevel === -1 ? "bg-primary/20 text-primary" : "text-neutral-200 hover:bg-neutral-800/80 hover:text-white"}`}
                         >
                           Auto
                         </button>
@@ -490,7 +490,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
                           <button
                             key={index}
                             onClick={() => changeQuality(index)}
-                            className={`w-full text-left px-4 py-2 rounded-xl transition-all duration-200 font-medium ${currentLevel === index ? "bg-primary/20 text-primary" : "text-neutral-200 hover:bg-neutral-800/80 hover:text-white"}`}
+                            className={`w-full text-left px-4 py-2 rounded-xl   font-medium ${currentLevel === index ? "bg-primary/20 text-primary" : "text-neutral-200 hover:bg-neutral-800/80 hover:text-white"}`}
                           >
                             {level.height}p
                           </button>
