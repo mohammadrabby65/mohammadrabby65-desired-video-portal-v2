@@ -19,7 +19,6 @@ const SORT_OPTIONS: { label: string; value: SortOption }[] = [
 
 export function Category() {
   const { slug } = useParams<{ slug: string }>();
-  const isBot = typeof navigator !== 'undefined' && /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent);
   
   const [sortBy, setSortBy] = useState<SortOption>('publishedAt');
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -131,7 +130,7 @@ export function Category() {
           )}
         </div>
 
-        {isError && !isBot ? (
+        {isError ? (
            <div className="text-center py-12">
              <p className="text-red-500">Error loading videos. Please try again later.</p>
            </div>

@@ -25,6 +25,10 @@
       "destination": "/api/server"
     },
     {
+      "source": "/category/:slug",
+      "destination": "/api/server"
+    },
+    {
       "source": "/sitemap-main.xml",
       "destination": "/api/server"
     },

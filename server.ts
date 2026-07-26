@@ -588,6 +588,95 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
+  app.get("/category/:slug", async (req, res, next) => {
+    try {
+      await ensureSnapshot();
+      let template = "";
+      if (process.env.NODE_ENV !== "production") {
+        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
+        template = await vite.transformIndexHtml(req.originalUrl, template);
+      } else {
+        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
+      }
+      
+      const slug = req.params.slug;
+      
+      const defaultCats = ["trending", "latest", "popular"];
+      let categoryName = "";
+      let categoryDesc = "";
+      
+      if (defaultCats.includes(slug.toLowerCase())) {
+        categoryName = slug.charAt(0).toUpperCase() + slug.slice(1) + " Videos";
+        categoryDesc = `Watch the best ${categoryName.toLowerCase()} on DesiredHub.`;
+      } else {
+        const cat = publicDataSnapshot.categories.find((c: any) => c.slug === slug);
+        if (cat) {
+          categoryName = cat.name;
+          categoryDesc = cat.seoDescription || `Watch the best ${categoryName} videos on DesiredHub.`;
+        } else {
+          categoryName = slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ');
+          categoryDesc = `Watch the best ${categoryName} videos on DesiredHub.`;
+        }
+      }
+      
+      const title = escapeHtml(`${categoryName} - DesiredHub`);
+      const description = escapeHtml(categoryDesc);
+      const currentUrl = escapeHtml(`${SITE_URL}/category/${slug}`);
+      
+      const breadcrumbsJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": SITE_URL
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": categoryName,
+            "item": currentUrl
+          }
+        ]
+      };
+      
+      const collectionJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": categoryName,
+        "description": description,
+        "url": currentUrl
+      };
+
+      const jsonLdScript = `<script type="application/ld+json">${JSON.stringify([breadcrumbsJsonLd, collectionJsonLd])}</script>`;
+      
+      const seoTags = `
+        <title data-rh="true">${title}</title>
+        <meta data-rh="true" name="description" content="${description}" />
+        <link data-rh="true" rel="canonical" href="${currentUrl}" />
+        <meta data-rh="true" property="og:title" content="${title}" />
+        <meta data-rh="true" property="og:description" content="${description}" />
+        <meta data-rh="true" property="og:url" content="${currentUrl}" />
+        <meta data-rh="true" property="og:type" content="website" />
+        <meta data-rh="true" name="twitter:title" content="${title}" />
+        <meta data-rh="true" name="twitter:description" content="${description}" />
+        ${jsonLdScript}
+      `;
+      
+      const html = template.replace("<title>DesiredHub</title>", seoTags);
+      
+      res.status(200).set({ 
+        'Content-Type': 'text/html',
+        'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400'
+      }).end(html);
+    } catch (e) {
+      console.error("Category SEO Injection Error:", e);
+      next();
+    }
+  });
+
   app.get("/video/:slug", async (req, res, next) => {
     try {
       await ensureSnapshot();
