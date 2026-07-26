@@ -5,6 +5,7 @@ export interface VideoPost {
   thumbnailUrl: string;
   videoUrl: string;
   description: string;
+  metaDescription?: string;
   categories: string[];
   tags: string[];
   searchTerms?: string[];

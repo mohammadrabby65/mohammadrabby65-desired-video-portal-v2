@@ -16,6 +16,7 @@ export function UploadPost() {
     title: '',
     slug: '',
     description: '',
+    metaDescription: '',
     videoUrl: '',
     thumbnailUrl: '',
     categories: [] as string[],
@@ -127,6 +128,7 @@ export function UploadPost() {
               title: data.title,
               slug: data.slug,
               description: data.description,
+              metaDescription: data.metaDescription || '',
               videoUrl: data.videoUrl,
               thumbnailUrl: data.thumbnailUrl,
               categories: data.categories ? data.categories : ((data as any).category ? [(data as any).category] : []),
@@ -213,6 +215,7 @@ export function UploadPost() {
         title: formData.title,
         slug: formData.slug,
         description: formData.description,
+        metaDescription: formData.metaDescription || deleteField(),
         videoUrl: formData.videoUrl,
         thumbnailUrl: formData.thumbnailUrl,
         categories: formData.categories,
@@ -559,6 +562,19 @@ export function UploadPost() {
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-white focus:ring-1 focus:ring-red-500 resize-none"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-neutral-300 mb-1.5">Meta Description (SEO)</label>
+          <textarea
+            rows={2}
+            maxLength={160}
+            placeholder="120–160 character SEO description for search engines."
+            value={formData.metaDescription}
+            onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
+            className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-white focus:ring-1 focus:ring-red-500 resize-none"
+          />
+          <p className="text-xs text-neutral-500 mt-1.5">Leave empty to auto-generate from the description.</p>
         </div>
 
         <div className="flex gap-6 pt-2">

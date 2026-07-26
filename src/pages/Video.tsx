@@ -54,7 +54,8 @@ export function Video() {
   };
 
   if (isLoading) {
-    return (
+    
+  return (
       <div className="flex-1 min-w-0 p-4 container mx-auto">
         <div className=" flex flex-col lg:flex-row gap-6 min-w-0 w-full">
           <div className="flex-1">
@@ -106,17 +107,29 @@ export function Video() {
     { name: video.title, item: `/video/${video.slug}` }
   ];
 
+  let metaDesc = video.metaDescription || "";
+  if (!metaDesc) {
+    let text = (video.description || "").replace(/\s+/g, " ").trim();
+    if (text.length > 155) {
+      let cutoff = text.substring(0, 153).lastIndexOf(" ");
+      if (cutoff === -1) cutoff = 152;
+      metaDesc = text.substring(0, cutoff).trim() + "...";
+    } else {
+      metaDesc = text;
+    }
+  }
+
   return (
     <>
       <SEO
         title={`${video.title} - DesiredHub`}
-        description={video.description}
+        description={metaDesc}
         image={video.thumbnailUrl}
         exactTitle={true}
         breadcrumbs={breadcrumbs}
         video={{
           name: video.title,
-          description: video.description,
+          description: metaDesc,
           thumbnailUrl: video.thumbnailUrl,
           uploadDate: video.publishedAt?.toDate
             ? video.publishedAt.toDate().toISOString()
