@@ -1,52 +1,46 @@
 import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export function usePopunderRecovery() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    // If we actually land on a video page, clear the intent
-    if (location.pathname.startsWith('/video/')) {
-      sessionStorage.removeItem('intendedVideo');
-    }
-  }, [location.pathname]);
+    const handleGlobalClick = (e: MouseEvent) => {
+      // Only process primary, unmodified clicks
+      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
+        return;
+      }
 
-  useEffect(() => {
-    const handleRecovery = () => {
-      // Don't recover if we're already on a video page
-      if (window.location.pathname.startsWith('/video/')) return;
+      const target = e.target as HTMLElement;
+      // Find the closest anchor tag (this handles clicks on inner elements like images)
+      const link = target.closest('a');
       
-      const intendedVideo = sessionStorage.getItem('intendedVideo');
-      if (intendedVideo) {
-        sessionStorage.removeItem('intendedVideo');
-        navigate(intendedVideo);
+      if (link) {
+        const href = link.getAttribute('href');
+        
+        // Target specifically our video links
+        if (href && href.startsWith('/video/')) {
+          // If a popunder script (like Adsterra) intercepts the click via a global listener
+          // and calls e.stopPropagation() or e.preventDefault(), React Router will never see
+          // the event, and the user will be left stranded on the current page while the ad opens.
+          // We schedule a forced navigation shortly after the click to guarantee the user ends up
+          // on their intended video.
+          setTimeout(() => {
+            if (window.location.pathname !== href) {
+              navigate(href);
+            }
+          }, 150);
+        }
       }
     };
 
-    // Check immediately on mount (for back button navigation)
-    handleRecovery();
-
-    // Check when tab becomes visible again
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        handleRecovery();
-      }
-    };
-    
-    // Also check on pageshow for bfcache restores
-    const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) {
-        handleRecovery();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('pageshow', handlePageShow);
+    // We must use the capturing phase (true) on the window object.
+    // This ensures our listener runs BEFORE or ALONGSIDE the popunder's listener,
+    // and BEFORE any stopPropagation() can kill the event path before it reaches React's root.
+    window.addEventListener('click', handleGlobalClick, true);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('click', handleGlobalClick, true);
     };
   }, [navigate]);
 }
