@@ -105,7 +105,27 @@ async function startServer() {
   app.use(express.json());
 
 
-  app.get("/api/admin/snapshot/status", (req, res) => {
+  
+function injectRandomVideos(template: string) {
+  if (typeof publicDataSnapshot === 'undefined' || !publicDataSnapshot || !publicDataSnapshot.posts || publicDataSnapshot.posts.length === 0) {
+    return template;
+  }
+  const clientPool = [...publicDataSnapshot.posts].sort(() => 0.5 - Math.random()).slice(0, 50);
+  const initial12 = clientPool.slice(0, 12);
+  
+  const ssrHtml = `
+    <div id="seo-random-videos" class="sr-only">
+      <h2>Random Videos</h2>
+      ${initial12.map((v: any) => `<a href="/video/${v.slug}">${escapeHtml(v.title)}</a>`).join('\n')}
+    </div>
+  `;
+  
+  const scriptTag = `<script>window.__RANDOM_VIDEOS_POOL__ = ${JSON.stringify(clientPool).replace(/</g, '\\u003c')};</script>`;
+  
+  return template.replace('</body>', `${ssrHtml}\n${scriptTag}\n</body>`);
+}
+
+app.get("/api/admin/snapshot/status", (req, res) => {
     try {
       const sizeKb = Buffer.byteLength(JSON.stringify(publicDataSnapshot), 'utf8') / 1024;
       res.json({
@@ -576,8 +596,8 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <link data-rh="true" rel="canonical" href="${currentUrl}" />
       `;
       
-      const html = template.replace("<title>DesiredHub</title>", seoTags);
-      
+      const htmlContent = template.replace("<title>DesiredHub</title>", seoTags);
+      const html = injectRandomVideos(htmlContent);
       res.status(200).set({ 
         'Content-Type': 'text/html',
         'Cache-Control': 'no-store, no-cache, must-revalidate, private'
@@ -665,8 +685,8 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         ${jsonLdScript}
       `;
       
-      const html = template.replace("<title>DesiredHub</title>", seoTags);
-      
+      const htmlContent = template.replace("<title>DesiredHub</title>", seoTags);
+      const html = injectRandomVideos(htmlContent);
       res.status(200).set({ 
         'Content-Type': 'text/html',
         'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400'
@@ -878,8 +898,8 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <script>window.__INITIAL_VIDEO_DATA__ = ${JSON.stringify({ id: docId, ...video }).replace(/</g, '\\u003c')};</script>
       `;
 
-      const html = template.replace("<title>DesiredHub</title>", seoTags);
-      
+      const htmlContent = template.replace("<title>DesiredHub</title>", seoTags);
+      const html = injectRandomVideos(htmlContent);
       res.status(200).set({ 
         'Content-Type': 'text/html',
         'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60'
@@ -896,7 +916,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      let template = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+      let html = injectRandomVideos(template);
+      res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
     });
   }
 

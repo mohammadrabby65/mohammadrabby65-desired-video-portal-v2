@@ -22,7 +22,7 @@ export const RelatedVideos = memo(function RelatedVideos({ videoId, categories, 
         <div className="h-1 w-10 bg-primary rounded-full mt-2 opacity-90 shadow-[0_0_10px_rgba(229,9,20,0.5)]" />
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-1 2xl:grid-cols-2 gap-4 sm:gap-5 min-w-0 w-full">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 xl:gap-10 min-w-0 w-full">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
           : displayVideos.map(video => <VideoCard key={video.id} video={video} />)}

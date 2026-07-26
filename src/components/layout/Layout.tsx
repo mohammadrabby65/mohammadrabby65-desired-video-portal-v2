@@ -4,6 +4,7 @@ import { Menu, User } from "lucide-react";
 import { LiveSearch } from "./LiveSearch";
 import { Sidebar } from "./Sidebar";
 import { AdInjector } from "./AdInjector";
+import { GlobalRandomVideos } from "../video/GlobalRandomVideos";
 
 export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

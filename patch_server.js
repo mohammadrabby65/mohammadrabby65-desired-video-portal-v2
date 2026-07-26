@@ -27,7 +27,7 @@ function injectRandomVideos(template: string) {
   serverStr = serverStr.replace('// Helper to format ISO 8601 duration', injectFn + '\n// Helper to format ISO 8601 duration');
 }
 
-serverStr = serverStr.replace(/const html = template\.replace\("<title>DesiredHub<\/title>", seoTags\);\n\s*res\.status/g, 'let html = template.replace("<title>DesiredHub</title>", seoTags);\n      html = injectRandomVideos(html);\n\n      res.status');
+serverStr = serverStr.replace(/let html = template\.replace\("<title>DesiredHub<\/title>", seoTags\);\n\s*res\.status/g, 'let html = template.replace("<title>DesiredHub</title>", seoTags);\n      html = injectRandomVideos(html);\n\n      res.status');
 
 serverStr = serverStr.replace(/res\.sendFile\(path\.join\(distPath, 'index\.html'\)\);/g, `let template = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
       let html = injectRandomVideos(template);

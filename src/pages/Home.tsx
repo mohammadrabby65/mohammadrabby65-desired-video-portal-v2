@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
@@ -41,6 +41,7 @@ export function Home() {
   const videos = data?.pages.flat() || [];
 
   const { data: rawCategories = [] } = usePublicCategories(false);
+
   const categories = useMemo(() => {
     return [...rawCategories]
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
@@ -57,6 +58,7 @@ export function Home() {
           { name: "Home", item: "/" }
         ]}
       />
+
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-20">
         <div className="mb-10 sm:mb-14">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-8">
@@ -75,6 +77,7 @@ export function Home() {
                 <span>Sort by: <span className="text-white ml-1">{SORT_OPTIONS.find(opt => opt.value === sortBy)?.label}</span></span>
                 <ChevronDown className={`w-4 h-4 ${isSortOpen ? 'rotate-180 text-white' : 'text-neutral-400 group-hover:text-white'}`} />
               </button>
+
               {isSortOpen && (
                 <>
                   <div 
@@ -153,6 +156,7 @@ export function Home() {
                 Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={`fetching-${i}`} />)
               )}
             </div>
+
             {hasNextPage && (
               <div className="mt-14 sm:mt-20 flex justify-center">
                 <button
@@ -172,7 +176,19 @@ export function Home() {
           </>
         )}
       </section>
-      
+
+      {/* Description Section */}
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+        <div className="bg-neutral-900/40 backdrop-blur-md border border-neutral-800/60 rounded-3xl p-6 sm:p-10 shadow-lg">
+          <h1 className="text-xl sm:text-2xl font-bold text-white mb-4 tracking-tight">
+            Free Desi Porn & Hot Indian Bengali Sex Videos Online
+          </h1>
+          <p className="text-neutral-400 text-sm sm:text-[15px] leading-relaxed">
+            desiredhub.xyz features a carousel packed with the hottest desi sex videos and raw xxx porn. Watch gorgeous Indian girls, horny bhabhis, and mature aunties enjoying intense encounters. Videos play automatically with smooth performance, titles are displayed directly on thumbnails, and the entire experience is fully optimized for mobile devices. Discover fresh, rarely seen clips with uninterrupted raw desi action designed to keep visitors engaged.
+          </p>
+        </div>
+      </section>
+
       <TelegramWelcomeCard />
     </div>
   );
