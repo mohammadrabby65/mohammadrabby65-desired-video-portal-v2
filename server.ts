@@ -576,8 +576,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <link data-rh="true" rel="canonical" href="${currentUrl}" />
       `;
       
-      const html = template.replace("<title>DesiredHub</title>", seoTags);
-      
+            const html = template.replace("<title>DesiredHub</title>", seoTags);
       res.status(200).set({ 
         'Content-Type': 'text/html',
         'Cache-Control': 'no-store, no-cache, must-revalidate, private'
@@ -665,8 +664,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         ${jsonLdScript}
       `;
       
-      const html = template.replace("<title>DesiredHub</title>", seoTags);
-      
+            const html = template.replace("<title>DesiredHub</title>", seoTags);
       res.status(200).set({ 
         'Content-Type': 'text/html',
         'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400'
@@ -801,7 +799,16 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
       
       const title = escapeHtml(`${video.title} - DesiredHub`);
-      const description = escapeHtml(video.description || "");
+      
+      const categoryNameForDesc = (video.categories && video.categories[0]) || video.category || "General";
+      let optimalDesc = `Watch ${video.title} in the ${categoryNameForDesc} category. ` + (video.description || "").replace(/\s+/g, " ").trim();
+      if (optimalDesc.length < 120) {
+        optimalDesc += " Discover more exciting videos and enjoy high-quality streaming on DesiredHub. We provide the best entertainment experience for everyone.";
+      }
+      if (optimalDesc.length > 155) {
+        optimalDesc = optimalDesc.substring(0, 152).trim() + "...";
+      }
+      const description = escapeHtml(optimalDesc);
       const image = escapeHtml(video.thumbnailUrl || "");
       const currentUrl = escapeHtml(`${SITE_URL}/video/${slug}`);
       
@@ -878,8 +885,12 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <script>window.__INITIAL_VIDEO_DATA__ = ${JSON.stringify({ id: docId, ...video }).replace(/</g, '\\u003c')};</script>
       `;
 
-      const html = template.replace("<title>DesiredHub</title>", seoTags);
+            
+      let html = template.replace("<title>DesiredHub</title>", seoTags);
       
+      // Inject H1 for SEO
+      html = html.replace('<div id="root"></div>', `<div id="root"><div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem;"><h1 style="color: #ffffff; font-family: sans-serif; font-size: 2.25rem; font-weight: 700; line-height: 1.2;">${escapeHtml(video.title)}</h1></div></div>`);
+  
       res.status(200).set({ 
         'Content-Type': 'text/html',
         'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60'
