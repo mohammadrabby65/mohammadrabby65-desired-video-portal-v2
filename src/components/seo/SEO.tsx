@@ -1,5 +1,8 @@
 import { Helmet } from 'react-helmet-async';
 import { SITE_URL } from '../../config';
+import { useState, useEffect } from 'react';
+
+let isFirstClientRender = typeof window !== 'undefined' && !!document.querySelector('title[data-rh="true"]');
 
 export interface BreadcrumbItem {
   name: string;
@@ -29,6 +32,15 @@ interface SEOProps {
 }
 
 export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, robots, prevUrl, nextUrl, jsonLd, breadcrumbs, video }: SEOProps) {
+  const [skipCoreSeo, setSkipCoreSeo] = useState(isFirstClientRender);
+
+  useEffect(() => {
+    if (isFirstClientRender) {
+      isFirstClientRender = false;
+      setSkipCoreSeo(false);
+    }
+  }, []);
+
   const siteTitle = 'DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online';
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
   let currentPath = '';
@@ -50,12 +62,16 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
 
   return (
     <Helmet>
-      <title data-rh="true">{fullTitle}</title>
-      <meta data-rh="true" name="description" content={description} />
+      {!skipCoreSeo && (
+        <>
+          <title data-rh="true">{fullTitle}</title>
+          <meta data-rh="true" name="description" content={description} />
+          {currentUrl && <link data-rh="true" rel="canonical" href={currentUrl} />}
+        </>
+      )}
       <meta data-rh="true" name="robots" content={robots || (noIndex ? "noindex,nofollow" : "index,follow")} />
       
       {/* Canonical URL */}
-      {currentUrl && <link data-rh="true" rel="canonical" href={currentUrl} />}
       {prevUrl && <link data-rh="true" rel="prev" href={prevUrl} />}
       {nextUrl && <link data-rh="true" rel="next" href={nextUrl} />}
       {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
