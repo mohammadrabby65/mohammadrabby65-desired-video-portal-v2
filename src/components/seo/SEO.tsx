@@ -1,8 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import { SITE_URL } from '../../config';
-import { useState, useEffect } from 'react';
 
-let isFirstClientRender = typeof window !== 'undefined' && !!document.querySelector('title[data-rh="true"]');
+let hasHydrated = false;
 
 export interface BreadcrumbItem {
   name: string;
@@ -32,14 +31,11 @@ interface SEOProps {
 }
 
 export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, robots, prevUrl, nextUrl, jsonLd, breadcrumbs, video }: SEOProps) {
-  const [skipCoreSeo, setSkipCoreSeo] = useState(isFirstClientRender);
-
-  useEffect(() => {
-    if (isFirstClientRender) {
-      isFirstClientRender = false;
-      setSkipCoreSeo(false);
-    }
-  }, []);
+  const isInitialSSR = typeof window !== 'undefined' && !hasHydrated && !!document.querySelector('title[data-rh="true"]');
+  if (typeof window !== 'undefined' && !hasHydrated) {
+    hasHydrated = true;
+  }
+  const skipCoreSeo = isInitialSSR;
 
   const siteTitle = 'DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online';
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
