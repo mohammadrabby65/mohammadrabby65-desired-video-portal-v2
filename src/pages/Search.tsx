@@ -28,7 +28,7 @@ export function Search() {
     <div className="flex-1 pb-20 pt-8 sm:pt-10">
       <SEO 
         title={`Search results for "${queryText}" - DesiredHub`}
-        description={`Search results for "${queryText}" on DesiredHub.`}
+        description={`Browse search results for "${queryText}" on DesiredHub. Watch free desi porn and hot Indian sex videos with high quality streaming.`}
         robots="noindex,follow"
       />
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">

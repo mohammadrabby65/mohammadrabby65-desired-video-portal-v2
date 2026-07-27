@@ -5,7 +5,7 @@ export function PrivacyPolicy() {
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16 min-h-screen">
       <SEO
         title="Privacy Policy - DesiredHub"
-        description="Privacy Policy of DesiredHub."
+        description="Read the privacy policy for DesiredHub to understand how we collect, use, and protect your personal information while browsing adult content."
         exactTitle={true}
       />
       <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-neutral-300">

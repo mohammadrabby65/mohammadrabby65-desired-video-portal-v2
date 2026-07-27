@@ -60,7 +60,7 @@ export function Home() {
     <div className="flex-1 pb-20 pt-8 sm:pt-12">
       <SEO 
         title="DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online"
-        description="Watch the latest premium viral sex videos with fast streaming and daily updates."
+        description="Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality."
         exactTitle={true}
         breadcrumbs={[
           { name: "Home", item: "/" }

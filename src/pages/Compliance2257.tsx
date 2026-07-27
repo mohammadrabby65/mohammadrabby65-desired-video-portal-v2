@@ -5,7 +5,7 @@ export function Compliance2257() {
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16 min-h-screen">
       <SEO
         title="18 U.S.C. § 2257 Compliance - DesiredHub"
-        description="18 U.S.C. § 2257 Record-Keeping Requirements Compliance Statement for DesiredHub."
+        description="View the 18 U.S.C. 2257 record-keeping compliance declaration for DesiredHub confirming all models depicted are of legal age."
         exactTitle={true}
       />
       <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-neutral-300 prose-a:text-red-500 hover:prose-a:text-red-400">

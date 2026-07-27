@@ -43,7 +43,7 @@ export function Categories() {
     <div className="flex-1 pb-20 pt-8 sm:pt-10">
       <SEO 
         title="All Categories" 
-        description="Browse all video categories."
+        description="Browse all video categories on DesiredHub. Find your favorite desi porn, horny bhabhis, Indian sex videos, and adult content streamed in high quality."
       />
       <Helmet>
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>

@@ -41,7 +41,7 @@ export function Tag() {
     <div className="flex-1 pb-20 pt-8 sm:pt-10">
       <SEO
         title={`${formattedTagName} Videos - DesiredHub`}
-        description={`Watch the latest and best videos tagged with ${tagTitle}.`}
+        description={`Explore free desi porn and hot Indian sex videos tagged with ${tagTitle} on DesiredHub. Enjoy high quality streaming adult entertainment.`}
         exactTitle={true}
         jsonLd={jsonLd}
         breadcrumbs={[

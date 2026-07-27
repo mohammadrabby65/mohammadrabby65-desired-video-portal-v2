@@ -5,7 +5,7 @@ export function DMCA() {
     <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16 min-h-screen">
       <SEO
         title="DMCA Policy - DesiredHub"
-        description="DMCA Notice and Takedown Policy for DesiredHub."
+        description="Read the DMCA copyright infringement policy for DesiredHub. Learn how to submit a takedown notice for unauthorized adult content securely."
         exactTitle={true}
       />
       <div className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-neutral-300 prose-a:text-red-500 hover:prose-a:text-red-400">

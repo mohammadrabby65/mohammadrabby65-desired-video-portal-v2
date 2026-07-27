@@ -61,7 +61,7 @@ export function Category() {
     <div className="flex-1 pb-20 pt-8 sm:pt-10">
       <SEO
         title={`${categoryName} Porn Videos - DesiredHub`}
-        description={`Watch the best ${categoryName} sex videos on DesiredHub. Premium free porn updated daily.`}
+        description={`Watch the best desi porn and hot Indian sex videos in the ${categoryName} category on DesiredHub. Stream high quality adult content for free.`}
         jsonLd={jsonLd}
         breadcrumbs={[
           { name: "Home", item: "/" },

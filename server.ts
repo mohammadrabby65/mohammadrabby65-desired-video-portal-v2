@@ -554,7 +554,39 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
-  app.get("/search", async (req, res, next) => {
+  function formatSeo(titleInput: string, descInput: string, currentUrl: string) {
+    let title = titleInput.trim();
+    if (title.length > 69) {
+      if (title.includes(" - DesiredHub")) {
+        const prefix = title.replace(" - DesiredHub", "");
+        const maxPrefixLen = 69 - " - DesiredHub".length;
+        title = prefix.substring(0, maxPrefixLen).trim() + " - DesiredHub";
+      } else {
+        title = title.substring(0, 69).trim();
+      }
+    }
+
+    let desc = descInput.replace(/\s+/g, " ").trim();
+    if (desc.length < 120) {
+      desc += " Discover more exciting Indian sex videos and enjoy high quality streaming on DesiredHub.";
+      if (desc.length > 160) {
+        desc = desc.substring(0, 157).trim() + "...";
+      }
+    }
+    if (desc.length > 160) {
+      let cutoff = desc.substring(0, 153).lastIndexOf(" ");
+      if (cutoff === -1) cutoff = 152;
+      desc = desc.substring(0, cutoff).trim() + "...";
+    }
+
+    return {
+      title: escapeHtml(title),
+      description: escapeHtml(desc),
+      canonical: escapeHtml(currentUrl)
+    };
+  }
+
+  async function renderSeoPage(req: any, res: any, next: any, rawTitle: string, rawDesc: string, canonicalUrl: string, extraTags: string = "", extraHtmlReplace?: (html: string) => string) {
     try {
       let template = "";
       if (process.env.NODE_ENV !== "production") {
@@ -563,28 +595,80 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       } else {
         template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
-      
-      const queryText = (req.query.q as string) || '';
-      const title = escapeHtml(queryText ? `Search results for "${queryText}" - DesiredHub` : "Search - DesiredHub");
-      const description = escapeHtml(queryText ? `Search results for "${queryText}" on DesiredHub.` : "Search videos on DesiredHub.");
-      const currentUrl = escapeHtml(`${SITE_URL}/search${queryText ? `?q=${encodeURIComponent(queryText)}` : ""}`);
-      
+
+      const seo = formatSeo(rawTitle, rawDesc, canonicalUrl);
+
       const seoTags = `
-        <title data-rh="true">${title}</title>
-        <meta data-rh="true" name="description" content="${description}" />
-        <meta name="robots" content="noindex,follow" />
-        <link data-rh="true" rel="canonical" href="${currentUrl}" />
+        <title data-rh="true">${seo.title}</title>
+        <meta data-rh="true" name="description" content="${seo.description}" />
+        <link data-rh="true" rel="canonical" href="${seo.canonical}" />
+        <meta data-rh="true" property="og:site_name" content="DesiredHub" />
+        <meta data-rh="true" property="og:locale" content="en_US" />
+        <meta data-rh="true" property="og:type" content="website" />
+        <meta data-rh="true" property="og:url" content="${seo.canonical}" />
+        <meta data-rh="true" property="og:title" content="${seo.title}" />
+        <meta data-rh="true" property="og:description" content="${seo.description}" />
+        <meta data-rh="true" name="twitter:card" content="summary_large_image" />
+        <meta data-rh="true" name="twitter:url" content="${seo.canonical}" />
+        <meta data-rh="true" name="twitter:title" content="${seo.title}" />
+        <meta data-rh="true" name="twitter:description" content="${seo.description}" />
+        ${extraTags}
       `;
-      
-            const html = template.replace("<title>DesiredHub</title>", seoTags);
-      res.status(200).set({ 
+
+      let html = template;
+      if (html.includes("<title>DesiredHub</title>")) {
+        html = html.replace("<title>DesiredHub</title>", seoTags);
+      } else if (html.includes("<title>")) {
+        html = html.replace(/<title>[\s\S]*?<\/title>/, seoTags);
+      } else {
+        html = html.replace("</head>", `${seoTags}\n</head>`);
+      }
+
+      if (extraHtmlReplace) {
+        html = extraHtmlReplace(html);
+      }
+
+      res.status(200).set({
         'Content-Type': 'text/html',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, private'
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60'
       }).end(html);
     } catch (e) {
-      console.error("Search SEO Injection Error:", e);
+      console.error("SEO Injection Error:", e);
       next();
     }
+  }
+
+  app.get("/", (req, res, next) => {
+    renderSeoPage(req, res, next, "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online", "Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality.", `${SITE_URL}/`);
+  });
+
+  app.get("/categories", (req, res, next) => {
+    renderSeoPage(req, res, next, "All Categories - DesiredHub", "Browse all video categories on DesiredHub. Find your favorite desi porn, horny bhabhis, Indian sex videos, and adult content streamed in high quality.", `${SITE_URL}/categories`);
+  });
+
+  app.get("/dmca", (req, res, next) => {
+    renderSeoPage(req, res, next, "DMCA Policy - DesiredHub", "Read the DMCA copyright infringement policy for DesiredHub. Learn how to submit a takedown notice for unauthorized adult content securely.", `${SITE_URL}/dmca`);
+  });
+
+  app.get("/2257", (req, res, next) => {
+    renderSeoPage(req, res, next, "18 U.S.C. § 2257 Compliance - DesiredHub", "View the 18 U.S.C. 2257 record-keeping compliance declaration for DesiredHub confirming all models depicted are of legal age.", `${SITE_URL}/2257`);
+  });
+
+  app.get("/privacy-policy", (req, res, next) => {
+    renderSeoPage(req, res, next, "Privacy Policy - DesiredHub", "Read the privacy policy for DesiredHub to understand how we collect, use, and protect your personal information while browsing adult content.", `${SITE_URL}/privacy-policy`);
+  });
+
+  app.get("/tag/:slug", (req, res, next) => {
+    const slug = req.params.slug;
+    const tagTitle = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    renderSeoPage(req, res, next, `${tagTitle} Videos - DesiredHub`, `Explore free desi porn and hot Indian sex videos tagged with ${tagTitle} on DesiredHub. Enjoy high quality streaming adult entertainment.`, `${SITE_URL}/tag/${slug}`);
+  });
+
+  app.get("/search", (req, res, next) => {
+    const queryText = (req.query.q as string) || '';
+    const title = queryText ? `Search results for "${queryText}" - DesiredHub` : "Search - DesiredHub";
+    const description = queryText ? `Browse search results for ${queryText} on DesiredHub. Watch free desi porn and hot Indian sex videos with high quality streaming.` : "Browse search results on DesiredHub. Watch free desi porn and hot Indian sex videos with high quality streaming.";
+    renderSeoPage(req, res, next, title, description, `${SITE_URL}/search${queryText ? `?q=${encodeURIComponent(queryText)}` : ""}`, `<meta data-rh="true" name="robots" content="noindex,follow" />`);
   });
 
   app.get("/category/:slug", async (req, res, next) => {

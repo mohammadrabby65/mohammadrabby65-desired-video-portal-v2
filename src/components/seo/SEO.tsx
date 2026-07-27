@@ -50,14 +50,14 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
 
   return (
     <Helmet>
-      <title>{fullTitle}</title>
-      <meta name="description" content={description} />
-      <meta name="robots" content={robots || (noIndex ? "noindex,nofollow" : "index,follow")} />
+      <title data-rh="true">{fullTitle}</title>
+      <meta data-rh="true" name="description" content={description} />
+      <meta data-rh="true" name="robots" content={robots || (noIndex ? "noindex,nofollow" : "index,follow")} />
       
       {/* Canonical URL */}
-      {currentUrl && <link rel="canonical" href={currentUrl} />}
-      {prevUrl && <link rel="prev" href={prevUrl} />}
-      {nextUrl && <link rel="next" href={nextUrl} />}
+      {currentUrl && <link data-rh="true" rel="canonical" href={currentUrl} />}
+      {prevUrl && <link data-rh="true" rel="prev" href={prevUrl} />}
+      {nextUrl && <link data-rh="true" rel="next" href={nextUrl} />}
       {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
       {breadcrumbs && (
         <script type="application/ld+json">
