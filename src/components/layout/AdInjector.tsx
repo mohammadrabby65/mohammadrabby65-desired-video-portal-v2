@@ -12,7 +12,31 @@ export function AdInjector() {
     if (injected.current) return;
     
     let isMounted = true;
-    let fallbackTimer: NodeJS.Timeout;
+
+    const loadAds = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'advertisements');
+        const snap = await getDoc(docRef);
+        
+        if (!isMounted) return;
+        
+        if (snap.exists()) {
+          const data = snap.data();
+          injected.current = true; // Mark as fetched to avoid duplicate queries
+          
+          if (data.socialBarEnabled) {
+            injectScript(SOCIAL_BAR_SRC);
+          }
+          if (data.popunderEnabled) {
+            injectScript(POPUNDER_SRC);
+          }
+        } else {
+          injected.current = true;
+        }
+      } catch (e) {
+        // Silently ignore errors as per requirements
+      }
+    };
 
     const injectScript = (src: string) => {
       // Prevent duplicate injection
@@ -27,50 +51,10 @@ export function AdInjector() {
       document.body.appendChild(script);
     };
 
-    const triggerAds = (social: boolean, popunder: boolean) => {
-      if (injected.current) return;
-      injected.current = true;
-      if (social) injectScript(SOCIAL_BAR_SRC);
-      if (popunder) injectScript(POPUNDER_SRC);
-    };
-
-    // Safe fallback: if Firestore doesn't respond within 1500ms, fallback to ensuring ads are active
-    fallbackTimer = setTimeout(() => {
-      if (!injected.current && isMounted) {
-        triggerAds(true, true);
-      }
-    }, 1500);
-
-    const loadAds = async () => {
-      try {
-        const docRef = doc(db, 'settings', 'advertisements');
-        const snapPromise = getDoc(docRef);
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1200));
-        
-        const snap = await Promise.race([snapPromise, timeoutPromise]) as any;
-        
-        if (!isMounted) return;
-        clearTimeout(fallbackTimer);
-        
-        if (snap && snap.exists()) {
-          const data = snap.data();
-          triggerAds(data.socialBarEnabled ?? true, data.popunderEnabled ?? true);
-        } else {
-          triggerAds(true, true);
-        }
-      } catch (e) {
-        if (!injected.current && isMounted) {
-          clearTimeout(fallbackTimer);
-          triggerAds(true, true);
-        }
-      }
-    };
-
     loadAds();
 
     return () => {
       isMounted = false;
-      if (fallbackTimer) clearTimeout(fallbackTimer);
     };
   }, []);
 
