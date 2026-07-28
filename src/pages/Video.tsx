@@ -191,7 +191,7 @@ export function Video() {
                     <span className="group-hover:text-white text-neutral-300 ">Share</span>
                   </button>
                   <a
-                    href="https://www.effectivecpmnetwork.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
+                    href="https://predestineheadypleasure.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group"

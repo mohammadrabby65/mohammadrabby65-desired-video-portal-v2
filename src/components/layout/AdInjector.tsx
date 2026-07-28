@@ -3,7 +3,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 const SOCIAL_BAR_SRC = 'https://pl30417136.effectivecpmnetwork.com/a8/c5/ae/a8c5ae6b95183bffe51c005c71b9acfd.js';
-const POPUNDER_SRC = 'https://pl30417108.effectivecpmnetwork.com/46/fb/02/46fb02b7663603a5ec0e75ce574d43f4.js';
+const POPUNDER_SRC = 'https://predestineheadypleasure.com/46/fb/02/46fb02b7663603a5ec0e75ce574d43f4.js';
 
 export function AdInjector() {
   const injected = useRef(false);
