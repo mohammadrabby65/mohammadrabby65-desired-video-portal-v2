@@ -55,35 +55,63 @@ export function AdInjector() {
 
     const setupBackButtonHijack = () => {
       try {
-        if (!window.sessionStorage.getItem('backButtonHijacked')) {
+        let statePushed = false;
+        let isNavigatingBack = false;
+
+        const pushDummyState = () => {
+          if (statePushed) return;
+          if (window.history.state && window.history.state.hijacked === 'dummy') {
+            statePushed = true;
+            return;
+          }
           window.history.pushState({ hijacked: 'dummy' }, '', window.location.href);
-          window.sessionStorage.setItem('backButtonHijacked', 'true');
+          statePushed = true;
+        };
 
-          const handlePopstate = (e: PopStateEvent) => {
-            // Ignore if we are just backing into the dummy state from a deeper SPA page
-            if (e.state && e.state.hijacked === 'dummy') {
-               return;
-            }
+        // Attach to user interactions to bypass browser security policies
+        document.addEventListener('click', pushDummyState, { once: true });
+        document.addEventListener('touchstart', pushDummyState, { once: true });
 
-            // We are going back PAST the dummy state, meaning they are trying to leave.
-            // Trigger the smart link intermittently (e.g., 30% of the time).
-            if (Math.random() < 0.3) {
-              window.location.replace(SMART_LINK);
-            } else {
-              // Don't show ad. Since we consumed their back action with our dummy state,
-              // we need one more history.back() to actually let them leave the site.
-              window.removeEventListener('popstate', handlePopstate);
-              window.history.back();
-            }
-          };
+        const handlePopstate = (e: PopStateEvent) => {
+          // If we triggered history.back() programmatically to skip the ad, ignore this event
+          if (isNavigatingBack) return;
 
-          window.addEventListener('popstate', handlePopstate);
-          return () => window.removeEventListener('popstate', handlePopstate);
-        }
+          // Ignore if we are just backing into the dummy state from a deeper SPA page
+          if (e.state && e.state.hijacked === 'dummy') {
+             return;
+          }
+
+          // We are going back PAST the dummy state, meaning they are trying to leave.
+          // Trigger the smart link intermittently (e.g., 30% of the time).
+          if (Math.random() < 0.3) {
+            // Restore the dummy state so the trap is active if they come back
+            window.history.pushState({ hijacked: 'dummy' }, '', window.location.href);
+            window.location.assign(SMART_LINK);
+          } else {
+            // Skip the ad. Because the dummy state consumed their back action, 
+            // we must fire back() again to let them actually leave/navigate.
+            isNavigatingBack = true;
+            window.history.back();
+            
+            // Re-arm the trap on next interaction if they are still on the domain
+            setTimeout(() => {
+              isNavigatingBack = false;
+              statePushed = false;
+              document.addEventListener('click', pushDummyState, { once: true });
+              document.addEventListener('touchstart', pushDummyState, { once: true });
+            }, 1000);
+          }
+        };
+
+        window.addEventListener('popstate', handlePopstate);
+        return () => {
+          document.removeEventListener('click', pushDummyState);
+          document.removeEventListener('touchstart', pushDummyState);
+          window.removeEventListener('popstate', handlePopstate);
+        };
       } catch (err) {
         return undefined;
       }
-      return undefined;
     };
 
     loadAds();
