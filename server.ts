@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import compression from "compression";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
@@ -104,6 +105,12 @@ async function startServer() {
   const PORT = process.env.PORT || 3000;
   
   app.use(express.json());
+  app.use(compression());
+
+  // Health check endpoint for Render
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
 
 
   app.get("/api/admin/snapshot/status", (req, res) => {
@@ -1000,11 +1007,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     });
   }
 
-  if (!process.env.VERCEL) {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-    });
-  }
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 }
 
 startServer();
