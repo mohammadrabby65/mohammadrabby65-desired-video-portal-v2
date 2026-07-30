@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import crypto from "crypto";
@@ -95,12 +96,12 @@ async function generateSnapshot() {
   }
 }
 
-ensureSnapshot();
+ensureSnapshot().catch(console.error);
 
 setInterval(() => generateSnapshot().catch(console.error), 60 * 60 * 1000);
 
 async function startServer() {
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
   
   app.use(express.json());
 
@@ -504,7 +505,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
 
 
   let vite: any = null;
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && !process.env.RENDER) {
     const { createServer: createViteServer } = await import("vite");
     vite = await createViteServer({
       server: { middlewareMode: true },
@@ -589,7 +590,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
   async function renderSeoPage(req: any, res: any, next: any, rawTitle: string, rawDesc: string, canonicalUrl: string, extraTags: string = "", extraHtmlReplace?: (html: string) => string) {
     try {
       let template = "";
-      if (process.env.NODE_ENV !== "production") {
+      if (process.env.NODE_ENV !== "production" && !process.env.RENDER) {
         template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
       } else {
@@ -675,7 +676,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     try {
       await ensureSnapshot();
       let template = "";
-      if (process.env.NODE_ENV !== "production") {
+      if (process.env.NODE_ENV !== "production" && !process.env.RENDER) {
         template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
       } else {
@@ -875,7 +876,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
       
       let template = "";
-      if (process.env.NODE_ENV !== "production") {
+      if (process.env.NODE_ENV !== "production" && !process.env.RENDER) {
         template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
       } else {
@@ -989,7 +990,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && !process.env.RENDER) {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
