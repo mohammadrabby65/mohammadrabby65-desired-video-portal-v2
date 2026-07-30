@@ -1,6 +1,4 @@
-import "dotenv/config";
 import express from "express";
-import compression from "compression";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
@@ -97,20 +95,14 @@ async function generateSnapshot() {
   }
 }
 
-ensureSnapshot().catch(console.error);
+ensureSnapshot();
 
 setInterval(() => generateSnapshot().catch(console.error), 60 * 60 * 1000);
 
 async function startServer() {
-  const PORT = process.env.PORT || 3000;
+  const PORT = 3000;
   
   app.use(express.json());
-  app.use(compression());
-
-  // Health check endpoint for Render
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
 
 
   app.get("/api/admin/snapshot/status", (req, res) => {
@@ -512,7 +504,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
 
 
   let vite: any = null;
-  if (process.env.NODE_ENV !== "production" && !process.env.RENDER) {
+  if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
     vite = await createViteServer({
       server: { middlewareMode: true },
@@ -597,7 +589,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
   async function renderSeoPage(req: any, res: any, next: any, rawTitle: string, rawDesc: string, canonicalUrl: string, extraTags: string = "", extraHtmlReplace?: (html: string) => string) {
     try {
       let template = "";
-      if (process.env.NODE_ENV !== "production" && !process.env.RENDER) {
+      if (process.env.NODE_ENV !== "production") {
         template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
       } else {
@@ -683,7 +675,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     try {
       await ensureSnapshot();
       let template = "";
-      if (process.env.NODE_ENV !== "production" && !process.env.RENDER) {
+      if (process.env.NODE_ENV !== "production") {
         template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
       } else {
@@ -883,7 +875,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
       
       let template = "";
-      if (process.env.NODE_ENV !== "production" && !process.env.RENDER) {
+      if (process.env.NODE_ENV !== "production") {
         template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
       } else {
@@ -997,7 +989,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
-  if (process.env.NODE_ENV !== "production" && !process.env.RENDER) {
+  if (process.env.NODE_ENV !== "production") {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
@@ -1007,9 +999,11 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
 startServer();
