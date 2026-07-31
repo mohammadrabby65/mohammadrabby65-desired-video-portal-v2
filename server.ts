@@ -1,19 +1,48 @@
 import express from "express";
 import path from "path";
 import crypto from "crypto";
-import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
-import { SITE_URL } from "./src/config";
+import { initializeApp, getApp, getApps } from "firebase/app";
+import { getFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
+import { SITE_URL as CONFIG_SITE_URL } from "./src/config";
 import fs from "fs";
 
 setLogLevel("silent");
 
-
 const SECRET_KEY = process.env.VITE_STREAM_SECRET || "local-dev-secret-key-12345";
 
-import { db } from "./src/lib/firebase";
+// Server-side Firestore initialization (avoid long polling on server)
+const firebaseConfig = {
+  projectId: "gen-lang-client-0637384010",
+  appId: "1:15134264747:web:6041c9b4e3b309b476d6ee",
+  apiKey: "AIzaSyDbWSqCXSftREI7Kby3kHvL2vbYwHVKBp4",
+  authDomain: "gen-lang-client-0637384010.firebaseapp.com",
+  storageBucket: "gen-lang-client-0637384010.firebasestorage.app",
+  messagingSenderId: "15134264747"
+};
+
+const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(firebaseApp, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2");
 
 export const app = express();
+
+// Middleware to enforce WWW and HTTPS for the custom domain
+app.use((req, res, next) => {
+  const host = req.headers.host;
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+  
+  if (isProduction && host && host === 'desiredhub.xyz') {
+    return res.redirect(301, `https://www.${host}${req.originalUrl}`);
+  }
+  next();
+});
+
+// Helper to get current site URL dynamically
+function getSiteUrl(req: any) {
+  const host = req.headers.host || 'www.desiredhub.xyz';
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  // Standardize on the actual host being used
+  return `${protocol}://${host}`;
+}
 
 
 let publicDataSnapshot: {
@@ -221,8 +250,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
 
   app.get(["/sitemap.xml", "/sitemap-main.xml"], async (req, res) => {
     try {
-      const host = req.headers.host || 'www.desiredhub.xyz';
-      const DYNAMIC_SITE_URL = host.startsWith('www.') ? `https://${host}` : `https://www.${host}`;
+      const DYNAMIC_SITE_URL = getSiteUrl(req);
 
       const [categoriesSnapshot, postsSnapshot] = await Promise.all([
         getDocs(query(collection(db, 'categories'), limit(1000))),
@@ -313,17 +341,26 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       const { category, tag, q: searchQuery, sortBy, limitCount = "20", lastId } = req.query;
       const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 100);
 
-      if (publicDataSnapshot.posts.length === 0 && !searchQuery && !lastId) {
+      // If snapshot is empty, try a direct Firestore query first for common requests to avoid blocking
+      if (publicDataSnapshot.posts.length === 0 || (!searchQuery && !lastId && sortBy !== 'random')) {
         let q = collection(db, 'posts');
         let constraints = [];
-        if (category) constraints.push(where('categories', 'array-contains', category as string));
+        if (category && category !== 'All') constraints.push(where('categories', 'array-contains', category as string));
         if (tag) constraints.push(where('tags', 'array-contains', tag as string));
-        constraints.push(orderBy('publishedAt', 'desc'));
-        constraints.push(limit(limitNum + 1));
+        
+        if (sortBy === 'popular') {
+          constraints.push(orderBy('views', 'desc'));
+        } else if (sortBy === 'oldest') {
+          constraints.push(orderBy('publishedAt', 'asc'));
+        } else {
+          constraints.push(orderBy('publishedAt', 'desc'));
+        }
+        
+        constraints.push(limit(limitNum));
         
         try {
           const snap = await getDocs(query(q, ...constraints));
-          const posts = snap.docs.map(doc => {
+          const videos = snap.docs.map(doc => {
             const data = doc.data();
             let publishedAtMs = 0;
             if (data.publishedAt) {
@@ -338,16 +375,17 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
             return { id: doc.id, ...data, _publishedAtMs: publishedAtMs };
           });
           
-          const hasMore = posts.length > limitNum;
-          const slice = posts.slice(0, limitNum);
-          
-          return res.json({
-            videos: slice,
-            nextCursor: hasMore ? slice[slice.length - 1].id : null,
-            total: 0
-          });
+          // Trigger snapshot generation in background if needed, but don't await it
+          if (publicDataSnapshot.posts.length === 0) {
+            ensureSnapshot().catch(console.error);
+          }
+
+          return res.status(200).set({
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=300'
+          }).json(videos);
         } catch (fbErr) {
-          console.error("Fallback query failed, waiting for snapshot:", fbErr);
+          console.error("Direct Firestore query failed:", fbErr);
         }
       }
 
@@ -639,36 +677,43 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
   }
 
   app.get("/", (req, res, next) => {
-    renderSeoPage(req, res, next, "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online", "Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality.", `${SITE_URL}/`);
+    const CURRENT_SITE_URL = getSiteUrl(req);
+    renderSeoPage(req, res, next, "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online", "Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality.", `${CURRENT_SITE_URL}/`);
   });
 
   app.get("/categories", (req, res, next) => {
-    renderSeoPage(req, res, next, "All Categories - DesiredHub", "Browse all video categories on DesiredHub. Find your favorite desi porn, horny bhabhis, Indian sex videos, and adult content streamed in high quality.", `${SITE_URL}/categories`);
+    const CURRENT_SITE_URL = getSiteUrl(req);
+    renderSeoPage(req, res, next, "All Categories - DesiredHub", "Browse all video categories on DesiredHub. Find your favorite desi porn, horny bhabhis, Indian sex videos, and adult content streamed in high quality.", `${CURRENT_SITE_URL}/categories`);
   });
 
   app.get("/dmca", (req, res, next) => {
-    renderSeoPage(req, res, next, "DMCA Policy - DesiredHub", "Read the DMCA copyright infringement policy for DesiredHub. Learn how to submit a takedown notice for unauthorized adult content securely.", `${SITE_URL}/dmca`);
+    const CURRENT_SITE_URL = getSiteUrl(req);
+    renderSeoPage(req, res, next, "DMCA Policy - DesiredHub", "Read the DMCA copyright infringement policy for DesiredHub. Learn how to submit a takedown notice for unauthorized adult content securely.", `${CURRENT_SITE_URL}/dmca`);
   });
 
   app.get("/2257", (req, res, next) => {
-    renderSeoPage(req, res, next, "18 U.S.C. § 2257 Compliance - DesiredHub", "View the 18 U.S.C. 2257 record-keeping compliance declaration for DesiredHub confirming all models depicted are of legal age.", `${SITE_URL}/2257`);
+    const CURRENT_SITE_URL = getSiteUrl(req);
+    renderSeoPage(req, res, next, "18 U.S.C. § 2257 Compliance - DesiredHub", "View the 18 U.S.C. 2257 record-keeping compliance declaration for DesiredHub confirming all models depicted are of legal age.", `${CURRENT_SITE_URL}/2257`);
   });
 
   app.get("/privacy-policy", (req, res, next) => {
-    renderSeoPage(req, res, next, "Privacy Policy - DesiredHub", "Read the privacy policy for DesiredHub to understand how we collect, use, and protect your personal information while browsing adult content.", `${SITE_URL}/privacy-policy`);
+    const CURRENT_SITE_URL = getSiteUrl(req);
+    renderSeoPage(req, res, next, "Privacy Policy - DesiredHub", "Read the privacy policy for DesiredHub to understand how we collect, use, and protect your personal information while browsing adult content.", `${CURRENT_SITE_URL}/privacy-policy`);
   });
 
   app.get("/tag/:slug", (req, res, next) => {
+    const CURRENT_SITE_URL = getSiteUrl(req);
     const slug = req.params.slug;
     const tagTitle = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    renderSeoPage(req, res, next, `${tagTitle} Videos - DesiredHub`, `Explore free desi porn and hot Indian sex videos tagged with ${tagTitle} on DesiredHub. Enjoy high quality streaming adult entertainment.`, `${SITE_URL}/tag/${slug}`);
+    renderSeoPage(req, res, next, `${tagTitle} Videos - DesiredHub`, `Explore free desi porn and hot Indian sex videos tagged with ${tagTitle} on DesiredHub. Enjoy high quality streaming adult entertainment.`, `${CURRENT_SITE_URL}/tag/${slug}`);
   });
 
   app.get("/search", (req, res, next) => {
+    const CURRENT_SITE_URL = getSiteUrl(req);
     const queryText = (req.query.q as string) || '';
     const title = queryText ? `Search results for "${queryText}" - DesiredHub` : "Search - DesiredHub";
     const description = queryText ? `Browse search results for ${queryText} on DesiredHub. Watch free desi porn and hot Indian sex videos with high quality streaming.` : "Browse search results on DesiredHub. Watch free desi porn and hot Indian sex videos with high quality streaming.";
-    renderSeoPage(req, res, next, title, description, `${SITE_URL}/search${queryText ? `?q=${encodeURIComponent(queryText)}` : ""}`, `<meta data-rh="true" name="robots" content="noindex,follow" />`);
+    renderSeoPage(req, res, next, title, description, `${CURRENT_SITE_URL}/search${queryText ? `?q=${encodeURIComponent(queryText)}` : ""}`, `<meta data-rh="true" name="robots" content="noindex,follow" />`);
   });
 
   app.get("/category/:slug", async (req, res, next) => {
@@ -702,9 +747,10 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         }
       }
       
+      const CURRENT_SITE_URL = getSiteUrl(req);
       const title = escapeHtml(`${categoryName} - DesiredHub`);
       const description = escapeHtml(categoryDesc);
-      const currentUrl = escapeHtml(`${SITE_URL}/category/${slug}`);
+      const currentUrl = escapeHtml(`${CURRENT_SITE_URL}/category/${slug}`);
       
       const breadcrumbsJsonLd = {
         "@context": "https://schema.org",
@@ -714,7 +760,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
             "@type": "ListItem",
             "position": 1,
             "name": "Home",
-            "item": SITE_URL
+            "item": CURRENT_SITE_URL
           },
           {
             "@type": "ListItem",
@@ -882,6 +928,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
       
+      const CURRENT_SITE_URL = getSiteUrl(req);
       const title = escapeHtml(`${video.title} - DesiredHub`);
       
       let optimalDesc = video.metaDescription || "";
@@ -898,7 +945,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
       const description = escapeHtml(optimalDesc);
       const image = escapeHtml(video.thumbnailUrl || "");
-      const currentUrl = escapeHtml(`${SITE_URL}/video/${slug}`);
+      const currentUrl = escapeHtml(`${CURRENT_SITE_URL}/video/${slug}`);
       
       let uploadDate = new Date().toISOString();
       if (video.publishedAt) {
@@ -933,19 +980,19 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
             "@type": "ListItem",
             "position": 1,
             "name": "Home",
-            "item": SITE_URL
+            "item": CURRENT_SITE_URL
           },
           ...(categoryName && categorySlug ? [{
             "@type": "ListItem",
             "position": 2,
             "name": categoryName,
-            "item": `${SITE_URL}/category/${categorySlug}`
+            "item": `${CURRENT_SITE_URL}/category/${categorySlug}`
           }] : []),
           {
             "@type": "ListItem",
             "position": categoryName && categorySlug ? 3 : 2,
             "name": video.title,
-            "item": `${SITE_URL}/video/${slug}`
+            "item": `${CURRENT_SITE_URL}/video/${slug}`
           }
         ]
       };

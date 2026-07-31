@@ -27,5 +27,5 @@ if (typeof window !== "undefined") {
   });
 }
 
-export const db = initializeFirestore(app, { experimentalForceLongPolling: true }, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2");
+export const db = initializeFirestore(app, {}, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2");
 export const auth = getAuth(app);
