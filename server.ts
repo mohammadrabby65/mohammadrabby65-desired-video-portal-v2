@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp, getApp, getApps } from "firebase/app";
-import { getFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
 import { SITE_URL as CONFIG_SITE_URL } from "./src/config";
 import fs from "fs";
 
@@ -10,7 +10,7 @@ setLogLevel("silent");
 
 const SECRET_KEY = process.env.VITE_STREAM_SECRET || "local-dev-secret-key-12345";
 
-// Server-side Firestore initialization (avoid long polling on server)
+// Server-side Firestore initialization
 const firebaseConfig = {
   projectId: "gen-lang-client-0637384010",
   appId: "1:15134264747:web:6041c9b4e3b309b476d6ee",
@@ -21,7 +21,7 @@ const firebaseConfig = {
 };
 
 const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(firebaseApp, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2");
+const db = initializeFirestore(firebaseApp, {}, "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2");
 
 export const app = express();
 
@@ -341,17 +341,37 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       const { category, tag, q: searchQuery, sortBy, limitCount = "20", lastId } = req.query;
       const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 100);
 
-      // If snapshot is empty, try a direct Firestore query first for common requests to avoid blocking
-      if (publicDataSnapshot.posts.length === 0 || (!searchQuery && !lastId && sortBy !== 'random')) {
+      // Trigger snapshot generation if needed
+      if (publicDataSnapshot.posts.length === 0) {
+        ensureSnapshot().catch(console.error);
+      }
+
+      // If we have a snapshot and it's a simple homepage request, use it!
+      const isHomepageRequest = !category && !tag && !searchQuery && !lastId && (sortBy === 'publishedAt' || !sortBy);
+      
+      if (publicDataSnapshot.posts.length > 0 && isHomepageRequest) {
+        const paginatedDocs = publicDataSnapshot.posts.slice(0, limitNum);
+        return res.status(200).set({
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=300'
+        }).json(paginatedDocs);
+      }
+
+      // If snapshot is empty or it's a specific filter/search, try a direct Firestore query first for speed
+      // OR if we don't have a snapshot yet but need results
+      if (publicDataSnapshot.posts.length === 0 || (category || tag || searchQuery)) {
         let q = collection(db, 'posts');
         let constraints = [];
+        
         if (category && category !== 'All') constraints.push(where('categories', 'array-contains', category as string));
         if (tag) constraints.push(where('tags', 'array-contains', tag as string));
         
-        if (sortBy === 'popular') {
+        if (sortBy === 'popular' || sortBy === 'views') {
           constraints.push(orderBy('views', 'desc'));
         } else if (sortBy === 'oldest') {
           constraints.push(orderBy('publishedAt', 'asc'));
+        } else if (sortBy === 'duration') {
+          constraints.push(orderBy('duration', 'desc'));
         } else {
           constraints.push(orderBy('publishedAt', 'desc'));
         }
@@ -360,38 +380,35 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         
         try {
           const snap = await getDocs(query(q, ...constraints));
-          const videos = snap.docs.map(doc => {
-            const data = doc.data();
-            let publishedAtMs = 0;
-            if (data.publishedAt) {
-              if (typeof data.publishedAt.toDate === 'function') {
-                publishedAtMs = data.publishedAt.toDate().getTime();
-              } else if (data.publishedAt.seconds) {
-                publishedAtMs = data.publishedAt.seconds * 1000;
-              } else {
-                publishedAtMs = new Date(data.publishedAt).getTime();
+          if (!snap.empty) {
+            const videos = snap.docs.map(doc => {
+              const data = doc.data();
+              let publishedAtMs = 0;
+              if (data.publishedAt) {
+                if (typeof data.publishedAt.toDate === 'function') {
+                  publishedAtMs = data.publishedAt.toDate().getTime();
+                } else if (data.publishedAt.seconds) {
+                  publishedAtMs = data.publishedAt.seconds * 1000;
+                } else {
+                  publishedAtMs = new Date(data.publishedAt).getTime();
+                }
               }
-            }
-            return { id: doc.id, ...data, _publishedAtMs: publishedAtMs };
-          });
-          
-          // Trigger snapshot generation in background if needed, but don't await it
-          if (publicDataSnapshot.posts.length === 0) {
-            ensureSnapshot().catch(console.error);
+              return { id: doc.id, ...data, _publishedAtMs: publishedAtMs };
+            });
+            
+            return res.status(200).set({
+              'Content-Type': 'application/json',
+              'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30'
+            }).json(videos);
           }
-
-          return res.status(200).set({
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=300'
-          }).json(videos);
         } catch (fbErr) {
           console.error("Direct Firestore query failed:", fbErr);
         }
       }
 
+      // Fallback to searching/filtering the snapshot if available
       await ensureSnapshot();
-
-      let filtered = publicDataSnapshot.posts;
+      let filtered = [...publicDataSnapshot.posts];
       fs.writeFileSync("/tmp/debug1.json", JSON.stringify({filtered: filtered.length}));
 
       fs.writeFileSync("/tmp/debug2.json", JSON.stringify({filtered: filtered.length}));
