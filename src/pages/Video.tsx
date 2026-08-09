@@ -216,14 +216,14 @@ export function Video() {
                       {video.quality}
                     </span>
                   )}
-                  {video.badges?.map(badge => (
-                    <span key={badge} className="bg-primary/90 backdrop-blur-md border border-white/10 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase">
+                  {video.badges?.map((badge, i) => (
+                    <span key={`${badge}-${i}`} className="bg-primary/90 backdrop-blur-md border border-white/10 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase">
                       {badge}
                     </span>
                   ))}
-                  {(video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])).map(cat => (
+                  {(video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])).map((cat, i) => (
                     <Link
-                      key={cat}
+                      key={`${cat}-${i}`}
                       to={`/category/${cat
                         .toLowerCase()
                         .replace(/[^a-z0-9]+/g, "-")
@@ -237,13 +237,13 @@ export function Video() {
 
                   {video.tags && (
                     <>
-                      {(isTagsExpanded ? video.tags : video.tags.slice(0, 12)).map((tag) => (
+                      {(isTagsExpanded ? video.tags : video.tags.slice(0, 12)).map((tag, i) => (
                         <Link
                           to={`/tag/${tag
                             .toLowerCase()
                             .replace(/[^a-z0-9]+/g, "-")
                             .replace(/(^-|-$)+/g, "")}`}
-                          key={tag}
+                          key={`${tag}-${i}`}
                           className="text-neutral-500 hover:text-white hover:bg-neutral-800/80 px-3 py-1.5 rounded-full text-[13px] font-medium   inline-flex max-w-full truncate "
                         >
                           #{tag}

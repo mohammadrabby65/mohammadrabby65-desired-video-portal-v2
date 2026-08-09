@@ -325,11 +325,11 @@ export function UploadPost() {
               <label className="block text-sm font-medium text-neutral-300 mb-1.5">Categories *</label>
               
               <div className="flex flex-wrap gap-2 mb-3">
-                {formData.categories.map(catSlug => {
+                {formData.categories.map((catSlug, index) => {
                   const catName = categoriesList.find(c => c.slug === catSlug)?.name || catSlug;
                   return (
                     <span
-                      key={catSlug}
+                      key={`${catSlug}-${index}`}
                       className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/20 text-red-500 border border-red-500/30 rounded-full text-sm font-medium"
                     >
                       {catName}
