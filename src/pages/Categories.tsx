@@ -2,7 +2,6 @@ import { usePublicCategories } from '../hooks/useCategories';
 import { Link } from 'react-router-dom';
 import { Category } from '../types';
 import { SEO } from '../components/seo/SEO';
-import { MarketingBox } from '../components/ui/MarketingBox';
 
 import { Helmet } from 'react-helmet-async';
 
@@ -53,8 +52,6 @@ export function Categories() {
       <div className="container mx-auto px-4">
         <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-8 tracking-tight">Categories</h1>
         
-        <MarketingBox />
-
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (

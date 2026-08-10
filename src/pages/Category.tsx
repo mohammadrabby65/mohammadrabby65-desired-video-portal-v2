@@ -6,7 +6,6 @@ import { SEO } from "../components/seo/SEO";
 import { ChevronDown } from "lucide-react";
 import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 import { usePublicCategories } from "../hooks/useCategories";
-import { MarketingBox } from '../components/ui/MarketingBox';
 
 type SortOption = 'publishedAt' | 'featured' | 'views' | 'duration' | 'random';
 
@@ -130,8 +129,6 @@ export function Category() {
             </p>
           )}
         </div>
-
-        <MarketingBox />
 
         {isError ? (
            <div className="text-center py-12">
