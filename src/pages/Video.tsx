@@ -6,6 +6,7 @@ import { VideoGallery } from "../components/video/VideoGallery";
 import { RelatedVideos } from "../components/video/RelatedVideos";
 import { SEO } from "../components/seo/SEO";
 import { formatTimeAgo } from "../lib/utils";
+import { MarketingBox } from '../components/ui/MarketingBox';
 import {
   ThumbsUp,
   Heart,
@@ -163,6 +164,8 @@ export function Video() {
               <VideoPlayer videoUrl={video.videoUrl} thumbnailUrl={video.thumbnailUrl} />
             </div>
 
+            <MarketingBox />
+
             <div className="mt-6 sm:mt-8 flex flex-col gap-5 min-w-0 w-full">
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-tight break-words tracking-tight">
                 {video.title}
@@ -216,14 +219,14 @@ export function Video() {
                       {video.quality}
                     </span>
                   )}
-                  {video.badges?.map(badge => (
-                    <span key={badge} className="bg-primary/90 backdrop-blur-md border border-white/10 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase">
+                  {video.badges?.map((badge, idx) => (
+                    <span key={`badge-${idx}-${badge}`} className="bg-primary/90 backdrop-blur-md border border-white/10 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase">
                       {badge}
                     </span>
                   ))}
-                  {(video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])).map(cat => (
+                  {(video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])).map((cat, idx) => (
                     <Link
-                      key={cat}
+                      key={`cat-${idx}-${cat}`}
                       to={`/category/${cat
                         .toLowerCase()
                         .replace(/[^a-z0-9]+/g, "-")
@@ -237,13 +240,13 @@ export function Video() {
 
                   {video.tags && (
                     <>
-                      {(isTagsExpanded ? video.tags : video.tags.slice(0, 12)).map((tag) => (
+                      {(isTagsExpanded ? video.tags : video.tags.slice(0, 12)).map((tag, idx) => (
                         <Link
                           to={`/tag/${tag
                             .toLowerCase()
                             .replace(/[^a-z0-9]+/g, "-")
                             .replace(/(^-|-$)+/g, "")}`}
-                          key={tag}
+                          key={`tag-${idx}-${tag}`}
                           className="text-neutral-500 hover:text-white hover:bg-neutral-800/80 px-3 py-1.5 rounded-full text-[13px] font-medium   inline-flex max-w-full truncate "
                         >
                           #{tag}

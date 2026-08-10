@@ -7,6 +7,7 @@ import { usePublicCategories } from '../hooks/useCategories';
 import { NavLink } from 'react-router-dom';
 import { SEO } from '../components/seo/SEO';
 import { TelegramWelcomeCard } from '../components/ui/TelegramWelcomeCard';
+import { MarketingBox } from '../components/ui/MarketingBox';
 
 type SortOption = {
   label: string;
@@ -133,6 +134,8 @@ export function Home() {
             </div>
           )}
         </div>
+
+        <MarketingBox />
 
         {isError ? (
           <div className="text-center py-20 bg-neutral-900/20 backdrop-blur-sm rounded-3xl border border-red-900/30">

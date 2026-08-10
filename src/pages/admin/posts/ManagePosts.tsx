@@ -124,9 +124,9 @@ export function ManagePosts() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {(post.categories ? post.categories : ((post as any).category ? [(post as any).category] : [])).map(cat => (
+                        {(post.categories ? post.categories : ((post as any).category ? [(post as any).category] : [])).map((cat, idx) => (
                           <Link
-                            key={cat}
+                            key={`cat-${idx}-${cat}`}
                             to={`/category/${cat
                               .toLowerCase()
                               .replace(/[^a-z0-9]+/g, "-")

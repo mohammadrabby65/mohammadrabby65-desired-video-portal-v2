@@ -4,6 +4,7 @@ import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { SEO } from '../components/seo/SEO';
+import { MarketingBox } from '../components/ui/MarketingBox';
 
 export function Search() {
   const [searchParams] = useSearchParams();
@@ -37,6 +38,8 @@ export function Search() {
             Search Results for "{queryText}"
           </h2>
         </div>
+
+        <MarketingBox />
 
         {isError ? (
           <div className="text-center py-12">

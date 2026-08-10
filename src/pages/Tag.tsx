@@ -5,6 +5,7 @@ import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { Helmet } from "react-helmet-async";
 import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
+import { MarketingBox } from '../components/ui/MarketingBox';
 
 export function Tag() {
   const { slug } = useParams<{ slug: string }>();
@@ -56,6 +57,8 @@ export function Tag() {
           #{tagTitle}
         </h1>
       </div>
+
+      <MarketingBox />
 
       {isError ? (
         <div className="text-center py-12">

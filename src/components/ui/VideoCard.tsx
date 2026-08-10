@@ -44,8 +44,8 @@ export const VideoCard = memo(function VideoCard({ video, priority = false }: Vi
         {/* Top Badges Area */}
         {video.badges && video.badges.length > 0 && (
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[calc(100%-40px)] z-20">
-            {video.badges.map(badge => (
-              <div key={badge} className="bg-primary/90 backdrop-blur-md border border-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wider uppercase">
+            {video.badges.map((badge, idx) => (
+              <div key={`badge-${idx}-${badge}`} className="bg-primary/90 backdrop-blur-md border border-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wider uppercase">
                 {badge}
               </div>
             ))}
