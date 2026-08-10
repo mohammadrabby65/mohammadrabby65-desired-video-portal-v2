@@ -6,7 +6,6 @@ import { ChevronDown } from 'lucide-react';
 import { usePublicCategories } from '../hooks/useCategories';
 import { NavLink } from 'react-router-dom';
 import { SEO } from '../components/seo/SEO';
-import { TelegramWelcomeCard } from '../components/ui/TelegramWelcomeCard';
 
 type SortOption = {
   label: string;
@@ -211,7 +210,6 @@ export function Home() {
         </section>
       )}
 
-      <TelegramWelcomeCard />
     </div>
   );
 }

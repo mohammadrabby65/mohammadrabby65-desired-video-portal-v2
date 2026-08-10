@@ -149,25 +149,12 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
     return () => clearInterval(interval);
   }, [currentTime, videoUrl]);
 
-  const checkAndRedirectTelegram = () => {
-    try {
-      const redirectDone = localStorage.getItem("desiredhub_telegram_joined");
-      if (!redirectDone) {
-        localStorage.setItem("desiredhub_telegram_joined", "true");
-        window.open("https://t.me/+WBulzWgERLA4Nzhl", "_blank");
-      }
-    } catch (e) {
-      console.error("Error with Telegram redirect:", e);
-    }
-  };
-
   const togglePlay = () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
         setIsPlaying(false);
       } else {
-        checkAndRedirectTelegram();
         videoRef.current.play();
         setIsPlaying(true);
       }
@@ -328,7 +315,6 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
         <div 
           className="absolute inset-0 z-30 cursor-pointer group/poster overflow-hidden bg-neutral-900"
           onClick={async () => {
-            checkAndRedirectTelegram();
             if (videoRef.current) {
               try {
                 setPlayError(false);
