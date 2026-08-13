@@ -1,13 +1,16 @@
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useMemo } from "react";
 import { SEO } from "../components/seo/SEO";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { Helmet } from "react-helmet-async";
 import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
+import { Pagination } from '../components/ui/Pagination';
 
 export function Tag() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const page = parseInt(searchParams.get('page') || '1', 10);
 
   // Tag slug to normal string (e.g., action-movies -> action movies)
   const tagTitle = slug ? slug.replace(/-/g, " ") : "Tag";
@@ -20,12 +23,10 @@ export function Tag() {
     data,
     isLoading,
     isError,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage
-  } = usePaginationVideos(filter, 20);
+  } = usePaginationVideos(filter, 20, page);
 
-  const videos = data?.pages.flat() || [];
+  const videos = data?.videos || [];
+  const totalPages = data?.totalPages || 1;
 
   const jsonLd = useMemo(() => ({
     "@context": "https://schema.org",
@@ -85,27 +86,9 @@ export function Tag() {
             ) : videos.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
-            {isFetchingNextPage && (
-              Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={`fetching-${i}`} />)
-            )}
           </div>
 
-          {hasNextPage && (
-            <div className="mt-10 sm:mt-12 flex justify-center">
-              <button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full disabled:opacity-50 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)]"
-              >
-                {isFetchingNextPage ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full " />
-                    Loading...
-                  </span>
-                ) : 'Load More'}
-              </button>
-            </div>
-          )}
+          <Pagination currentPage={page} totalPages={totalPages} />
         </>
       )}
       </div>

@@ -281,32 +281,30 @@ export function buildQueryConstraints(filter: PaginationFilter) {
   return constraints;
 }
 
-export function usePaginationVideos(filter: PaginationFilter, limitCount = 20) {
-  return useInfiniteQuery({
-    queryKey: ['videos', 'infinite', filter, limitCount],
-    queryFn: async ({ pageParam = null }) => {
+export interface PaginatedResponse {
+  videos: VideoPost[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export function usePaginationVideos(filter: PaginationFilter, limitCount = 20, page = 1) {
+  return useQuery({
+    queryKey: ['videos', 'page', filter, limitCount, page],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (filter.category) params.append('category', filter.category);
       if (filter.tag) params.append('tag', filter.tag);
       if (filter.searchQuery) params.append('q', filter.searchQuery);
       if (filter.sortBy) params.append('sortBy', filter.sortBy);
       params.append('limitCount', limitCount.toString());
-      if (pageParam) {
-        params.append('lastId', pageParam);
-      }
+      params.append('page', page.toString());
       
       const res = await fetch(`/api/videos?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch videos');
       const data = await res.json();
-      return data as VideoPost[];
+      return data as PaginatedResponse;
     },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.length === limitCount) {
-        return lastPage[lastPage.length - 1].id;
-      }
-      return undefined;
-    },
-    initialPageParam: null as string | null,
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });

@@ -343,8 +343,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
           
           return res.json({
             videos: slice,
-            nextCursor: hasMore ? slice[slice.length - 1].id : null,
-            total: 0
+            total: slice.length + (hasMore ? 1 : 0),
+            page: 1,
+            totalPages: hasMore ? 2 : 1
           });
         } catch (fbErr) {
           console.error("Fallback query failed, waiting for snapshot:", fbErr);
@@ -385,22 +386,34 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
 
       fs.writeFileSync("/tmp/debug3.json", JSON.stringify({filtered: filtered.length}));
-      let startIndex = 0;
-      if (lastId) {
+      let page = parseInt(req.query.page as string, 10);
+      if (isNaN(page) || page < 1) page = 1;
+      
+      let startIndex = (page - 1) * limitNum;
+      
+      // Fallback for legacy lastId support if needed
+      if (lastId && !req.query.page) {
         const lastIdx = filtered.findIndex(v => v.id === lastId);
         if (lastIdx !== -1) {
           startIndex = lastIdx + 1;
         }
       }
-      console.log("filtered:", filtered.length, "start:", startIndex, "limit:", limitNum);
-      fs.writeFileSync("/tmp/debug.json", JSON.stringify({filtered: filtered.length, start: startIndex, limit: limitNum}));
+      
+      const end = startIndex + limitNum;
+      console.log("filtered:", filtered.length, "start:", startIndex, "end:", end, "limit:", limitNum);
+      fs.writeFileSync("/tmp/debug.json", JSON.stringify({filtered: filtered.length, start: startIndex, end, limit: limitNum}));
 
-      const paginatedDocs = filtered.slice(startIndex, startIndex + limitNum);
+      const paginatedDocs = filtered.slice(startIndex, end);
 
       res.status(200).set({
         'Content-Type': 'application/json',
         'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
-      }).json(paginatedDocs);
+      }).json({
+        videos: paginatedDocs,
+        total: filtered.length,
+        page: page,
+        totalPages: Math.ceil(filtered.length / limitNum)
+      });
     } catch (err) {
       console.error("API /videos error:", err);
       res.status(500).json({ error: "Internal server error" });

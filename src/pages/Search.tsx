@@ -4,10 +4,12 @@ import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
 import { SEO } from '../components/seo/SEO';
+import { Pagination } from '../components/ui/Pagination';
 
 export function Search() {
   const [searchParams] = useSearchParams();
   const queryText = searchParams.get('q') || '';
+  const page = parseInt(searchParams.get('page') || '1', 10);
 
   const filter: PaginationFilter = useMemo(() => ({
     searchQuery: queryText,
@@ -17,12 +19,10 @@ export function Search() {
     data,
     isLoading,
     isError,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage
-  } = usePaginationVideos(filter, 20);
+  } = usePaginationVideos(filter, 20, page);
 
-  const videos = data?.pages.flat() || [];
+  const videos = data?.videos || [];
+  const totalPages = data?.totalPages || 1;
 
   return (
     <div className="flex-1 pb-20 pt-8 sm:pt-10">
@@ -62,27 +62,9 @@ export function Search() {
                   <VideoCard key={video.id} video={video} />
                 ))
               )}
-              {isFetchingNextPage && (
-                Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={`fetching-${i}`} />)
-              )}
             </div>
 
-            {hasNextPage && (
-              <div className="mt-10 sm:mt-12 flex justify-center">
-                <button
-                  onClick={() => fetchNextPage()}
-                  disabled={isFetchingNextPage}
-                  className="px-10 py-3.5 bg-primary/90 hover:bg-primary text-white font-medium tracking-wide rounded-full disabled:opacity-50 shadow-[0_4px_14px_0_rgba(229,9,20,0.3)]"
-                >
-                  {isFetchingNextPage ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full " />
-                      Loading...
-                    </span>
-                  ) : 'Load More'}
-                </button>
-              </div>
-            )}
+            <Pagination currentPage={page} totalPages={totalPages} />
           </>
         )}
       </section>
