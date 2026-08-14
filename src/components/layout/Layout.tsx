@@ -29,13 +29,13 @@ export function Layout() {
               <img 
                 src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
                 alt="DesiredHub" 
-                className="h-8 sm:h-10 md:h-[40px] w-auto max-w-[120px] sm:max-w-[160px] md:max-w-none object-contain dark:hidden group-hover:brightness-110  relative z-10"
+                className="h-10 sm:h-12 md:h-[50px] w-auto max-w-[150px] sm:max-w-[200px] md:max-w-none object-contain dark:hidden group-hover:brightness-110 transition-all relative z-10"
                 referrerPolicy="no-referrer"
               />
               <img 
                 src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
                 alt="DesiredHub" 
-                className="h-8 sm:h-10 md:h-[40px] w-auto max-w-[120px] sm:max-w-[160px] md:max-w-none object-contain hidden dark:block group-hover:brightness-110  drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.2)] relative z-10"
+                className="h-10 sm:h-12 md:h-[50px] w-auto max-w-[150px] sm:max-w-[200px] md:max-w-none object-contain hidden dark:block group-hover:brightness-110 transition-all drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.2)] relative z-10"
                 referrerPolicy="no-referrer"
               />
             </Link>

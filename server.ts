@@ -361,12 +361,15 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       if (searchQuery) {
         const queryStr = (searchQuery as string).trim().toLowerCase();
         if (queryStr) {
+           const keywords = queryStr.split(/\s+/);
            filtered = filtered.filter(v => {
-             const titleMatch = (v.title || '').toLowerCase().includes(queryStr);
-             const descMatch = (v.description || '').toLowerCase().includes(queryStr);
-             const tagMatch = (v.tags || []).some((t: string) => t.toLowerCase().includes(queryStr));
-             const catMatch = (v.categories || []).some((c: string) => c.toLowerCase().includes(queryStr));
-             return titleMatch || descMatch || tagMatch || catMatch;
+             return keywords.every(kw => {
+               const titleMatch = (v.title || '').toLowerCase().includes(kw);
+               const descMatch = (v.description || '').toLowerCase().includes(kw);
+               const tagMatch = (v.tags || []).some((t: string) => t.toLowerCase().includes(kw));
+               const catMatch = (v.categories || []).some((c: string) => c.toLowerCase().includes(kw));
+               return titleMatch || descMatch || tagMatch || catMatch;
+             });
            });
         }
       } else if (category && category !== 'All') {

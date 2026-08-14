@@ -116,20 +116,20 @@ export default function App() {
       if (meta) {
         meta.setAttribute("content", theme === "dark" ? "#0a0a0a" : "#f9fafb");
       }
-      
-      sessionStorage.setItem("theme", theme);
     };
 
     const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      applyTheme(e.matches ? "dark" : "light");
+      if (!localStorage.getItem("theme")) {
+        applyTheme(e.matches ? "dark" : "light");
+      }
     };
 
     // Initial check on mount
-    const storedTheme = sessionStorage.getItem("theme");
+    const storedTheme = localStorage.getItem("theme");
     if (storedTheme === "dark" || storedTheme === "light") {
       applyTheme(storedTheme);
     } else {
-      handleChange(mediaQuery);
+      applyTheme(mediaQuery.matches ? "dark" : "light");
     }
 
     // Register real-time change listener

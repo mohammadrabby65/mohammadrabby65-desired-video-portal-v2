@@ -30,7 +30,7 @@
   }
 }
 
-:root, :root.light, :root.dark {
+:root, :root.dark {
   /* Premium Streaming Dark Theme Colors */
   --neutral-50: #ffffff;
   --neutral-100: #fafafa;
@@ -44,6 +44,24 @@
   --neutral-900: #141417; /* Cards */
   --neutral-950: #0B0B0D; /* Background */
   --color-text-white: #ffffff;
+  --primary: #E50914;
+  --accent: #FF3D47;
+}
+
+:root.light {
+  /* Clean Streaming Light Theme Colors */
+  --neutral-950: #f9fafb; /* Background */
+  --neutral-900: #ffffff; /* Cards */
+  --neutral-800: rgba(0, 0, 0, 0.08); /* Borders / Hover */
+  --neutral-700: #e5e7eb;
+  --neutral-600: #d1d5db;
+  --neutral-500: #9ca3af;
+  --neutral-400: #4b5563; /* Secondary Text */
+  --neutral-300: #374151;
+  --neutral-200: #1f2937;
+  --neutral-100: #111827;
+  --neutral-50: #030712;
+  --color-text-white: #111827; /* Dark text for light mode */
   --primary: #E50914;
   --accent: #FF3D47;
 }

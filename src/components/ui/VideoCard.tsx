@@ -31,13 +31,13 @@ export const VideoCard = memo(function VideoCard({ video, priority = false }: Vi
 
         {/* Play Button Overlay (Premium Glass) */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <div className="bg-white/10 backdrop-blur-md rounded-full p-4 border border-white/20">
-            <Play className="w-7 h-7 text-white fill-white translate-x-0.5" />
+          <div className="bg-pure-white/10 backdrop-blur-md rounded-full p-4 border border-pure-white/20">
+            <Play className="w-7 h-7 text-pure-white fill-pure-white translate-x-0.5" />
           </div>
         </div>
 
         {/* Duration Badge (Glassmorphism) */}
-        <div className="absolute bottom-2.5 right-2.5 z-20 bg-black/50 backdrop-blur-md border border-white/10 px-2 py-1 rounded-md text-[11px] font-semibold text-white tracking-wide whitespace-nowrap">
+        <div className="absolute bottom-2.5 right-2.5 z-20 bg-black/50 backdrop-blur-md border border-pure-white/10 px-2 py-1 rounded-md text-[11px] font-semibold text-pure-white tracking-wide whitespace-nowrap">
           {video.duration}
         </div>
         
@@ -45,7 +45,7 @@ export const VideoCard = memo(function VideoCard({ video, priority = false }: Vi
         {video.badges && video.badges.length > 0 && (
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[calc(100%-40px)] z-20">
             {video.badges.map(badge => (
-              <div key={badge} className="bg-primary/90 backdrop-blur-md border border-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold text-white tracking-wider uppercase">
+              <div key={badge} className="bg-primary/90 backdrop-blur-md border border-pure-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider uppercase">
                 {badge}
               </div>
             ))}
@@ -54,7 +54,7 @@ export const VideoCard = memo(function VideoCard({ video, priority = false }: Vi
         
         {/* Quality Badge */}
         {video.quality && (
-          <div className="absolute top-3 right-3 z-20 bg-white/10 backdrop-blur-md border border-white/20 px-2 py-0.5 rounded text-[10px] font-bold text-white tracking-wider uppercase">
+          <div className="absolute top-3 right-3 z-20 bg-pure-white/10 backdrop-blur-md border border-pure-white/20 px-2 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider uppercase">
             {video.quality}
           </div>
         )}

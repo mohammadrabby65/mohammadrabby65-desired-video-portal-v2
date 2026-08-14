@@ -28,12 +28,11 @@
     
     <script>
       (function() {
-        const storedTheme = sessionStorage.getItem("theme");
+        const storedTheme = localStorage.getItem("theme");
         let theme = storedTheme;
         if (!theme) {
           const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
           theme = isDark ? "dark" : "light";
-          sessionStorage.setItem("theme", theme);
         }
         document.documentElement.classList.remove("light", "dark");
         document.documentElement.classList.add(theme);
