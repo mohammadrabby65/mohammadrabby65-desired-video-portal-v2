@@ -288,15 +288,29 @@ export interface PaginatedResponse {
   totalPages: number;
 }
 
+let globalRandomSeed = Math.random().toString(36).substring(7);
+let lastSortBy = '';
+
 export function usePaginationVideos(filter: PaginationFilter, limitCount = 20, page = 1) {
+  // Update the seed when the user selects 'random'
+  if (filter.sortBy === 'random' && lastSortBy !== 'random') {
+    globalRandomSeed = Math.random().toString(36).substring(7);
+  }
+  lastSortBy = filter.sortBy || '';
+
   return useQuery({
-    queryKey: ['videos', 'page', filter, limitCount, page],
+    queryKey: ['videos', 'page', filter, limitCount, page, filter.sortBy === 'random' ? globalRandomSeed : null],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filter.category) params.append('category', filter.category);
       if (filter.tag) params.append('tag', filter.tag);
       if (filter.searchQuery) params.append('q', filter.searchQuery);
-      if (filter.sortBy) params.append('sortBy', filter.sortBy);
+      if (filter.sortBy) {
+        params.append('sortBy', filter.sortBy);
+        if (filter.sortBy === 'random') {
+          params.append('seed', globalRandomSeed);
+        }
+      }
       params.append('limitCount', limitCount.toString());
       params.append('page', page.toString());
       

@@ -376,11 +376,38 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
 
       if (sortBy === 'random') {
-         filtered = [...filtered].sort(() => Math.random() - 0.5);
-      } else if (sortBy === 'oldest') {
-         filtered = [...filtered].sort((a, b) => a._publishedAtMs - b._publishedAtMs);
-      } else if (sortBy === 'popular') {
+         // Create a simple seeded RNG for pagination stability
+         let seed = 1;
+         if (req.query.seed) {
+             const parsed = parseInt(req.query.seed as string, 10);
+             if (!isNaN(parsed)) seed = parsed;
+             else seed = (req.query.seed as string).split('').reduce((a,b)=>(((a<<5)-a)+b.charCodeAt(0))|0,0);
+         } else {
+             seed = Math.floor(Date.now() / (1000 * 60 * 5)); // fallback to 5 min window
+         }
+         const random = () => {
+             const x = Math.sin(seed++) * 10000;
+             return x - Math.floor(x);
+         };
+         filtered = [...filtered].sort(() => random() - 0.5);
+      } else if (sortBy === 'featured') {
+         filtered = [...filtered].sort((a, b) => {
+            if (a.featured === b.featured) return b._publishedAtMs - a._publishedAtMs;
+            return a.featured ? -1 : 1;
+         });
+      } else if (sortBy === 'views') {
          filtered = [...filtered].sort((a, b) => (b.views || 0) - (a.views || 0));
+      } else if (sortBy === 'duration') {
+         filtered = [...filtered].sort((a, b) => {
+            const getSecs = (d: string) => {
+               if (!d) return 0;
+               const parts = d.split(':').map(Number);
+               if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+               if (parts.length === 2) return parts[0]*60 + parts[1];
+               return 0;
+            };
+            return getSecs(b.duration) - getSecs(a.duration);
+         });
       } else {
          filtered = [...filtered].sort((a, b) => b._publishedAtMs - a._publishedAtMs);
       }
