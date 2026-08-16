@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
-import { collection, getDocs, doc, updateDoc, query, limit, startAfter, DocumentSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, limit, startAfter, DocumentSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { VideoPost } from '../../types';
 import { Link } from 'react-router-dom';
 import { Play, Pause, Square, ExternalLink, Copy, CheckCircle, AlertTriangle, XCircle, Download, Activity, Edit, RotateCw, PlusCircle } from 'lucide-react';
 import { SEO } from '../../components/seo/SEO';
+import { CheckHistoryTab } from './CheckHistoryTab';
 
 type UrlStatus = 'pending' | 'scanning' | 'working' | 'redirect' | 'dead' | 'timeout' | 'error';
 
@@ -21,6 +22,7 @@ interface ScanResult {
 }
 
 export function DeadUrls() {
+  const [activeTab, setActiveTab] = useState<'scanner' | 'history'>('scanner');
   const [results, setResults] = useState<ScanResult[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -86,43 +88,51 @@ export function DeadUrls() {
 
   const checkUrl = async (video: ScanResult): Promise<ScanResult> => {
     const startTime = performance.now();
+    let res: ScanResult;
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-      
-      const response = await fetch(video.videoUrl, { 
-        method: 'HEAD',
-        signal: controller.signal,
-        // no-cors will return status 0, we can't reliably get 404/200, but we have to try cors first
-        // If it fails with Type Error due to CORS, we will catch it.
-      }).catch(err => {
-        if (err.name === 'AbortError') throw err;
-        // Fallback to GET if HEAD is rejected
-        return fetch(video.videoUrl, { method: 'GET', signal: controller.signal });
+      const response = await fetch('/api/admin/check-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: video.videoUrl })
       });
-
-      clearTimeout(timeoutId);
+      
+      const data = await response.json();
       const endTime = performance.now();
       const responseTime = Math.round(endTime - startTime);
-      const statusCode = response.status;
-
-      let status: UrlStatus = 'error';
-      if (statusCode >= 200 && statusCode < 300) status = 'working';
-      else if (statusCode >= 300 && statusCode < 400) status = 'redirect';
-      else if (statusCode === 404 || statusCode === 410) status = 'dead';
-      else status = 'error';
-
-      return { ...video, status, statusCode, responseTime };
+      
+      res = { 
+        ...video, 
+        status: data.status || 'error', 
+        statusCode: data.statusCode || 0, 
+        responseTime 
+      };
     } catch (err: any) {
       const endTime = performance.now();
-      const responseTime = Math.round(endTime - startTime);
-      
-      if (err.name === 'AbortError') {
-        return { ...video, status: 'timeout', responseTime, errorMessage: 'Timeout after 15s' };
-      }
-      
-      return { ...video, status: 'error', responseTime, errorMessage: err.message || 'Network Error' };
+      res = { 
+        ...video, 
+        status: 'error', 
+        statusCode: 0, 
+        responseTime: Math.round(endTime - startTime),
+        errorMessage: err.message
+      };
     }
+
+    try {
+      await addDoc(collection(db, 'deadUrlCheckHistory'), {
+        postId: video.id,
+        title: video.title,
+        videoUrl: video.videoUrl,
+        status: res.status,
+        statusCode: res.statusCode || 0,
+        errorMessage: res.errorMessage || null,
+        responseTime: res.responseTime || null,
+        checkedAt: serverTimestamp()
+      });
+    } catch (e) {
+      console.error('Failed to save history record:', e);
+    }
+
+    return res;
   };
 
   const processBatch = async () => {
@@ -332,7 +342,24 @@ export function DeadUrls() {
         </div>
       </div>
 
-      {hasLoaded && (
+      <div className="flex border-b border-neutral-800">
+        <button
+          onClick={() => setActiveTab('scanner')}
+          className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'scanner' ? 'border-red-500 text-white' : 'border-transparent text-neutral-400 hover:text-white'}`}
+        >
+          Scanner
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 ${activeTab === 'history' ? 'border-red-500 text-white' : 'border-transparent text-neutral-400 hover:text-white'}`}
+        >
+          Check History
+        </button>
+      </div>
+
+      {activeTab === 'scanner' && (
+        <>
+          {hasLoaded && (
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 space-y-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-neutral-400">Progress: {checkedCount} / {totalCount}</span>
@@ -470,6 +497,10 @@ export function DeadUrls() {
           )}
         </div>
       )}
+        </>
+      )}
+
+      {activeTab === 'history' && <CheckHistoryTab />}
 
       {editingResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">

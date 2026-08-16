@@ -169,6 +169,31 @@ async function startServer() {
     });
   });
 
+  app.post("/api/admin/check-url", async (req, res) => {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "Missing URL" });
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      let response = await fetch(url, { method: 'HEAD', signal: controller.signal }).catch(() => null);
+      if (!response) {
+        response = await fetch(url, { method: 'GET', signal: controller.signal }).catch(() => null);
+      }
+      clearTimeout(timeoutId);
+      if (!response) {
+         return res.json({ status: 'error', statusCode: 0 });
+      }
+      const statusCode = response.status;
+      let statusStr = 'error';
+      if (statusCode >= 200 && statusCode < 300) statusStr = 'working';
+      else if (statusCode >= 300 && statusCode < 400) statusStr = 'redirect';
+      else if (statusCode === 404 || statusCode === 410) statusStr = 'dead';
+      return res.json({ status: statusStr, statusCode });
+    } catch (err: any) {
+      return res.json({ status: 'error', statusCode: 0, error: err.message });
+    }
+  });
+
   // Proxy the video playback
   app.get("/api/stream/play", async (req, res) => {
     const { t, e, s } = req.query;
