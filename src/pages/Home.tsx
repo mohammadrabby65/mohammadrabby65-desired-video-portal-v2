@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
+import { AdsterraNativeBanner } from '../components/ads/AdsterraNativeBanner';
 import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
 import { VideoCard } from '../components/ui/VideoCard';
 import { SkeletonCard } from '../components/ui/SkeletonCard';
@@ -155,7 +156,10 @@ export function Home() {
                 Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
               ) : (
                 videos.map((video, index) => (
-                  <VideoCard key={video.id} video={video} priority={index < 4} />
+                  <Fragment key={video.id}>
+                    <VideoCard video={video} priority={index < 4} />
+                    {(index === 4) && <AdsterraNativeBanner />}
+                  </Fragment>
                 ))
               )}
             </div>

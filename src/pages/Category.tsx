@@ -1,3 +1,5 @@
+import { Fragment } from 'react';
+import { AdsterraNativeBanner } from '../components/ads/AdsterraNativeBanner';
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { VideoCard } from "../components/ui/VideoCard";
@@ -155,7 +157,10 @@ export function Category() {
                     <SkeletonCard key={i} />
                   ))
                 : videos.map((video: any, index: number) => (
-                    <VideoCard key={video.id} video={video} priority={index < 4} />
+                    <Fragment key={video.id}>
+                      <VideoCard video={video} priority={index < 4} />
+                      {(index === 4) && <AdsterraNativeBanner />}
+                    </Fragment>
                   ))}
             </div>
 

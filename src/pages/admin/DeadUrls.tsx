@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { collection, getDocs, doc, updateDoc, query, limit, startAfter, DocumentSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, limit, startAfter, DocumentSnapshot, addDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { VideoPost } from '../../types';
 import { Link } from 'react-router-dom';
@@ -118,7 +118,7 @@ export function DeadUrls() {
     }
 
     try {
-      await addDoc(collection(db, 'deadUrlCheckHistory'), {
+      const historyData: any = {
         postId: video.id,
         title: video.title,
         videoUrl: video.videoUrl,
@@ -127,7 +127,12 @@ export function DeadUrls() {
         errorMessage: res.errorMessage || null,
         responseTime: res.responseTime || null,
         checkedAt: serverTimestamp()
-      });
+      };
+      // Only set thumbnailUrl if it exists so we don't overwrite a previously saved one with undefined
+      if (video.thumbnailUrl) {
+        historyData.thumbnailUrl = video.thumbnailUrl;
+      }
+      await setDoc(doc(db, 'deadUrlCheckHistory', video.id), historyData, { merge: true });
     } catch (e) {
       console.error('Failed to save history record:', e);
     }

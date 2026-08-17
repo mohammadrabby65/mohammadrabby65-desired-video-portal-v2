@@ -1,4 +1,5 @@
-import React, { memo } from 'react';
+import React, { memo, Fragment } from 'react';
+import { AdsterraNativeBanner } from '../ads/AdsterraNativeBanner';
 import { useRelatedVideos } from '../../hooks/useVideos';
 import { VideoCard } from '../ui/VideoCard';
 import { SkeletonCard } from '../ui/SkeletonCard';
@@ -25,7 +26,12 @@ export const RelatedVideos = memo(function RelatedVideos({ videoId, categories, 
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 xl:gap-10 min-w-0 w-full">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-          : displayVideos.map(video => <VideoCard key={video.id} video={video} />)}
+          : displayVideos.map((video, index) => (
+            <Fragment key={video.id}>
+              <VideoCard video={video} />
+              {(index === 4) && <AdsterraNativeBanner />}
+            </Fragment>
+          ))}
           
         {isFetchingNextPage && Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={`skel-${i}`} />)}
       </div>

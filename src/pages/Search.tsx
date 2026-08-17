@@ -1,3 +1,5 @@
+import { Fragment } from 'react';
+import { AdsterraNativeBanner } from '../components/ads/AdsterraNativeBanner';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Search as SearchIcon, X, Clock, TrendingUp, ArrowLeft } from 'lucide-react';
@@ -334,8 +336,11 @@ export function Search() {
                   {isLoadingResults ? (
                     Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
                   ) : (
-                    videos.map(video => (
-                      <VideoCard key={video.id} video={video} />
+                    videos.map((video, index) => (
+                      <Fragment key={video.id}>
+                        <VideoCard video={video} />
+                        {(index === 4) && <AdsterraNativeBanner />}
+                      </Fragment>
                     ))
                   )}
                 </div>

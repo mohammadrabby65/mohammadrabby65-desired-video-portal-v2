@@ -1,3 +1,5 @@
+import { Fragment } from 'react';
+import { AdsterraNativeBanner } from '../components/ads/AdsterraNativeBanner';
 import { useParams, useSearchParams } from "react-router-dom";
 import { useMemo } from "react";
 import { SEO } from "../components/seo/SEO";
@@ -83,8 +85,11 @@ export function Tag() {
                Array.from({ length: 20 }).map((_, i) => (
                  <SkeletonCard key={i} />
                ))
-            ) : videos.map((video) => (
-              <VideoCard key={video.id} video={video} />
+            ) : videos.map((video, index) => (
+              <Fragment key={video.id}>
+                <VideoCard video={video} />
+                {(index === 4) && <AdsterraNativeBanner />}
+              </Fragment>
             ))}
           </div>
 
