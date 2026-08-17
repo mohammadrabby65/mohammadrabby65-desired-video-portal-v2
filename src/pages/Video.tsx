@@ -20,7 +20,7 @@ import {
 
 const formatIsoDuration = (duration: string) => {
   if (!duration) return undefined;
-  const parts = duration.split(':').map(Number);
+  const parts = duration.split(":").map(Number);
   if (parts.length === 3) {
     return `PT${parts[0]}H${parts[1]}M${parts[2]}S`;
   } else if (parts.length === 2) {
@@ -33,7 +33,7 @@ const formatIsoDuration = (duration: string) => {
 
 export function Video() {
   const { slug } = useParams<{ slug: string }>();
-  
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [slug]);
@@ -41,8 +41,6 @@ export function Video() {
   const { data: video, isLoading, isError } = useVideoBySlug(slug);
   const { data: adjacent } = useAdjacentVideos(video?.publishedAt, video?.slug);
   const [isTagsExpanded, setIsTagsExpanded] = useState(false);
-
-
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -54,8 +52,7 @@ export function Video() {
   };
 
   if (isLoading) {
-    
-  return (
+    return (
       <div className="flex-1 min-w-0 p-4 container mx-auto">
         <div className=" flex flex-col lg:flex-row gap-6 min-w-0 w-full">
           <div className="flex-1">
@@ -99,12 +96,19 @@ export function Video() {
   }
 
   const categoryName = video.categories?.[0] || (video as any).category;
-  const categorySlug = categoryName ? categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : null;
+  const categorySlug = categoryName
+    ? categoryName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "")
+    : null;
 
   const breadcrumbs = [
     { name: "Home", item: "/" },
-    ...(categoryName && categorySlug ? [{ name: categoryName, item: `/category/${categorySlug}` }] : []),
-    { name: video.title, item: `/video/${video.slug}` }
+    ...(categoryName && categorySlug
+      ? [{ name: categoryName, item: `/category/${categorySlug}` }]
+      : []),
+    { name: video.title, item: `/video/${video.slug}` },
   ];
 
   let metaDesc = video.metaDescription || "";
@@ -134,7 +138,9 @@ export function Video() {
           uploadDate: video.publishedAt?.toDate
             ? video.publishedAt.toDate().toISOString()
             : new Date().toISOString(),
-          ...(video.duration && { duration: formatIsoDuration(video.duration) }),
+          ...(video.duration && {
+            duration: formatIsoDuration(video.duration),
+          }),
           contentUrl: video.videoUrl,
         }}
       />
@@ -142,25 +148,40 @@ export function Video() {
         <nav className="flex text-neutral-400 text-[13px] font-medium mb-6 min-w-0 w-full overflow-hidden">
           <ol className="flex items-center space-x-2.5 min-w-0 w-full">
             <li className="shrink-0">
-              <Link to="/" className="hover:text-white ">Home</Link>
+              <Link to="/" className="hover:text-white ">
+                Home
+              </Link>
             </li>
             {categoryName && categorySlug && (
               <>
                 <li className="shrink-0 text-neutral-600">/</li>
                 <li className="shrink-0 min-w-0 truncate max-w-[120px] sm:max-w-none">
-                  <Link to={`/category/${categorySlug}`} className="hover:text-white  truncate block">{categoryName}</Link>
+                  <Link
+                    to={`/category/${categorySlug}`}
+                    className="hover:text-white  truncate block"
+                  >
+                    {categoryName}
+                  </Link>
                 </li>
               </>
             )}
             <li className="shrink-0 text-neutral-600">/</li>
-            <li className="text-neutral-200 truncate min-w-0" aria-current="page">{video.title}</li>
+            <li
+              className="text-neutral-200 truncate min-w-0"
+              aria-current="page"
+            >
+              {video.title}
+            </li>
           </ol>
         </nav>
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 min-w-0 w-full">
           {/* Main Video Section */}
           <div className="flex-1 max-w-[1400px] min-w-0">
             <div className="rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-800 shadow-2xl shadow-black/50">
-              <VideoPlayer videoUrl={video.videoUrl} thumbnailUrl={video.thumbnailUrl} />
+              <VideoPlayer
+                videoUrl={video.videoUrl}
+                thumbnailUrl={video.thumbnailUrl}
+              />
             </div>
 
             <div className="mt-6 sm:mt-8 flex flex-col gap-5 min-w-0 w-full">
@@ -175,39 +196,47 @@ export function Video() {
               <VideoGallery images={video.gallery} />
 
               <div className="flex flex-wrap items-center gap-3 border-b border-neutral-800/60 pb-6 min-w-0 w-full mt-2">
-                  <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group">
-                    <ThumbsUp className="w-4 h-4 text-neutral-400 group-hover:text-white " />
-                    <span className="group-hover:text-white text-neutral-300 ">Like</span>
-                  </button>
-                  <button
-                    onClick={handleCopyLink}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group"
-                  >
-                    <Copy className="w-4 h-4 text-neutral-400 group-hover:text-white " />
-                    <span className="group-hover:text-white text-neutral-300 ">Copy</span>
-                  </button>
-                  <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group">
-                    <Share2 className="w-4 h-4 text-neutral-400 group-hover:text-white " />
-                    <span className="group-hover:text-white text-neutral-300 ">Share</span>
-                  </button>
-                  <a
-                    href="https://predestineheadypleasure.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group"
-                  >
-                    <Download className="w-4 h-4 text-neutral-400 group-hover:text-white " />
-                    <span className="group-hover:text-white text-neutral-300 ">Download</span>
-                  </a>
-                  <button
-                    onClick={handleReport}
-                    className="flex items-center gap-2 p-2.5 sm:px-5 sm:py-2.5 bg-neutral-900/80 hover:bg-red-500/10 border border-neutral-800 hover:border-red-500/30 rounded-full text-sm font-semibold text-neutral-400 hover:text-red-500    shadow-sm group"
-                    title="Report Video"
-                  >
-                    <Flag className="w-4 h-4 group-hover:text-red-500 " />
-                    <span className="hidden sm:inline">Report</span>
-                  </button>
-                </div>
+                <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group">
+                  <ThumbsUp className="w-4 h-4 text-neutral-400 group-hover:text-white " />
+                  <span className="group-hover:text-white text-neutral-300 ">
+                    Like
+                  </span>
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group"
+                >
+                  <Copy className="w-4 h-4 text-neutral-400 group-hover:text-white " />
+                  <span className="group-hover:text-white text-neutral-300 ">
+                    Copy
+                  </span>
+                </button>
+                <button className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group">
+                  <Share2 className="w-4 h-4 text-neutral-400 group-hover:text-white " />
+                  <span className="group-hover:text-white text-neutral-300 ">
+                    Share
+                  </span>
+                </button>
+                <a
+                  href="https://predestineheadypleasure.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 rounded-full text-sm font-semibold    shadow-sm hover:shadow-md group"
+                >
+                  <Download className="w-4 h-4 text-neutral-400 group-hover:text-white " />
+                  <span className="group-hover:text-white text-neutral-300 ">
+                    Download
+                  </span>
+                </a>
+                <button
+                  onClick={handleReport}
+                  className="flex items-center gap-2 p-2.5 sm:px-5 sm:py-2.5 bg-neutral-900/80 hover:bg-red-500/10 border border-neutral-800 hover:border-red-500/30 rounded-full text-sm font-semibold text-neutral-400 hover:text-red-500    shadow-sm group"
+                  title="Report Video"
+                >
+                  <Flag className="w-4 h-4 group-hover:text-red-500 " />
+                  <span className="hidden sm:inline">Report</span>
+                </button>
+              </div>
 
               <div className="bg-neutral-900/40 backdrop-blur-sm border border-neutral-800/60 rounded-3xl p-5 sm:p-6 flex flex-col gap-5 shadow-inner mt-4">
                 <div className="flex flex-wrap items-center gap-2.5">
@@ -216,12 +245,20 @@ export function Video() {
                       {video.quality}
                     </span>
                   )}
-                  {video.badges?.map(badge => (
-                    <span key={badge} className="bg-primary/90 backdrop-blur-md border border-white/10 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase">
+                  {video.badges?.map((badge) => (
+                    <span
+                      key={badge}
+                      className="bg-primary/90 backdrop-blur-md border border-white/10 text-white px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase"
+                    >
                       {badge}
                     </span>
                   ))}
-                  {(video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])).map(cat => (
+                  {(video.categories
+                    ? video.categories
+                    : (video as any).category
+                      ? [(video as any).category]
+                      : []
+                  ).map((cat) => (
                     <Link
                       key={cat}
                       to={`/category/${cat
@@ -237,7 +274,10 @@ export function Video() {
 
                   {video.tags && (
                     <>
-                      {(isTagsExpanded ? video.tags : video.tags.slice(0, 12)).map((tag) => (
+                      {(isTagsExpanded
+                        ? video.tags
+                        : video.tags.slice(0, 12)
+                      ).map((tag) => (
                         <Link
                           to={`/tag/${tag
                             .toLowerCase()
@@ -318,7 +358,13 @@ export function Video() {
           <div className="w-full lg:w-[400px] xl:w-[450px]">
             <RelatedVideos
               videoId={video.id}
-              categories={video.categories ? video.categories : ((video as any).category ? [(video as any).category] : [])}
+              categories={
+                video.categories
+                  ? video.categories
+                  : (video as any).category
+                    ? [(video as any).category]
+                    : []
+              }
               tags={video.tags}
             />
           </div>

@@ -1,53 +1,75 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { collection, doc, setDoc, getDoc, serverTimestamp, updateDoc, query, where, getDocs, limit, addDoc, deleteField } from 'firebase/firestore';
-import { db } from '../../../lib/firebase';
-import { VideoPost } from '../../../types';
-import { ArrowLeft, Save, Loader2, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp,
+  updateDoc,
+  query,
+  where,
+  getDocs,
+  limit,
+  addDoc,
+  deleteField,
+} from "firebase/firestore";
+import { db } from "../../../lib/firebase";
+import { VideoPost } from "../../../types";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Image as ImageIcon,
+  Plus,
+  Trash2,
+} from "lucide-react";
 
 export function UploadPost() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   const isEditMode = !!id;
 
   const [formData, setFormData] = useState({
-    title: '',
-    slug: '',
-    description: '',
-    metaDescription: '',
-    videoUrl: '',
-    thumbnailUrl: '',
+    title: "",
+    slug: "",
+    description: "",
+    metaDescription: "",
+    videoUrl: "",
+    thumbnailUrl: "",
     categories: [] as string[],
-    tags: '',
-    duration: '',
+    tags: "",
+    duration: "",
     featured: false,
     trending: false,
-    quality: '',
+    quality: "",
     badges: [] as string[],
-    gallery: [''] as string[]
+    gallery: [""] as string[],
   });
 
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditMode);
-  const [error, setError] = useState('');
-  const [categoryInput, setCategoryInput] = useState('');
+  const [error, setError] = useState("");
+  const [categoryInput, setCategoryInput] = useState("");
   const [isCategoryFocused, setIsCategoryFocused] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: cachedCategories } = useQuery({
-    queryKey: ['admin-categories-suggestions'],
+    queryKey: ["admin-categories-suggestions"],
     queryFn: async () => {
       const q = query(
-        collection(db, 'categories'),
-        where('isActive', '!=', false),
-        limit(20)
+        collection(db, "categories"),
+        where("isActive", "!=", false),
+        limit(20),
       );
       const snap = await getDocs(q);
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }) as any).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+      return snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as any)
+        .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
     },
-    staleTime: 1000 * 60 * 30
+    staleTime: 1000 * 60 * 30,
   });
 
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
@@ -57,49 +79,65 @@ export function UploadPost() {
       setCategoriesList(cachedCategories);
     }
   }, [cachedCategories]);
-  
-  const availableBadges = ['HD', 'SD', 'NEW', 'TRENDING', 'HOT', 'PREMIUM'];
+
+  const availableBadges = ["HD", "SD", "NEW", "TRENDING", "HOT", "PREMIUM"];
 
   const handleAddManualCategory = async (name: string) => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    
-    const slug = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-    
+
+    const slug = trimmedName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+
     if (!formData.categories.includes(slug)) {
-      setFormData(prev => ({ ...prev, categories: [...prev.categories, slug] }));
+      setFormData((prev) => ({
+        ...prev,
+        categories: [...prev.categories, slug],
+      }));
     }
-    
-    setCategoryInput('');
+
+    setCategoryInput("");
     setIsCategoryFocused(false);
 
     // Create in Firestore if it doesn't exist
-    const catExistsLocally = categoriesList.some(c => c.slug === slug);
+    const catExistsLocally = categoriesList.some((c) => c.slug === slug);
     if (!catExistsLocally) {
       try {
-        const qCheck = query(collection(db, 'categories'), where('slug', '==', slug), limit(1));
+        const qCheck = query(
+          collection(db, "categories"),
+          where("slug", "==", slug),
+          limit(1),
+        );
         const snapCheck = await getDocs(qCheck);
-        
+
         if (snapCheck.empty) {
           const newCat = {
             name: trimmedName,
             slug,
             isActive: true,
             videoCount: 0,
-            displayOrder: 999
+            displayOrder: 999,
           };
-          const docRef = await addDoc(collection(db, 'categories'), {
+          const docRef = await addDoc(collection(db, "categories"), {
             ...newCat,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
           });
           const addedCat = { id: docRef.id, ...newCat };
-          setCategoriesList(prev => [...prev, addedCat]);
-          queryClient.setQueryData(['admin-categories-suggestions'], (old: any) => {
-            return old ? [...old, addedCat] : [addedCat];
-          });
+          setCategoriesList((prev) => [...prev, addedCat]);
+          queryClient.setQueryData(
+            ["admin-categories-suggestions"],
+            (old: any) => {
+              return old ? [...old, addedCat] : [addedCat];
+            },
+          );
         } else {
-          const existingCat = { id: snapCheck.docs[0].id, ...snapCheck.docs[0].data() };
-          setCategoriesList(prev => [...prev, existingCat]);
+          const existingCat = {
+            id: snapCheck.docs[0].id,
+            ...snapCheck.docs[0].data(),
+          };
+          setCategoriesList((prev) => [...prev, existingCat]);
         }
       } catch (e) {
         console.error("Error checking/creating manual category", e);
@@ -107,8 +145,10 @@ export function UploadPost() {
     }
   };
 
-  const handleCategoryKeyDown = (e: import('react').KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  const handleCategoryKeyDown = (
+    e: import("react").KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === "Enter") {
       e.preventDefault(); // Prevent form submission
       if (categoryInput.trim()) {
         handleAddManualCategory(categoryInput);
@@ -120,7 +160,7 @@ export function UploadPost() {
     if (isEditMode && id) {
       const fetchPost = async () => {
         try {
-          const docRef = doc(db, 'posts', id);
+          const docRef = doc(db, "posts", id);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data() as VideoPost;
@@ -128,20 +168,25 @@ export function UploadPost() {
               title: data.title,
               slug: data.slug,
               description: data.description,
-              metaDescription: data.metaDescription || '',
+              metaDescription: data.metaDescription || "",
               videoUrl: data.videoUrl,
               thumbnailUrl: data.thumbnailUrl,
-              categories: data.categories ? data.categories : ((data as any).category ? [(data as any).category] : []),
-              tags: data.tags.join(', '),
+              categories: data.categories
+                ? data.categories
+                : (data as any).category
+                  ? [(data as any).category]
+                  : [],
+              tags: data.tags.join(", "),
               duration: data.duration,
               featured: data.featured,
               trending: data.trending,
-              quality: data.quality || '',
+              quality: data.quality || "",
               badges: data.badges || [],
-              gallery: data.gallery && data.gallery.length > 0 ? data.gallery : ['']
+              gallery:
+                data.gallery && data.gallery.length > 0 ? data.gallery : [""],
             });
           } else {
-            navigate('/admin/posts');
+            navigate("/admin/posts");
           }
         } catch (error) {
           console.error("Error fetching post", error);
@@ -153,10 +198,15 @@ export function UploadPost() {
     }
   }, [id, isEditMode, navigate]);
 
-  const handleTitleChange = (e: import('react').ChangeEvent<HTMLInputElement>) => {
+  const handleTitleChange = (
+    e: import("react").ChangeEvent<HTMLInputElement>,
+  ) => {
     const title = e.target.value;
     if (!isEditMode) {
-      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      const slug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "");
       setFormData({ ...formData, title, slug });
     } else {
       setFormData({ ...formData, title });
@@ -164,7 +214,11 @@ export function UploadPost() {
   };
 
   const checkSlugUnique = async (slug: string) => {
-    const q = query(collection(db, 'posts'), where('slug', '==', slug), limit(1));
+    const q = query(
+      collection(db, "posts"),
+      where("slug", "==", slug),
+      limit(1),
+    );
     const snap = await getDocs(q);
     if (isEditMode) {
       return snap.empty || (snap.docs.length === 1 && snap.docs[0].id === id);
@@ -172,36 +226,46 @@ export function UploadPost() {
     return snap.empty;
   };
 
-  const handleSubmit = async (e: import('react').FormEvent) => {
+  const handleSubmit = async (e: import("react").FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       const isUnique = await checkSlugUnique(formData.slug);
       if (!isUnique) {
-        setError('Slug already exists. Please choose a different title or manually change the slug.');
+        setError(
+          "Slug already exists. Please choose a different title or manually change the slug.",
+        );
         setLoading(false);
         return;
       }
 
       if (formData.categories.length === 0) {
-        setError('Please select at least one category.');
+        setError("Please select at least one category.");
         setLoading(false);
         return;
       }
 
-      const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
+      const tagsArray = formData.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
 
-      const generateSearchTerms = (title: string, tags: string[], categories: string[]) => {
+      const generateSearchTerms = (
+        title: string,
+        tags: string[],
+        categories: string[],
+      ) => {
         const words = new Set<string>();
-        
+
         const addWords = (text: string) => {
           if (!text) return;
-          text.toLowerCase()
+          text
+            .toLowerCase()
             .split(/[\s,.-]+/)
-            .filter(w => w.length > 0)
-            .forEach(w => words.add(w));
+            .filter((w) => w.length > 0)
+            .forEach((w) => words.add(w));
         };
 
         addWords(title);
@@ -220,11 +284,15 @@ export function UploadPost() {
         thumbnailUrl: formData.thumbnailUrl,
         categories: formData.categories,
         tags: tagsArray,
-        searchTerms: generateSearchTerms(formData.title, tagsArray, formData.categories),
+        searchTerms: generateSearchTerms(
+          formData.title,
+          tagsArray,
+          formData.categories,
+        ),
         duration: formData.duration,
         featured: formData.featured,
         trending: formData.trending,
-        badges: formData.badges
+        badges: formData.badges,
       };
 
       if (formData.quality.trim()) {
@@ -234,18 +302,24 @@ export function UploadPost() {
       }
 
       // Extract valid gallery URLs
-      const validGalleryUrls = Array.from(new Set(
-        formData.gallery.map(url => url.trim()).filter(url => {
-          if (!url) return false;
-          try {
-            const parsed = new URL(url);
-            const ext = parsed.pathname.split('.').pop()?.toLowerCase();
-            return ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif'].includes(ext || '');
-          } catch {
-            return false;
-          }
-        })
-      ));
+      const validGalleryUrls = Array.from(
+        new Set(
+          formData.gallery
+            .map((url) => url.trim())
+            .filter((url) => {
+              if (!url) return false;
+              try {
+                const parsed = new URL(url);
+                const ext = parsed.pathname.split(".").pop()?.toLowerCase();
+                return ["jpg", "jpeg", "png", "webp", "avif", "gif"].includes(
+                  ext || "",
+                );
+              } catch {
+                return false;
+              }
+            }),
+        ),
+      );
 
       if (validGalleryUrls.length > 0) {
         postData.gallery = validGalleryUrls;
@@ -254,19 +328,19 @@ export function UploadPost() {
       }
 
       if (isEditMode && id) {
-        await updateDoc(doc(db, 'posts', id), postData);
+        await updateDoc(doc(db, "posts", id), postData);
       } else {
-        const newDocRef = doc(collection(db, 'posts'));
+        const newDocRef = doc(collection(db, "posts"));
         await setDoc(newDocRef, {
           ...postData,
           views: 0,
-          publishedAt: serverTimestamp()
+          publishedAt: serverTimestamp(),
         });
       }
-      navigate('/admin/posts');
+      navigate("/admin/posts");
     } catch (err: any) {
       console.error("Error saving post", err);
-      setError(err.message || 'Error saving post. Check console.');
+      setError(err.message || "Error saving post. Check console.");
     } finally {
       setLoading(false);
     }
@@ -279,14 +353,14 @@ export function UploadPost() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
-        <button 
-          onClick={() => navigate('/admin/posts')}
+        <button
+          onClick={() => navigate("/admin/posts")}
           className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-bold text-white tracking-tight">
-          {isEditMode ? 'Edit Post' : 'Upload New Post'}
+          {isEditMode ? "Edit Post" : "Upload New Post"}
         </h1>
       </div>
 
@@ -296,11 +370,16 @@ export function UploadPost() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-6"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Title *</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+                Title *
+              </label>
               <input
                 type="text"
                 required
@@ -309,24 +388,32 @@ export function UploadPost() {
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
               />
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Slug *</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+                Slug *
+              </label>
               <input
                 type="text"
                 required
                 value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, slug: e.target.value })
+                }
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
               />
             </div>
-            
+
             <div className="relative">
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Categories *</label>
-              
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+                Categories *
+              </label>
+
               <div className="flex flex-wrap gap-2 mb-3">
-                {formData.categories.map(catSlug => {
-                  const catName = categoriesList.find(c => c.slug === catSlug)?.name || catSlug;
+                {formData.categories.map((catSlug) => {
+                  const catName =
+                    categoriesList.find((c) => c.slug === catSlug)?.name ||
+                    catSlug;
                   return (
                     <span
                       key={catSlug}
@@ -336,7 +423,12 @@ export function UploadPost() {
                       <button
                         type="button"
                         onClick={() => {
-                          setFormData({ ...formData, categories: formData.categories.filter(c => c !== catSlug) });
+                          setFormData({
+                            ...formData,
+                            categories: formData.categories.filter(
+                              (c) => c !== catSlug,
+                            ),
+                          });
                         }}
                         className="hover:text-red-400 focus:outline-none flex items-center justify-center h-4 w-4 rounded-full bg-red-500/20 hover:bg-red-500/30 transition-colors"
                       >
@@ -353,59 +445,83 @@ export function UploadPost() {
                 onChange={(e) => setCategoryInput(e.target.value)}
                 onKeyDown={handleCategoryKeyDown}
                 onFocus={() => setIsCategoryFocused(true)}
-                onBlur={() => setTimeout(() => setIsCategoryFocused(false), 200)}
+                onBlur={() =>
+                  setTimeout(() => setIsCategoryFocused(false), 200)
+                }
                 placeholder="Type to search or add new category..."
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
               />
 
-              {isCategoryFocused && (categoryInput.trim() !== '' || categoriesList.length > 0) && (
-                <div className="absolute z-10 w-full mt-1 bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
-                  {categoriesList
-                    .filter(cat => cat.name.toLowerCase().includes(categoryInput.toLowerCase()) && !formData.categories.includes(cat.slug))
-                    .map(cat => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onMouseDown={(e) => {
-                          // use onMouseDown instead of onClick to prevent onBlur firing first
-                          e.preventDefault(); 
-                          if (!formData.categories.includes(cat.slug)) {
-                            setFormData({ ...formData, categories: [...formData.categories, cat.slug] });
-                          }
-                          setCategoryInput('');
-                        }}
-                        className="w-full text-left px-4 py-2 hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors"
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
-                  
-                  {categoryInput.trim() !== '' && !categoriesList.some(c => c.name.toLowerCase() === categoryInput.trim().toLowerCase()) && (
-                    <button
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        handleAddManualCategory(categoryInput);
-                      }}
-                      className="w-full text-left px-4 py-2 hover:bg-neutral-800 text-red-400 hover:text-red-300 transition-colors font-medium"
-                    >
-                      + Add "{categoryInput.trim()}"
-                    </button>
-                  )}
-                  {categoriesList.length === 0 && categoryInput.trim() === '' && (
-                    <div className="px-4 py-2 text-sm text-neutral-500">Loading categories...</div>
-                  )}
-                </div>
-              )}
+              {isCategoryFocused &&
+                (categoryInput.trim() !== "" || categoriesList.length > 0) && (
+                  <div className="absolute z-10 w-full mt-1 bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                    {categoriesList
+                      .filter(
+                        (cat) =>
+                          cat.name
+                            .toLowerCase()
+                            .includes(categoryInput.toLowerCase()) &&
+                          !formData.categories.includes(cat.slug),
+                      )
+                      .map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onMouseDown={(e) => {
+                            // use onMouseDown instead of onClick to prevent onBlur firing first
+                            e.preventDefault();
+                            if (!formData.categories.includes(cat.slug)) {
+                              setFormData({
+                                ...formData,
+                                categories: [...formData.categories, cat.slug],
+                              });
+                            }
+                            setCategoryInput("");
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-neutral-800 text-neutral-300 hover:text-white transition-colors"
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+
+                    {categoryInput.trim() !== "" &&
+                      !categoriesList.some(
+                        (c) =>
+                          c.name.toLowerCase() ===
+                          categoryInput.trim().toLowerCase(),
+                      ) && (
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleAddManualCategory(categoryInput);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-neutral-800 text-red-400 hover:text-red-300 transition-colors font-medium"
+                        >
+                          + Add "{categoryInput.trim()}"
+                        </button>
+                      )}
+                    {categoriesList.length === 0 &&
+                      categoryInput.trim() === "" && (
+                        <div className="px-4 py-2 text-sm text-neutral-500">
+                          Loading categories...
+                        </div>
+                      )}
+                  </div>
+                )}
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Duration (e.g. 10:24) *</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+                Duration (e.g. 10:24) *
+              </label>
               <input
                 type="text"
                 required
                 value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, duration: e.target.value })
+                }
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
                 placeholder="MM:SS"
               />
@@ -414,24 +530,29 @@ export function UploadPost() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Thumbnail URL *</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+                Thumbnail URL *
+              </label>
               <input
                 type="url"
                 required
                 value={formData.thumbnailUrl}
-                onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, thumbnailUrl: e.target.value })
+                }
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
                 placeholder="https://..."
               />
               {formData.thumbnailUrl && (
                 <div className="mt-3 relative w-full aspect-video rounded-lg overflow-hidden bg-neutral-950 border border-neutral-800">
-                  <img 
-                    src={formData.thumbnailUrl} 
+                  <img
+                    src={formData.thumbnailUrl}
                     alt="Thumbnail preview"
                     loading="lazy"
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+                      (e.target as HTMLImageElement).src =
+                        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
                     }}
                   />
                   <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-lg pointer-events-none" />
@@ -440,56 +561,70 @@ export function UploadPost() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Video URL *</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+                Video URL *
+              </label>
               <input
                 type="url"
                 required
                 value={formData.videoUrl}
-                onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, videoUrl: e.target.value })
+                }
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
                 placeholder="https://..."
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Tags (comma separated)</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+                Tags (comma separated)
+              </label>
               <input
                 type="text"
                 value={formData.tags}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, tags: e.target.value })
+                }
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
                 placeholder="action, comedy, drama"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Quality</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+                Quality
+              </label>
               <input
                 type="text"
                 value={formData.quality}
-                onChange={(e) => setFormData({ ...formData, quality: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, quality: e.target.value })
+                }
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-2.5 text-white focus:ring-1 focus:ring-red-500"
                 placeholder="HD, 4K, CAM, etc. (Optional)"
               />
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1.5">Badges</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+                Badges
+              </label>
               <div className="flex flex-wrap gap-2">
-                {availableBadges.map(badge => (
+                {availableBadges.map((badge) => (
                   <button
                     type="button"
                     key={badge}
                     onClick={() => {
                       const newBadges = formData.badges.includes(badge)
-                        ? formData.badges.filter(b => b !== badge)
+                        ? formData.badges.filter((b) => b !== badge)
                         : [...formData.badges, badge];
                       setFormData({ ...formData, badges: newBadges });
                     }}
                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
                       formData.badges.includes(badge)
-                        ? 'bg-red-500/20 border-red-500/50 text-red-500'
-                        : 'bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800'
+                        ? "bg-red-500/20 border-red-500/50 text-red-500"
+                        : "bg-neutral-900 border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800"
                     }`}
                   >
                     {badge}
@@ -507,21 +642,28 @@ export function UploadPost() {
               <div className="bg-neutral-800 p-2 rounded-lg">
                 <ImageIcon className="w-4 h-4 text-neutral-400" />
               </div>
-              <h3 className="text-sm font-semibold text-white">Video Gallery (Optional)</h3>
+              <h3 className="text-sm font-semibold text-white">
+                Video Gallery (Optional)
+              </h3>
             </div>
             <button
               type="button"
-              onClick={() => setFormData({ ...formData, gallery: [...formData.gallery, ''] })}
+              onClick={() =>
+                setFormData({ ...formData, gallery: [...formData.gallery, ""] })
+              }
               className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white rounded-lg text-sm font-medium transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
               Add Image
             </button>
           </div>
-          
+
           <div className="space-y-3">
             {formData.gallery.map((url, index) => (
-              <div key={index} className="flex items-start gap-3 group animate-fade-in">
+              <div
+                key={index}
+                className="flex items-start gap-3 group animate-fade-in"
+              >
                 <div className="flex-1">
                   <input
                     type="url"
@@ -538,13 +680,18 @@ export function UploadPost() {
                 <button
                   type="button"
                   onClick={() => {
-                    const newGallery = formData.gallery.length > 1 
-                      ? formData.gallery.filter((_, i) => i !== index)
-                      : ['']; // Keep at least one empty field
+                    const newGallery =
+                      formData.gallery.length > 1
+                        ? formData.gallery.filter((_, i) => i !== index)
+                        : [""]; // Keep at least one empty field
                     setFormData({ ...formData, gallery: newGallery });
                   }}
                   className="p-2.5 bg-neutral-900 border border-neutral-800 hover:border-red-500/50 text-neutral-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all flex-shrink-0"
-                  title={formData.gallery.length === 1 ? "Clear Image" : "Remove Image"}
+                  title={
+                    formData.gallery.length === 1
+                      ? "Clear Image"
+                      : "Remove Image"
+                  }
                 >
                   <Trash2 className="w-5 h-5" />
                 </button>
@@ -554,27 +701,37 @@ export function UploadPost() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-1.5">Description</label>
+          <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+            Description
+          </label>
           <textarea
             required
             rows={5}
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
             className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-white focus:ring-1 focus:ring-red-500 resize-none"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-1.5">Meta Description (SEO)</label>
+          <label className="block text-sm font-medium text-neutral-300 mb-1.5">
+            Meta Description (SEO)
+          </label>
           <textarea
             rows={2}
             maxLength={160}
             placeholder="120–160 character SEO description for search engines."
             value={formData.metaDescription}
-            onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, metaDescription: e.target.value })
+            }
             className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-white focus:ring-1 focus:ring-red-500 resize-none"
           />
-          <p className="text-xs text-neutral-500 mt-1.5">Leave empty to auto-generate from the description.</p>
+          <p className="text-xs text-neutral-500 mt-1.5">
+            Leave empty to auto-generate from the description.
+          </p>
         </div>
 
         <div className="flex gap-6 pt-2">
@@ -583,27 +740,59 @@ export function UploadPost() {
               <input
                 type="checkbox"
                 checked={formData.featured}
-                onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({ ...formData, featured: e.target.checked })
+                }
                 className="peer sr-only"
               />
               <div className="w-5 h-5 border-2 border-neutral-600 rounded bg-neutral-950 peer-checked:bg-red-500 peer-checked:border-red-500 transition-colors"></div>
-              <svg className="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              <svg
+                className="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
             </div>
-            <span className="text-sm font-medium text-neutral-300 group-hover:text-white transition-colors">Featured Post</span>
+            <span className="text-sm font-medium text-neutral-300 group-hover:text-white transition-colors">
+              Featured Post
+            </span>
           </label>
-          
+
           <label className="flex items-center gap-3 cursor-pointer group">
             <div className="relative flex items-center justify-center">
               <input
                 type="checkbox"
                 checked={formData.trending}
-                onChange={(e) => setFormData({ ...formData, trending: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({ ...formData, trending: e.target.checked })
+                }
                 className="peer sr-only"
               />
               <div className="w-5 h-5 border-2 border-neutral-600 rounded bg-neutral-950 peer-checked:bg-red-500 peer-checked:border-red-500 transition-colors"></div>
-              <svg className="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              <svg
+                className="absolute w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 pointer-events-none"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
             </div>
-            <span className="text-sm font-medium text-neutral-300 group-hover:text-white transition-colors">Trending Post</span>
+            <span className="text-sm font-medium text-neutral-300 group-hover:text-white transition-colors">
+              Trending Post
+            </span>
           </label>
         </div>
 
@@ -613,8 +802,12 @@ export function UploadPost() {
             disabled={loading}
             className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            {isEditMode ? 'Update Post' : 'Publish Post'}
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Save className="w-5 h-5" />
+            )}
+            {isEditMode ? "Update Post" : "Publish Post"}
           </button>
         </div>
       </form>

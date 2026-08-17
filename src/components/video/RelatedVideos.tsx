@@ -1,8 +1,8 @@
-import React, { memo, Fragment } from 'react';
-import { AdsterraNativeBanner } from '../ads/AdsterraNativeBanner';
-import { useRelatedVideos } from '../../hooks/useVideos';
-import { VideoCard } from '../ui/VideoCard';
-import { SkeletonCard } from '../ui/SkeletonCard';
+import React, { memo, Fragment } from "react";
+import { PromoWidget } from "../widgets/PromoWidget";
+import { useRelatedVideos } from "../../hooks/useVideos";
+import { VideoCard } from "../ui/VideoCard";
+import { SkeletonCard } from "../ui/SkeletonCard";
 
 interface RelatedVideosProps {
   videoId: string;
@@ -10,30 +10,40 @@ interface RelatedVideosProps {
   tags: string[];
 }
 
-export const RelatedVideos = memo(function RelatedVideos({ videoId, categories, tags }: RelatedVideosProps) {
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useRelatedVideos(videoId, categories, tags);
-  
-  const displayVideos = data?.pages.flatMap(page => page.videos) || [];
-  const title = 'Related Videos';
+export const RelatedVideos = memo(function RelatedVideos({
+  videoId,
+  categories,
+  tags,
+}: RelatedVideosProps) {
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useRelatedVideos(videoId, categories, tags);
+
+  const displayVideos = data?.pages.flatMap((page) => page.videos) || [];
+  const title = "Related Videos";
 
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">{title}</h3>
+        <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          {title}
+        </h3>
         <div className="h-1 w-10 bg-primary rounded-full mt-2 opacity-90 shadow-[0_0_10px_rgba(229,9,20,0.5)]" />
       </div>
-      
+
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 xl:gap-10 min-w-0 w-full">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
           : displayVideos.map((video, index) => (
-            <Fragment key={video.id}>
-              <VideoCard video={video} />
-              {(index === 4) && <AdsterraNativeBanner />}
-            </Fragment>
+              <Fragment key={video.id}>
+                <VideoCard video={video} />
+                {index === 4 && <PromoWidget />}
+              </Fragment>
+            ))}
+
+        {isFetchingNextPage &&
+          Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={`skel-${i}`} />
           ))}
-          
-        {isFetchingNextPage && Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={`skel-${i}`} />)}
       </div>
 
       {hasNextPage && (
@@ -47,7 +57,9 @@ export const RelatedVideos = memo(function RelatedVideos({ videoId, categories, 
               <span className="flex items-center justify-center gap-2">
                 Loading...
               </span>
-            ) : 'See More'}
+            ) : (
+              "See More"
+            )}
           </button>
         </div>
       )}

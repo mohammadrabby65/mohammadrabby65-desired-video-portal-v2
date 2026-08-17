@@ -312,7 +312,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
       />
 
       {showPoster && (
-        <div 
+        <div
           className="absolute inset-0 z-30 cursor-pointer group/poster overflow-hidden bg-neutral-900"
           onClick={async () => {
             if (videoRef.current) {
@@ -332,15 +332,14 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
           }}
         >
           {thumbnailUrl && (
-            <img 
-              src={thumbnailUrl} 
-              alt="Video poster" 
+            <img
+              src={thumbnailUrl}
+              alt="Video poster"
               className="absolute inset-0 w-full h-full object-cover   ease-out group-hover/poster:scale-105"
               referrerPolicy="no-referrer"
             />
           )}
-          
-          
+
           <div className="absolute inset-0 flex flex-col items-center justify-center scale-95 group-hover/poster:scale-100  ">
             <div className="w-24 h-24 bg-primary/90 text-white rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(229,9,20,0.4)]   group-hover/poster:bg-primary group-hover/poster:shadow-[0_0_60px_rgba(229,9,20,0.6)] backdrop-blur-md border border-white/20">
               <Play className="w-12 h-12 ml-2" fill="currentColor" />
@@ -384,9 +383,15 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
                   className="text-white hover:text-primary   focus:outline-none active:scale-90 hover:scale-110"
                 >
                   {isPlaying ? (
-                    <Pause className="w-6 h-6 sm:w-7 sm:h-7" fill="currentColor" />
+                    <Pause
+                      className="w-6 h-6 sm:w-7 sm:h-7"
+                      fill="currentColor"
+                    />
                   ) : (
-                    <Play className="w-6 h-6 sm:w-7 sm:h-7" fill="currentColor" />
+                    <Play
+                      className="w-6 h-6 sm:w-7 sm:h-7"
+                      fill="currentColor"
+                    />
                   )}
                 </button>
 
@@ -413,7 +418,9 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
                 </div>
 
                 <div className="text-white/90 text-xs sm:text-sm font-medium font-mono whitespace-nowrap tracking-wider">
-                  {formatTime(currentTime)} <span className="text-white/50 mx-1">/</span> {formatTime(duration)}
+                  {formatTime(currentTime)}{" "}
+                  <span className="text-white/50 mx-1">/</span>{" "}
+                  {formatTime(duration)}
                 </div>
               </div>
 
@@ -427,7 +434,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
 
                 <button
                   onClick={() => setShowSettings(!showSettings)}
-                  className={`text-white hover:text-primary   focus:outline-none active:scale-90 ${showSettings ? 'rotate-90' : 'hover:rotate-45'}`}
+                  className={`text-white hover:text-primary   focus:outline-none active:scale-90 ${showSettings ? "rotate-90" : "hover:rotate-45"}`}
                 >
                   <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>

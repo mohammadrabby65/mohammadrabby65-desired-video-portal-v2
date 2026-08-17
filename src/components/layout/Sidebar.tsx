@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, List, X, Flame, Clock } from 'lucide-react';
-import { usePublicCategories } from '../../hooks/useCategories';
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Home, List, X, Flame, Clock } from "lucide-react";
+import { usePublicCategories } from "../../hooks/useCategories";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -12,7 +12,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
 
   const { data: rawCategories = [], isLoading } = usePublicCategories(isOpen);
-  const categories = [...rawCategories].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  const categories = [...rawCategories].sort(
+    (a, b) => (a.displayOrder || 0) - (b.displayOrder || 0),
+  );
 
   return (
     <>
@@ -27,20 +29,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={`fixed top-0 left-0 bottom-0 w-64 bg-neutral-950 border-r border-neutral-800 z-50 transform    ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+          isOpen ? "translate-x-0" : "-translate-x-full"
         } overflow-y-auto`}
       >
         <div className="p-4 flex items-center justify-between border-b border-neutral-800">
           <Link to="/" onClick={onClose} className="flex items-center">
-            <img 
-              src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
-              alt="DesiredHub" 
+            <img
+              src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png"
+              alt="DesiredHub"
               className="h-10 w-auto object-contain dark:hidden"
               referrerPolicy="no-referrer"
             />
-            <img 
-              src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
-              alt="DesiredHub" 
+            <img
+              src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png"
+              alt="DesiredHub"
               className="h-10 w-auto object-contain hidden dark:block"
               referrerPolicy="no-referrer"
             />
@@ -58,9 +60,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             to="/"
             onClick={onClose}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold   ${
-              location.pathname === '/'
-                ? 'bg-primary/10 text-primary'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+              location.pathname === "/"
+                ? "bg-primary/10 text-primary"
+                : "text-neutral-400 hover:text-white hover:bg-neutral-800/50"
             }`}
           >
             <Home className="w-5 h-5" />
@@ -72,7 +74,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <List className="w-4 h-4" />
               Categories
             </div>
-            <Link to="/categories" onClick={onClose} className="hover:text-white ">View All</Link>
+            <Link
+              to="/categories"
+              onClick={onClose}
+              className="hover:text-white "
+            >
+              View All
+            </Link>
           </div>
 
           {isLoading ? (
@@ -85,8 +93,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 onClick={onClose}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold   ${
                   location.pathname === `/category/${cat.slug}`
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+                    ? "bg-primary/10 text-primary"
+                    : "text-neutral-400 hover:text-white hover:bg-neutral-800/50"
                 }`}
               >
                 {cat.name}
@@ -102,9 +110,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             to="/category/trending"
             onClick={onClose}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold   ${
-              location.pathname === '/category/trending'
-                ? 'bg-orange-500/10 text-orange-500'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+              location.pathname === "/category/trending"
+                ? "bg-orange-500/10 text-orange-500"
+                : "text-neutral-400 hover:text-white hover:bg-neutral-800/50"
             }`}
           >
             <Flame className="w-5 h-5 text-orange-500" />
@@ -115,9 +123,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             to="/category/latest"
             onClick={onClose}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-semibold   ${
-              location.pathname === '/category/latest'
-                ? 'bg-blue-500/10 text-blue-500'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+              location.pathname === "/category/latest"
+                ? "bg-blue-500/10 text-blue-500"
+                : "text-neutral-400 hover:text-white hover:bg-neutral-800/50"
             }`}
           >
             <Clock className="w-5 h-5 text-blue-500" />

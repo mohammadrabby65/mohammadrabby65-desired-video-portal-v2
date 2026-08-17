@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export function usePopunderRecovery() {
   const navigate = useNavigate();
@@ -13,13 +13,13 @@ export function usePopunderRecovery() {
 
       const target = e.target as HTMLElement;
       // Find the closest anchor tag (this handles clicks on inner elements like images)
-      const link = target.closest('a');
-      
+      const link = target.closest("a");
+
       if (link) {
-        const href = link.getAttribute('href');
-        
+        const href = link.getAttribute("href");
+
         // Target specifically our video links
-        if (href && href.startsWith('/video/')) {
+        if (href && href.startsWith("/video/")) {
           // If a popunder script (like Adsterra) intercepts the click via a global listener
           // and calls e.stopPropagation() or e.preventDefault(), React Router will never see
           // the event, and the user will be left stranded on the current page while the ad opens.
@@ -37,10 +37,10 @@ export function usePopunderRecovery() {
     // We must use the capturing phase (true) on the window object.
     // This ensures our listener runs BEFORE or ALONGSIDE the popunder's listener,
     // and BEFORE any stopPropagation() can kill the event path before it reaches React's root.
-    window.addEventListener('click', handleGlobalClick, true);
+    window.addEventListener("click", handleGlobalClick, true);
 
     return () => {
-      window.removeEventListener('click', handleGlobalClick, true);
+      window.removeEventListener("click", handleGlobalClick, true);
     };
   }, [navigate]);
 }

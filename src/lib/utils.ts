@@ -8,23 +8,23 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatViews(views?: number): string {
   if (views === undefined || views === null || isNaN(views)) {
-    return '0';
+    return "0";
   }
   if (views >= 1000000) {
-    return (views / 1000000).toFixed(1) + 'M';
+    return (views / 1000000).toFixed(1) + "M";
   }
   if (views >= 1000) {
-    return (views / 1000).toFixed(1) + 'K';
+    return (views / 1000).toFixed(1) + "K";
   }
   return views.toString();
 }
 
 export function formatTimeAgo(timestamp: any): string {
-  if (!timestamp) return '';
+  if (!timestamp) return "";
   try {
     const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
     return formatDistanceToNow(date, { addSuffix: true });
   } catch (e) {
-    return '';
+    return "";
   }
 }

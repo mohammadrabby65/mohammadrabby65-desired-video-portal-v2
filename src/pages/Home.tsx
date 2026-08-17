@@ -1,47 +1,62 @@
-import { useState, useMemo, useEffect, Fragment } from 'react';
-import { AdsterraNativeBanner } from '../components/ads/AdsterraNativeBanner';
-import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
-import { VideoCard } from '../components/ui/VideoCard';
-import { SkeletonCard } from '../components/ui/SkeletonCard';
-import { ChevronDown } from 'lucide-react';
-import { usePublicCategories } from '../hooks/useCategories';
-import { NavLink, useSearchParams } from 'react-router-dom';
-import { SEO } from '../components/seo/SEO';
-import { Pagination } from '../components/ui/Pagination';
+import { useState, useMemo, useEffect, Fragment } from "react";
+
+import { PromoWidget } from "../components/widgets/PromoWidget";
+
+import { usePaginationVideos, PaginationFilter } from "../hooks/useVideos";
+
+import { VideoCard } from "../components/ui/VideoCard";
+
+import { SkeletonCard } from "../components/ui/SkeletonCard";
+
+import { ChevronDown } from "lucide-react";
+
+import { usePublicCategories } from "../hooks/useCategories";
+
+import { NavLink, useSearchParams } from "react-router-dom";
+
+import { SEO } from "../components/seo/SEO";
+
+import { Pagination } from "../components/ui/Pagination";
 
 type SortOption = {
   label: string;
-  value: PaginationFilter['sortBy'];
+
+  value: PaginationFilter["sortBy"];
 };
 
 const SORT_OPTIONS: SortOption[] = [
-  { label: 'Newest', value: 'publishedAt' },
-  { label: 'Best', value: 'featured' },
-  { label: 'Most Viewed', value: 'views' },
-  { label: 'Longest', value: 'duration' },
-  { label: 'Random', value: 'random' },
+  { label: "Newest", value: "publishedAt" },
+  { label: "Best", value: "featured" },
+  { label: "Most Viewed", value: "views" },
+  { label: "Longest", value: "duration" },
+  { label: "Random", value: "random" },
 ];
 
 export function Home() {
   const [searchParams] = useSearchParams();
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const [sortBy, setSortBy] = useState<PaginationFilter['sortBy']>('publishedAt');
+
+  const page = parseInt(searchParams.get("page") || "1", 10);
+
+  const [sortBy, setSortBy] =
+    useState<PaginationFilter["sortBy"]>("publishedAt");
+
   const [isSortOpen, setIsSortOpen] = useState(false);
 
-  const filter: PaginationFilter = useMemo(() => ({
-    sortBy,
-  }), [sortBy]);
+  const filter: PaginationFilter = useMemo(
+    () => ({
+      sortBy,
+    }),
+    [sortBy],
+  );
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = usePaginationVideos(filter, 20, page);
+  const { data, isLoading, isError } = usePaginationVideos(filter, 20, page);
 
   const videos = data?.videos || [];
+
   const totalPages = data?.totalPages || 1;
 
   const { data: rawCategories = [] } = usePublicCategories(false);
+
   const categories = useMemo(() => {
     return [...rawCategories]
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
@@ -53,19 +68,18 @@ export function Home() {
   useEffect(() => {
     if (videos.length > 0 && randomVideos.length === 0) {
       const shuffled = [...videos].sort(() => 0.5 - Math.random());
+
       setRandomVideos(shuffled.slice(0, 12));
     }
   }, [videos, randomVideos.length]);
 
   return (
     <div className="flex-1 pb-20 pt-8 sm:pt-12">
-      <SEO 
+      <SEO
         title="DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online"
         description="Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality."
         exactTitle={true}
-        breadcrumbs={[
-          { name: "Home", item: "/" }
-        ]}
+        breadcrumbs={[{ name: "Home", item: "/" }]}
       />
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-20">
         <div className="mb-10 sm:mb-14">
@@ -76,33 +90,41 @@ export function Home() {
               </h2>
               <div className="h-1.5 w-12 bg-primary rounded-full mt-3 opacity-90 shadow-[0_0_12px_rgba(229,9,20,0.6)]" />
             </div>
-            
+
             <div className="relative">
               <button
                 onClick={() => setIsSortOpen(!isSortOpen)}
                 className="flex items-center justify-between w-full sm:w-auto gap-3 px-5 py-2.5 bg-neutral-900/60 backdrop-blur-md border border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/80 rounded-full text-sm font-medium text-neutral-300 hover:text-white shadow-sm hover:shadow-md group"
               >
-                <span>Sort by: <span className="text-white ml-1">{SORT_OPTIONS.find(opt => opt.value === sortBy)?.label}</span></span>
-                <ChevronDown className={`w-4 h-4 ${isSortOpen ? 'rotate-180 text-white' : 'text-neutral-400 group-hover:text-white'}`} />
+                <span>
+                  Sort by:{" "}
+                  <span className="text-white ml-1">
+                    {SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label}
+                  </span>
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 ${isSortOpen ? "rotate-180 text-white" : "text-neutral-400 group-hover:text-white"}`}
+                />
               </button>
               {isSortOpen && (
                 <>
-                  <div 
-                    className="fixed inset-0 z-10" 
+                  <div
+                    className="fixed inset-0 z-10"
                     onClick={() => setIsSortOpen(false)}
                   />
                   <div className="absolute right-0 mt-3 w-full sm:w-56 bg-neutral-900/95 backdrop-blur-xl border border-neutral-800 rounded-2xl shadow-2xl z-20 py-2 origin-top-right">
                     {SORT_OPTIONS.map((option) => (
                       <button
-                        key={option.value || 'none'}
+                        key={option.value || "none"}
                         onClick={() => {
                           setSortBy(option.value);
+
                           setIsSortOpen(false);
                         }}
                         className={`w-full text-left px-5 py-2.5 text-sm font-medium ${
                           sortBy === option.value
-                            ? 'bg-neutral-800/80 text-primary'
-                            : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-white hover:pl-6'
+                            ? "bg-neutral-800/80 text-primary"
+                            : "text-neutral-400 hover:bg-neutral-800/50 hover:text-white hover:pl-6"
                         }`}
                       >
                         {option.label}
@@ -113,21 +135,23 @@ export function Home() {
               )}
             </div>
           </div>
-          
+
           {categories.length > 0 && (
             <div className="flex overflow-x-auto gap-6 pb-4 pt-2 scrollbar-hide text-[15px] font-medium items-center mask-image-fade-edges">
               {categories.map((cat, index) => (
                 <div key={cat.id} className="flex items-center gap-6 shrink-0">
-                  <NavLink 
-                    to={`/category/${cat.slug}`} 
-                    className={({ isActive }) => 
-                      `whitespace-nowrap ${isActive ? 'text-primary font-semibold drop-shadow-[0_0_12px_rgba(229,9,20,0.5)]' : 'text-neutral-400 hover:text-white'}`
+                  <NavLink
+                    to={`/category/${cat.slug}`}
+                    className={({ isActive }) =>
+                      `whitespace-nowrap ${isActive ? "text-primary font-semibold drop-shadow-[0_0_12px_rgba(229,9,20,0.5)]" : "text-neutral-400 hover:text-white"}`
                     }
                   >
                     {cat.name}
                   </NavLink>
                   {index < categories.length - 1 && (
-                    <span className="text-neutral-800/80 select-none text-[10px]">●</span>
+                    <span className="text-neutral-800/80 select-none text-[10px]">
+                      ●
+                    </span>
                   )}
                 </div>
               ))}
@@ -137,37 +161,42 @@ export function Home() {
 
         {isError ? (
           <div className="text-center py-20 bg-neutral-900/20 backdrop-blur-sm rounded-3xl border border-red-900/30">
-            <p className="text-red-500 font-medium tracking-wide">Error loading videos. Please try again later.</p>
+            <p className="text-red-500 font-medium tracking-wide">
+              Error loading videos. Please try again later.
+            </p>
           </div>
         ) : !isLoading && videos.length === 0 ? (
           <div className="text-center py-28 bg-neutral-900/20 backdrop-blur-sm rounded-3xl border border-neutral-800/50 shadow-inner">
             <div className="w-20 h-20 bg-neutral-900 border border-neutral-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
               <span className="text-3xl opacity-50">🎬</span>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">No videos found</h2>
+            <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">
+              No videos found
+            </h2>
             <p className="text-neutral-400 max-w-md mx-auto text-[15px]">
-              There are currently no videos for this selection. Try adjusting your filters.
+              There are currently no videos for this selection. Try adjusting
+              your filters.
             </p>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 xl:gap-10">
-              {isLoading ? (
-                Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
-              ) : (
-                videos.map((video, index) => (
-                  <Fragment key={video.id}>
-                    <VideoCard video={video} priority={index < 4} />
-                    {(index === 4) && <AdsterraNativeBanner />}
-                  </Fragment>
-                ))
-              )}
+              {isLoading
+                ? Array.from({ length: 20 }).map((_, i) => (
+                    <SkeletonCard key={i} />
+                  ))
+                : videos.map((video, index) => (
+                    <Fragment key={video.id}>
+                      <VideoCard video={video} priority={index < 4} />
+                      {index === 4 && <PromoWidget />}
+                    </Fragment>
+                  ))}
             </div>
             <Pagination currentPage={page} totalPages={totalPages} />
           </>
         )}
       </section>
-      
+
       {/* Description Section */}
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">
         <div className="bg-neutral-900/40 backdrop-blur-md border border-neutral-800/60 rounded-3xl p-6 sm:p-10 shadow-lg">
@@ -175,7 +204,13 @@ export function Home() {
             Free Desi Porn & Hot Indian Bengali Sex Videos Online
           </h1>
           <p className="text-neutral-400 text-sm sm:text-[15px] leading-relaxed">
-            desiredhub.xyz features a carousel packed with the hottest desi sex videos and raw xxx porn. Watch gorgeous Indian girls, horny bhabhis, and mature aunties enjoying intense encounters. Videos play automatically with smooth performance, titles are displayed directly on thumbnails, and the entire experience is fully optimized for mobile devices. Discover fresh, rarely seen clips with uninterrupted raw desi action designed to keep visitors engaged.
+            desiredhub.xyz features a carousel packed with the hottest desi sex
+            videos and raw xxx porn. Watch gorgeous Indian girls, horny bhabhis,
+            and mature aunties enjoying intense encounters. Videos play
+            automatically with smooth performance, titles are displayed directly
+            on thumbnails, and the entire experience is fully optimized for
+            mobile devices. Discover fresh, rarely seen clips with uninterrupted
+            raw desi action designed to keep visitors engaged.
           </p>
         </div>
       </section>
@@ -196,7 +231,6 @@ export function Home() {
           </div>
         </section>
       )}
-
     </div>
   );
 }

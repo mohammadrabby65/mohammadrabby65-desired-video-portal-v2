@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, X, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from "react";
+import { ChevronLeft, ChevronRight, X, Image as ImageIcon } from "lucide-react";
 
 interface VideoGalleryProps {
   images?: string[];
@@ -16,35 +16,41 @@ export function VideoGallery({ images }: VideoGalleryProps) {
   const openLightbox = (index: number) => {
     setCurrentIndex(index);
     setLightboxOpen(true);
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
   };
 
   const closeLightbox = useCallback(() => {
     setLightboxOpen(false);
-    document.body.style.overflow = '';
+    document.body.style.overflow = "";
   }, []);
 
-  const goToNext = useCallback((e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  }, [images.length]);
+  const goToNext = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    },
+    [images.length],
+  );
 
-  const goToPrev = useCallback((e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  }, [images.length]);
+  const goToPrev = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    },
+    [images.length],
+  );
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!lightboxOpen) return;
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowRight') goToNext();
-      if (e.key === 'ArrowLeft') goToPrev();
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") goToNext();
+      if (e.key === "ArrowLeft") goToPrev();
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxOpen, closeLightbox, goToNext, goToPrev]);
 
   // Swipe handlers for mobile

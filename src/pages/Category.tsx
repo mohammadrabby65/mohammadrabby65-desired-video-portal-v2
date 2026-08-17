@@ -1,35 +1,36 @@
-import { Fragment } from 'react';
-import { AdsterraNativeBanner } from '../components/ads/AdsterraNativeBanner';
+import { Fragment } from "react";
+import { PromoWidget } from "../components/widgets/PromoWidget";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { SEO } from "../components/seo/SEO";
 import { ChevronDown } from "lucide-react";
-import { usePaginationVideos, PaginationFilter } from '../hooks/useVideos';
+import { usePaginationVideos, PaginationFilter } from "../hooks/useVideos";
 import { usePublicCategories } from "../hooks/useCategories";
-import { Pagination } from '../components/ui/Pagination';
+import { Pagination } from "../components/ui/Pagination";
 
-type SortOption = 'publishedAt' | 'featured' | 'views' | 'duration' | 'random';
+type SortOption = "publishedAt" | "featured" | "views" | "duration" | "random";
 
 const SORT_OPTIONS: { label: string; value: SortOption }[] = [
-  { label: 'Newest', value: 'publishedAt' },
-  { label: 'Best', value: 'featured' },
-  { label: 'Most Viewed', value: 'views' },
-  { label: 'Longest', value: 'duration' },
-  { label: 'Random', value: 'random' },
+  { label: "Newest", value: "publishedAt" },
+  { label: "Best", value: "featured" },
+  { label: "Most Viewed", value: "views" },
+  { label: "Longest", value: "duration" },
+  { label: "Random", value: "random" },
 ];
 
 export function Category() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  
-  const [sortBy, setSortBy] = useState<SortOption>('publishedAt');
+  const page = parseInt(searchParams.get("page") || "1", 10);
+
+  const [sortBy, setSortBy] = useState<SortOption>("publishedAt");
   const [isSortOpen, setIsSortOpen] = useState(false);
 
   // Try to find the exact category name by slug from categories API
-  const { data: categories = [], isPending: isCategoryPending } = usePublicCategories();
+  const { data: categories = [], isPending: isCategoryPending } =
+    usePublicCategories();
   const categoryData = categories.find((cat) => cat.slug === slug) || null;
 
   const categoryName =
@@ -38,27 +39,29 @@ export function Category() {
       ? slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, " ")
       : "Category");
 
-  const filter: PaginationFilter = useMemo(() => ({
-    category: slug,
-    sortBy
-  }), [slug, sortBy]);
+  const filter: PaginationFilter = useMemo(
+    () => ({
+      category: slug,
+      sortBy,
+    }),
+    [slug, sortBy],
+  );
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = usePaginationVideos(filter, 20, page);
+  const { data, isLoading, isError } = usePaginationVideos(filter, 20, page);
 
   const videos = data?.videos || [];
   const totalPages = data?.totalPages || 1;
 
-  const jsonLd = useMemo(() => ({
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: `${categoryName} Videos`,
-    description: `Browse the best ${categoryName} videos.`,
-    url: typeof window !== "undefined" ? window.location.href : "",
-  }), [categoryName]);
+  const jsonLd = useMemo(
+    () => ({
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: `${categoryName} Videos`,
+      description: `Browse the best ${categoryName} videos.`,
+      url: typeof window !== "undefined" ? window.location.href : "",
+    }),
+    [categoryName],
+  );
 
   return (
     <div className="flex-1 pb-20 pt-8 sm:pt-10">
@@ -68,17 +71,21 @@ export function Category() {
         jsonLd={jsonLd}
         breadcrumbs={[
           { name: "Home", item: "/" },
-          { name: categoryName, item: `/category/${slug}` }
+          { name: categoryName, item: `/category/${slug}` },
         ]}
       />
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">
         <nav className="flex text-neutral-400 text-[13px] font-medium mb-6">
           <ol className="flex items-center space-x-2.5">
             <li>
-              <Link to="/" className="hover:text-white">Home</Link>
+              <Link to="/" className="hover:text-white">
+                Home
+              </Link>
             </li>
             <li className="text-neutral-600">/</li>
-            <li className="text-neutral-200 truncate" aria-current="page">{categoryName}</li>
+            <li className="text-neutral-200 truncate" aria-current="page">
+              {categoryName}
+            </li>
           </ol>
         </nav>
         <div className="mb-8">
@@ -94,7 +101,8 @@ export function Category() {
                 onClick={() => setIsSortOpen(!isSortOpen)}
                 className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 rounded-full text-[13px] font-semibold text-neutral-300 hover:text-white shadow-sm hover:shadow-md w-full sm:w-auto justify-between group"
               >
-                Sort by: {SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label}
+                Sort by:{" "}
+                {SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label}
                 <ChevronDown className="w-4 h-4 text-neutral-400 group-hover:text-white" />
               </button>
 
@@ -127,16 +135,18 @@ export function Category() {
             </div>
           </div>
           {categoryData?.description && (
-          <p className="text-neutral-400 text-[15px] max-w-3xl leading-relaxed">
+            <p className="text-neutral-400 text-[15px] max-w-3xl leading-relaxed">
               {categoryData.description}
             </p>
           )}
         </div>
 
         {isError ? (
-           <div className="text-center py-12">
-             <p className="text-red-500">Error loading videos. Please try again later.</p>
-           </div>
+          <div className="text-center py-12">
+            <p className="text-red-500">
+              Error loading videos. Please try again later.
+            </p>
+          </div>
         ) : !isLoading && !isCategoryPending && videos.length === 0 ? (
           <div className="text-center py-20 bg-neutral-900/30 rounded-2xl border border-neutral-800/50">
             <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -159,7 +169,7 @@ export function Category() {
                 : videos.map((video: any, index: number) => (
                     <Fragment key={video.id}>
                       <VideoCard video={video} priority={index < 4} />
-                      {(index === 4) && <AdsterraNativeBanner />}
+                      {index === 4 && <PromoWidget />}
                     </Fragment>
                   ))}
             </div>

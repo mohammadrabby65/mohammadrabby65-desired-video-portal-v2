@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom';
-import { useAdminStats, useAdminPosts } from '../../hooks/useAdmin';
-import { FileVideo, ListVideo, Eye, Plus, FolderKanban } from 'lucide-react';
-import { formatTimeAgo, formatViews } from '../../lib/utils';
+import { Link } from "react-router-dom";
+import { useAdminStats, useAdminPosts } from "../../hooks/useAdmin";
+import { FileVideo, ListVideo, Eye, Plus, FolderKanban } from "lucide-react";
+import { formatTimeAgo, formatViews } from "../../lib/utils";
 
 export function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
@@ -10,8 +10,10 @@ export function Dashboard() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard Overview</h1>
-        <Link 
+        <h1 className="text-2xl font-bold text-white tracking-tight">
+          Dashboard Overview
+        </h1>
+        <Link
           to="/admin/posts/new"
           className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
         >
@@ -29,7 +31,7 @@ export function Dashboard() {
           <div>
             <p className="text-neutral-400 text-sm font-medium">Total Posts</p>
             <h3 className="text-2xl font-bold text-white mt-1">
-              {statsLoading ? '...' : stats?.totalPosts}
+              {statsLoading ? "..." : stats?.totalPosts}
             </h3>
           </div>
         </div>
@@ -41,7 +43,7 @@ export function Dashboard() {
           <div>
             <p className="text-neutral-400 text-sm font-medium">Categories</p>
             <h3 className="text-2xl font-bold text-white mt-1">
-              {statsLoading ? '...' : stats?.totalCategories}
+              {statsLoading ? "..." : stats?.totalCategories}
             </h3>
           </div>
         </div>
@@ -53,7 +55,7 @@ export function Dashboard() {
           <div>
             <p className="text-neutral-400 text-sm font-medium">Total Views</p>
             <h3 className="text-2xl font-bold text-white mt-1">
-              {statsLoading ? '...' : stats?.totalViews}
+              {statsLoading ? "..." : stats?.totalViews}
             </h3>
           </div>
         </div>
@@ -62,7 +64,10 @@ export function Dashboard() {
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
         <div className="p-5 border-b border-neutral-800 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">Recent Posts</h2>
-          <Link to="/admin/posts" className="text-sm text-red-500 hover:text-red-400 font-medium">
+          <Link
+            to="/admin/posts"
+            className="text-sm text-red-500 hover:text-red-400 font-medium"
+          >
             View All
           </Link>
         </div>
@@ -79,22 +84,47 @@ export function Dashboard() {
             <tbody className="divide-y divide-neutral-800 text-neutral-300">
               {postsLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-neutral-500">Loading recent posts...</td>
+                  <td
+                    colSpan={4}
+                    className="px-5 py-8 text-center text-neutral-500"
+                  >
+                    Loading recent posts...
+                  </td>
                 </tr>
               ) : postsData?.posts.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-5 py-8 text-center text-neutral-500">No posts found</td>
+                  <td
+                    colSpan={4}
+                    className="px-5 py-8 text-center text-neutral-500"
+                  >
+                    No posts found
+                  </td>
                 </tr>
               ) : (
                 postsData?.posts.map((post) => (
-                  <tr key={post.id} className="hover:bg-neutral-800/50 transition-colors">
+                  <tr
+                    key={post.id}
+                    className="hover:bg-neutral-800/50 transition-colors"
+                  >
                     <td className="px-5 py-3 flex items-center gap-3">
-                      <img src={post.thumbnailUrl} alt={post.title} loading="lazy" className="w-12 h-8 rounded object-cover bg-neutral-800" />
-                      <span className="font-medium truncate max-w-[200px] md:max-w-[300px]">{post.title}</span>
+                      <img
+                        src={post.thumbnailUrl}
+                        alt={post.title}
+                        loading="lazy"
+                        className="w-12 h-8 rounded object-cover bg-neutral-800"
+                      />
+                      <span className="font-medium truncate max-w-[200px] md:max-w-[300px]">
+                        {post.title}
+                      </span>
                     </td>
-                    <td className="px-5 py-3">{(post.categories || []).join(', ') || (post as any).category}</td>
+                    <td className="px-5 py-3">
+                      {(post.categories || []).join(", ") ||
+                        (post as any).category}
+                    </td>
                     <td className="px-5 py-3">{formatViews(post.views)}</td>
-                    <td className="px-5 py-3 text-neutral-400">{formatTimeAgo(post.publishedAt)}</td>
+                    <td className="px-5 py-3 text-neutral-400">
+                      {formatTimeAgo(post.publishedAt)}
+                    </td>
                   </tr>
                 ))
               )}

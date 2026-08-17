@@ -117,14 +117,20 @@ export function ManagePosts() {
                             {post.title}
                           </span>
                           <span className="text-xs text-neutral-500">
-                            {post.duration}{post.quality ? ` • ${post.quality}` : ''}
+                            {post.duration}
+                            {post.quality ? ` • ${post.quality}` : ""}
                           </span>
                         </div>
                       </div>
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {(post.categories ? post.categories : ((post as any).category ? [(post as any).category] : [])).map(cat => (
+                        {(post.categories
+                          ? post.categories
+                          : (post as any).category
+                            ? [(post as any).category]
+                            : []
+                        ).map((cat) => (
                           <Link
                             key={cat}
                             to={`/category/${cat

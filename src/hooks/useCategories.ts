@@ -1,15 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
-import { Category } from '../types';
+import { useQuery } from "@tanstack/react-query";
+import { Category } from "../types";
 
 export function usePublicCategories(enabled = true) {
   return useQuery({
-    queryKey: ['public-categories-all'],
+    queryKey: ["public-categories-all"],
     queryFn: async () => {
-      const res = await fetch('/api/categories');
+      const res = await fetch("/api/categories");
       if (!res.ok) {
-        throw new Error('Failed to fetch categories');
+        throw new Error("Failed to fetch categories");
       }
-      const data = await res.json(); console.log("Fetched categories:", data.length);
+      const data = await res.json();
+      console.log("Fetched categories:", data.length);
       return data as Category[];
     },
     enabled,

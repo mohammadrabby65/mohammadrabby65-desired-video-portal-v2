@@ -1,8 +1,8 @@
-import React, { memo } from 'react';
-import { Link } from 'react-router-dom';
-import { VideoPost } from '../../types';
-import { formatTimeAgo } from '../../lib/utils';
-import { Play } from 'lucide-react';
+import React, { memo } from "react";
+import { Link } from "react-router-dom";
+import { VideoPost } from "../../types";
+import { formatTimeAgo } from "../../lib/utils";
+import { Play } from "lucide-react";
 
 interface VideoCardProps {
   video: VideoPost;
@@ -10,16 +10,21 @@ interface VideoCardProps {
   priority?: boolean;
 }
 
-export const VideoCard = memo(function VideoCard({ video, priority = false }: VideoCardProps) {
+export const VideoCard = memo(function VideoCard({
+  video,
+  priority = false,
+}: VideoCardProps) {
   return (
     <Link to={`/video/${video.slug}`} className="group flex flex-col gap-3">
       <div className="relative aspect-video rounded-xl overflow-hidden bg-neutral-900 border border-neutral-800 isolate">
-        
         {/* CSS Skeleton Base */}
         <div className="absolute inset-0 bg-neutral-800/50 -z-10 rounded-xl" />
 
         <img
-          src={video.thumbnailUrl || "https://placehold.co/600x400/171717/333333?text=No+Thumbnail"}
+          src={
+            video.thumbnailUrl ||
+            "https://placehold.co/600x400/171717/333333?text=No+Thumbnail"
+          }
           alt={video.title}
           loading={priority ? "eager" : "lazy"}
           {...(priority ? { fetchPriority: "high" as any } : {})}
@@ -40,18 +45,21 @@ export const VideoCard = memo(function VideoCard({ video, priority = false }: Vi
         <div className="absolute bottom-2.5 right-2.5 z-20 bg-black/50 backdrop-blur-md border border-pure-white/10 px-2 py-1 rounded-md text-[11px] font-semibold text-pure-white tracking-wide whitespace-nowrap">
           {video.duration}
         </div>
-        
+
         {/* Top Badges Area */}
         {video.badges && video.badges.length > 0 && (
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[calc(100%-40px)] z-20">
-            {video.badges.map(badge => (
-              <div key={badge} className="bg-primary/90 backdrop-blur-md border border-pure-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider uppercase">
+            {video.badges.map((badge) => (
+              <div
+                key={badge}
+                className="bg-primary/90 backdrop-blur-md border border-pure-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider uppercase"
+              >
                 {badge}
               </div>
             ))}
           </div>
         )}
-        
+
         {/* Quality Badge */}
         {video.quality && (
           <div className="absolute top-3 right-3 z-20 bg-pure-white/10 backdrop-blur-md border border-pure-white/20 px-2 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider uppercase">
@@ -59,7 +67,7 @@ export const VideoCard = memo(function VideoCard({ video, priority = false }: Vi
           </div>
         )}
       </div>
-      
+
       {/* Typography & Metadata */}
       <div className="flex flex-col px-1 min-w-0 w-full gap-1.5">
         <h3 className="text-[15px] sm:text-base font-semibold text-neutral-100 line-clamp-2 leading-snug group-hover:text-primary break-words tracking-tight">

@@ -11,7 +11,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/admin/ProtectedRoute";
 
 const Home = lazy(() =>
-  import("./pages/Home").then((module) => ({ default: module.Home })),
+  import("./pages/Home?v=2").then((module) => ({ default: module.Home })),
 );
 const Video = lazy(() =>
   import("./pages/Video").then((module) => ({ default: module.Video })),
@@ -29,10 +29,14 @@ const DMCA = lazy(() =>
   import("./pages/DMCA").then((module) => ({ default: module.DMCA })),
 );
 const Compliance2257 = lazy(() =>
-  import("./pages/Compliance2257").then((module) => ({ default: module.Compliance2257 })),
+  import("./pages/Compliance2257").then((module) => ({
+    default: module.Compliance2257,
+  })),
 );
 const PrivacyPolicy = lazy(() =>
-  import("./pages/PrivacyPolicy").then((module) => ({ default: module.PrivacyPolicy })),
+  import("./pages/PrivacyPolicy").then((module) => ({
+    default: module.PrivacyPolicy,
+  })),
 );
 const Login = lazy(() =>
   import("./pages/admin/Login").then((module) => ({ default: module.Login })),
@@ -53,7 +57,9 @@ const ManagePosts = lazy(() =>
   })),
 );
 const Categories = lazy(() =>
-  import("./pages/Categories").then((module) => ({ default: module.Categories })),
+  import("./pages/Categories").then((module) => ({
+    default: module.Categories,
+  })),
 );
 const AdminCategories = lazy(() =>
   import("./pages/admin/Categories").then((module) => ({
@@ -80,9 +86,9 @@ const Profile = lazy(() =>
     default: module.Profile,
   })),
 );
-const Advertisements = lazy(() =>
-  import("./pages/admin/Advertisements").then((module) => ({
-    default: module.Advertisements,
+const Promotions = lazy(() =>
+  import("./pages/admin/Promotions").then((module) => ({
+    default: module.Promotions,
   })),
 );
 
@@ -93,7 +99,7 @@ export default function App() {
   useEffect(() => {
     // Scroll to top on route change
     window.scrollTo(0, 0);
-    
+
     if (typeof window !== "undefined" && (window as any).gtag) {
       (window as any).gtag("event", "page_view", {
         page_path: location.pathname + location.search,
@@ -103,15 +109,16 @@ export default function App() {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    
+
     const applyTheme = (theme: "dark" | "light") => {
       document.documentElement.classList.remove("light", "dark");
       document.documentElement.classList.add(theme);
       document.documentElement.style.colorScheme = theme;
-      
+
       // Sync immediate background to prevent flickering
-      document.documentElement.style.backgroundColor = theme === "dark" ? "#0a0a0a" : "#f9fafb";
-      
+      document.documentElement.style.backgroundColor =
+        theme === "dark" ? "#0a0a0a" : "#f9fafb";
+
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) {
         meta.setAttribute("content", theme === "dark" ? "#0a0a0a" : "#f9fafb");
@@ -188,7 +195,7 @@ export default function App() {
             <Route path="categories" element={<AdminCategories />} />
             <Route path="dead-urls" element={<DeadUrls />} />
             <Route path="analytics" element={<Analytics />} />
-            <Route path="ads" element={<Advertisements />} />
+            <Route path="ads" element={<Promotions />} />
             <Route path="settings" element={<Settings />} />
             <Route path="profile" element={<Profile />} />
           </Route>

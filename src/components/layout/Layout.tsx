@@ -3,7 +3,7 @@ import { Link, Outlet } from "react-router-dom";
 import { Menu, User } from "lucide-react";
 import { LiveSearch } from "./LiveSearch";
 import { Sidebar } from "./Sidebar";
-import { AdInjector } from "./AdInjector";
+import { ScriptManager } from "./ScriptManager";
 import { usePopunderRecovery } from "../../hooks/usePopunderRecovery";
 
 export function Layout() {
@@ -12,11 +12,11 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col w-full overflow-x-hidden relative selection:bg-primary/30 selection:text-white">
-      <AdInjector />
+      <ScriptManager />
       <header className="sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-xl border-b border-neutral-800   shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-4 min-w-0 shrink">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 hover:bg-white/10 rounded-full    group relative"
               aria-label="Menu"
@@ -24,17 +24,20 @@ export function Layout() {
               <Menu className="w-6 h-6 text-neutral-300 group-hover:text-white  relative z-10" />
               <div className="absolute inset-0 rounded-full bg-white/5 opacity-0 group-hover:opacity-100  " />
             </button>
-            <Link to="/" className="flex items-center min-w-0 shrink   hover:scale-[1.02]  group relative">
+            <Link
+              to="/"
+              className="flex items-center min-w-0 shrink   hover:scale-[1.02]  group relative"
+            >
               <div className="absolute -inset-2 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-xl opacity-0 group-hover:opacity-100  " />
-              <img 
-                src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
-                alt="DesiredHub" 
+              <img
+                src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png"
+                alt="DesiredHub"
                 className="h-10 sm:h-12 md:h-[50px] w-auto max-w-[150px] sm:max-w-[200px] md:max-w-none object-contain dark:hidden group-hover:brightness-110 transition-all relative z-10"
                 referrerPolicy="no-referrer"
               />
-              <img 
-                src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
-                alt="DesiredHub" 
+              <img
+                src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png"
+                alt="DesiredHub"
                 className="h-10 sm:h-12 md:h-[50px] w-auto max-w-[150px] sm:max-w-[200px] md:max-w-none object-contain hidden dark:block group-hover:brightness-110 transition-all drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.2)] relative z-10"
                 referrerPolicy="no-referrer"
               />
@@ -42,7 +45,10 @@ export function Layout() {
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <LiveSearch />
-            <Link to="/admin" className="p-2 rounded-full    group relative overflow-hidden flex items-center justify-center">
+            <Link
+              to="/admin"
+              className="p-2 rounded-full    group relative overflow-hidden flex items-center justify-center"
+            >
               <div className="absolute inset-0 bg-neutral-800/0 group-hover:bg-white/10 rounded-full  " />
               <div className="bg-neutral-900/80 backdrop-blur-md p-2 rounded-full group-hover:bg-transparent  border border-neutral-700/50 group-hover:border-transparent shadow-sm relative z-10">
                 <User className="w-5 h-5 text-neutral-400 group-hover:text-white  " />
@@ -51,7 +57,7 @@ export function Layout() {
           </div>
         </div>
       </header>
-      
+
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       <main className="flex-1 flex flex-col min-w-0 w-full overflow-x-hidden">

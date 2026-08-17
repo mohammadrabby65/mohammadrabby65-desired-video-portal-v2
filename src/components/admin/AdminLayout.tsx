@@ -1,19 +1,31 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileVideo, ListVideo, FolderKanban, BarChart3, Settings, LogOut, Menu, UserCircle, Link as LinkIcon, DollarSign } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useState } from 'react';
-import { SEO } from '../seo/SEO';
+import { Link, Outlet, useLocation } from "react-router-dom";
+import {
+  LayoutDashboard,
+  FileVideo,
+  ListVideo,
+  FolderKanban,
+  BarChart3,
+  Settings,
+  LogOut,
+  Menu,
+  UserCircle,
+  Link as LinkIcon,
+  DollarSign,
+} from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
+import { useState } from "react";
+import { SEO } from "../seo/SEO";
 
 const MENU_ITEMS = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
-  { icon: FileVideo, label: 'Upload Post', path: '/admin/posts/new' },
-  { icon: ListVideo, label: 'Manage Posts', path: '/admin/posts' },
-  { icon: FolderKanban, label: 'Categories', path: '/admin/categories' },
-  { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
-  { icon: LinkIcon, label: 'Dead URLs', path: '/admin/dead-urls' },
-  { icon: DollarSign, label: 'Ads', path: '/admin/ads' },
-  { icon: Settings, label: 'Settings', path: '/admin/settings' },
-  { icon: UserCircle, label: 'Profile', path: '/admin/profile' },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
+  { icon: FileVideo, label: "Upload Post", path: "/admin/posts/new" },
+  { icon: ListVideo, label: "Manage Posts", path: "/admin/posts" },
+  { icon: FolderKanban, label: "Categories", path: "/admin/categories" },
+  { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
+  { icon: LinkIcon, label: "Dead URLs", path: "/admin/dead-urls" },
+  { icon: DollarSign, label: "Ads", path: "/admin/ads" },
+  { icon: Settings, label: "Settings", path: "/admin/settings" },
+  { icon: UserCircle, label: "Profile", path: "/admin/profile" },
 ];
 
 export function AdminLayout() {
@@ -23,7 +35,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-neutral-950 flex text-neutral-200">
-      <SEO 
+      <SEO
         title="Admin Dashboard - DesiredHub"
         description="DesiredHub admin control panel to manage categories, video uploads, posts, and settings."
         exactTitle={true}
@@ -31,25 +43,27 @@ export function AdminLayout() {
       />
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden" 
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside
+        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-neutral-900 border-r border-neutral-800 flex flex-col transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+      >
         <div className="h-16 flex items-center px-6 border-b border-neutral-800">
           <Link to="/" className="flex items-center gap-2">
-            <img 
-              src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
-              alt="DesiredHub" 
+            <img
+              src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png"
+              alt="DesiredHub"
               className="h-10 md:h-[52px] w-auto object-contain dark:hidden"
               referrerPolicy="no-referrer"
             />
-            <img 
-              src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
-              alt="DesiredHub" 
+            <img
+              src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png"
+              alt="DesiredHub"
               className="h-10 md:h-[52px] w-auto object-contain hidden dark:block"
               referrerPolicy="no-referrer"
             />
@@ -58,17 +72,22 @@ export function AdminLayout() {
             </span>
           </Link>
         </div>
-        
+
         <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
           {MENU_ITEMS.map((item) => {
-            const isActive = location.pathname === item.path || (item.path !== '/admin' && location.pathname.startsWith(item.path));
+            const isActive =
+              location.pathname === item.path ||
+              (item.path !== "/admin" &&
+                location.pathname.startsWith(item.path));
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsSidebarOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                  isActive ? 'bg-red-500/10 text-red-500 font-medium' : 'hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200'
+                  isActive
+                    ? "bg-red-500/10 text-red-500 font-medium"
+                    : "hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200"
                 }`}
               >
                 <item.icon className="w-5 h-5" />
@@ -79,7 +98,7 @@ export function AdminLayout() {
         </nav>
 
         <div className="p-4 border-t border-neutral-800">
-          <button 
+          <button
             onClick={() => logout()}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-left text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors"
           >
@@ -92,22 +111,22 @@ export function AdminLayout() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         <header className="h-16 lg:hidden flex items-center px-4 border-b border-neutral-800 bg-neutral-900 sticky top-0 z-30">
-          <button 
+          <button
             onClick={() => setIsSidebarOpen(true)}
             className="p-2 -ml-2 rounded-lg hover:bg-neutral-800"
           >
             <Menu className="w-6 h-6" />
           </button>
           <div className="ml-3 flex items-center gap-2">
-            <img 
-              src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png" 
-              alt="DesiredHub" 
+            <img
+              src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png"
+              alt="DesiredHub"
               className="h-10 md:h-[52px] w-auto object-contain dark:hidden"
               referrerPolicy="no-referrer"
             />
-            <img 
-              src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png" 
-              alt="DesiredHub" 
+            <img
+              src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png"
+              alt="DesiredHub"
               className="h-10 md:h-[52px] w-auto object-contain hidden dark:block"
               referrerPolicy="no-referrer"
             />
@@ -116,7 +135,7 @@ export function AdminLayout() {
             </span>
           </div>
         </header>
-        
+
         <div className="p-4 md:p-8 flex-1 overflow-y-auto">
           <Outlet />
         </div>

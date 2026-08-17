@@ -1,5 +1,5 @@
-import { Helmet } from 'react-helmet-async';
-import { SITE_URL } from '../../config';
+import { Helmet } from "react-helmet-async";
+import { SITE_URL } from "../../config";
 
 let hasHydrated = false;
 
@@ -30,31 +30,47 @@ interface SEOProps {
   };
 }
 
-export function SEO({ title, description, image, url, exactTitle = false, noIndex = false, robots, prevUrl, nextUrl, jsonLd, breadcrumbs, video }: SEOProps) {
-  const isInitialSSR = typeof window !== 'undefined' && !hasHydrated && !!document.querySelector('title[data-rh="true"]');
-  if (typeof window !== 'undefined' && !hasHydrated) {
+export function SEO({
+  title,
+  description,
+  image,
+  url,
+  exactTitle = false,
+  noIndex = false,
+  robots,
+  prevUrl,
+  nextUrl,
+  jsonLd,
+  breadcrumbs,
+  video,
+}: SEOProps) {
+  const isInitialSSR =
+    typeof window !== "undefined" &&
+    !hasHydrated &&
+    !!document.querySelector('title[data-rh="true"]');
+  if (typeof window !== "undefined" && !hasHydrated) {
     hasHydrated = true;
   }
   const skipCoreSeo = isInitialSSR;
 
-  const siteTitle = 'DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online';
+  const siteTitle =
+    "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online";
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
-  let currentPath = '';
-  if (typeof window !== 'undefined') {
+  let currentPath = "";
+  if (typeof window !== "undefined") {
     currentPath = window.location.pathname;
-    if (currentPath === '/search') {
+    if (currentPath === "/search") {
       const searchParams = new URLSearchParams(window.location.search);
-      const q = searchParams.get('q');
+      const q = searchParams.get("q");
       if (q) {
         const canonicalParams = new URLSearchParams();
-        canonicalParams.set('q', q);
+        canonicalParams.set("q", q);
         currentPath += `?${canonicalParams.toString()}`;
       }
     }
   }
   const currentUrl = url || `${SITE_URL}${currentPath}`;
-  const ogImage = image || 'https://i.ibb.co.com/fV4JS3LH/20260701-143429.png';
-
+  const ogImage = image || "https://i.ibb.co.com/fV4JS3LH/20260701-143429.png";
 
   return (
     <Helmet>
@@ -62,31 +78,38 @@ export function SEO({ title, description, image, url, exactTitle = false, noInde
         <>
           <title data-rh="true">{fullTitle}</title>
           <meta data-rh="true" name="description" content={description} />
-          {currentUrl && <link data-rh="true" rel="canonical" href={currentUrl} />}
+          {currentUrl && (
+            <link data-rh="true" rel="canonical" href={currentUrl} />
+          )}
         </>
       )}
-      <meta data-rh="true" name="robots" content={robots || (noIndex ? "noindex,nofollow" : "index,follow")} />
-      
+      <meta
+        data-rh="true"
+        name="robots"
+        content={robots || (noIndex ? "noindex,nofollow" : "index,follow")}
+      />
+
       {/* Canonical URL */}
       {prevUrl && <link data-rh="true" rel="prev" href={prevUrl} />}
       {nextUrl && <link data-rh="true" rel="next" href={nextUrl} />}
-      {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
+      {jsonLd && (
+        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+      )}
       {breadcrumbs && (
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
-            "itemListElement": breadcrumbs.map((b, idx) => ({
+            itemListElement: breadcrumbs.map((b, idx) => ({
               "@type": "ListItem",
-              "position": idx + 1,
-              "name": b.name,
-              "item": b.item.startsWith("http") ? b.item : `${SITE_URL}${b.item}`
-            }))
+              position: idx + 1,
+              name: b.name,
+              item: b.item.startsWith("http") ? b.item : `${SITE_URL}${b.item}`,
+            })),
           })}
         </script>
       )}
 
-      
       {/* Open Graph / Facebook */}
       <meta property="og:site_name" content="DesiredHub" />
       <meta property="og:locale" content="en_US" />

@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo } from "react";
 
 export const SkeletonCard = memo(function SkeletonCard() {
   return (

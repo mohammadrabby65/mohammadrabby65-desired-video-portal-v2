@@ -1,11 +1,11 @@
-import { useNavigate } from 'react-router-dom';
-import { Search as SearchIcon } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { Search as SearchIcon } from "lucide-react";
 
 export function LiveSearch() {
   const navigate = useNavigate();
   return (
-    <button 
-      onClick={() => navigate('/search')}
+    <button
+      onClick={() => navigate("/search")}
       className="p-2.5 rounded-full transition-all duration-200 group relative"
       aria-label="Search"
     >
