@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, increment, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
 import fs from "fs";
 
@@ -705,6 +705,48 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       next();
     }
   }
+
+  
+
+  app.post("/api/video/:id/view", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const videoIndex = publicDataSnapshot.posts.findIndex(v => v.id === id);
+      if (videoIndex === -1) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      
+      const video = publicDataSnapshot.posts[videoIndex];
+      const currentViews = video.views || 0;
+      
+      publicDataSnapshot.posts[videoIndex].views = currentViews + 1;
+      
+      let p = 1.0;
+      let inc = 1;
+      
+      if (currentViews > 10000) {
+        p = 0.01;
+        inc = 100;
+      } else if (currentViews > 1000) {
+        p = 0.02;
+        inc = 50;
+      } else if (currentViews > 100) {
+        p = 0.1;
+        inc = 10;
+      }
+      
+      if (Math.random() < p) {
+        const docRef = doc(db, 'posts', id);
+        await updateDoc(docRef, { views: increment(inc) });
+      }
+      
+      res.json({ success: true });
+    } catch (err) {
+      console.error("View API Error", err);
+      res.status(500).json({ success: false });
+    }
+  });
 
   app.get("/", (req, res, next) => {
     renderSeoPage(req, res, next, "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online", "Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality.", `${SITE_URL}/`);

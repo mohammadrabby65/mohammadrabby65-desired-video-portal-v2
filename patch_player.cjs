@@ -1,53 +1,80 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/components/video/VideoPlayer.tsx', 'utf8');
 
-code = code.replace(
-`  const checkAndRedirectTelegram = (): boolean => {
-    try {
-      const redirectDone = localStorage.getItem("desiredhub_telegram_redirect_done");
-      if (!redirectDone) {
-        localStorage.setItem("desiredhub_telegram_redirect_done", "true");
-        window.open("https://t.me/+WBulzWgERLA4Nzhl", "_blank");
-        return true;
-      }
-    } catch (e) {
-      console.error("Error with Telegram redirect:", e);
-    }
-    return false;
-  };`,
-`  const checkAndRedirectTelegram = () => {
-    try {
-      const redirectDone = localStorage.getItem("desiredhub_telegram_joined");
-      if (!redirectDone) {
-        localStorage.setItem("desiredhub_telegram_joined", "true");
-        window.open("https://t.me/+WBulzWgERLA4Nzhl", "_blank");
-      }
-    } catch (e) {
-      console.error("Error with Telegram redirect:", e);
-    }
-  };`
-);
+if (!code.includes('videoId?: string')) {
+  code = code.replace(
+    'interface VideoPlayerProps {',
+    'interface VideoPlayerProps {\n  videoId?: string;'
+  );
+  code = code.replace(
+    'export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {',
+    'export function VideoPlayer({ videoUrl, thumbnailUrl, videoId }: VideoPlayerProps) {'
+  );
+}
 
-code = code.replace(
-`      } else {
-        if (checkAndRedirectTelegram()) {
-          return;
+const refsToAdd = `
+  const accumulatedPlayTime = useRef(0);
+  const lastTimeRef = useRef(0);
+  const viewReported = useRef(false);
+
+  useEffect(() => {
+    accumulatedPlayTime.current = 0;
+    lastTimeRef.current = 0;
+    viewReported.current = false;
+  }, [videoId]);
+`;
+if (!code.includes('accumulatedPlayTime')) {
+  code = code.replace(
+    'const progressRef = useRef<HTMLDivElement>(null);',
+    'const progressRef = useRef<HTMLDivElement>(null);' + refsToAdd
+  );
+}
+
+const timeUpdateReplacement = `
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const current = videoRef.current.currentTime;
+      setCurrentTime(current);
+      setDuration(videoRef.current.duration);
+
+      if (videoId && !viewReported.current && !videoRef.current.paused) {
+        const diff = current - lastTimeRef.current;
+        if (diff > 0 && diff < 1.0) {
+          accumulatedPlayTime.current += diff;
         }
-        videoRef.current.play();`,
-`      } else {
-        checkAndRedirectTelegram();
-        videoRef.current.play();`
-);
+        if (accumulatedPlayTime.current >= 4) {
+          viewReported.current = true;
+          
+          const storageKey = \`viewed_\${videoId}\`;
+          const lastViewedStr = localStorage.getItem(storageKey);
+          const now = Date.now();
+          let shouldReport = true;
+          if (lastViewedStr) {
+             const lastViewed = parseInt(lastViewedStr, 10);
+             if (!isNaN(lastViewed) && (now - lastViewed < 24 * 60 * 60 * 1000)) {
+                 shouldReport = false;
+             }
+          }
+          
+          if (shouldReport) {
+             fetch(\`/api/video/\${videoId}/view\`, { method: "POST" })
+               .then(res => {
+                   if (res.ok) {
+                       localStorage.setItem(storageKey, now.toString());
+                   }
+               })
+               .catch(err => console.error("View reporting failed", err));
+          }
+        }
+      }
+      lastTimeRef.current = current;
+    }
+  };
+`;
 
 code = code.replace(
-`          onClick={async () => {
-            if (checkAndRedirectTelegram()) {
-              return;
-            }
-            if (videoRef.current) {`,
-`          onClick={async () => {
-            checkAndRedirectTelegram();
-            if (videoRef.current) {`
+  /const handleTimeUpdate = \(\) => {[\s\S]*?};\n/,
+  timeUpdateReplacement
 );
 
 fs.writeFileSync('src/components/video/VideoPlayer.tsx', code);

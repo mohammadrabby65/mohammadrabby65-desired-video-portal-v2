@@ -80,23 +80,23 @@ export function VideoGallery({ images }: VideoGalleryProps) {
 
   return (
     <div className="w-full min-w-0 my-6">
-      <div className="flex overflow-x-auto gap-4 sm:gap-5 pb-4 pt-2 scrollbar-hide snap-x snap-mandatory scroll-smooth px-2 -mx-2">
+      <div className="flex w-full max-w-full overflow-x-auto overflow-y-hidden gap-3 sm:gap-4 pb-4 pt-2 px-1 scrollbar-hide snap-x snap-mandatory">
         {images.map((img, idx) => (
           <button
             key={idx}
             onClick={() => openLightbox(idx)}
-            className="relative flex-none w-[120px] sm:w-[140px] md:w-[160px] aspect-[9/16] rounded-2xl overflow-hidden group cursor-pointer border border-neutral-800/50 hover:border-neutral-600   shadow-[0_8px_20px_-6px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_24px_-6px_rgba(0,0,0,0.7)] bg-neutral-900 snap-center active:scale-[0.96]"
+            className="relative flex-none w-[140px] sm:w-[160px] md:w-[180px] lg:w-[200px] shrink-0 aspect-[9/16] rounded-2xl overflow-hidden group cursor-pointer border border-neutral-800/50 hover:border-neutral-600 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.5)] hover:shadow-[0_12px_24px_-6px_rgba(0,0,0,0.7)] bg-neutral-900 active:scale-[0.98] transition-all snap-center"
             aria-label={`View image ${idx + 1} of ${images.length}`}
           >
-            <div className="absolute inset-0 bg-neutral-800/50 " />
+            <div className="absolute inset-0 bg-neutral-800/50" />
             <img
               src={img}
               alt={`Gallery image ${idx + 1}`}
               loading="lazy"
               decoding="async"
-              className="absolute inset-0 w-full h-full object-cover    group-"
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10  " />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
           </button>
         ))}
       </div>

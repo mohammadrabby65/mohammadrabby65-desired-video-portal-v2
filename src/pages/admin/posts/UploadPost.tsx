@@ -662,7 +662,7 @@ export function UploadPost() {
             {formData.gallery.map((url, index) => (
               <div
                 key={index}
-                className="flex items-start gap-3 group animate-fade-in"
+                className="flex items-start gap-3 group "
               >
                 <div className="flex-1">
                   <input

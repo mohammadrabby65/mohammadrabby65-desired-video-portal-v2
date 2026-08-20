@@ -1,4 +1,6 @@
-import { useState, useMemo, useEffect, Fragment } from "react";
+const fs = require('fs');
+
+const homeContent = `import { useState, useMemo, useEffect, Fragment } from "react";
 import { PromoWidget } from "../components/widgets/PromoWidget";
 import { usePaginationVideos, PaginationFilter } from "../hooks/useVideos";
 import { VideoCard } from "../components/ui/VideoCard";
@@ -32,7 +34,7 @@ export function Home() {
     data,
     isLoading,
     isError,
-  } = usePaginationVideos({ sortBy }, 20, page);
+  } = usePaginationVideos(page, 20, { sortBy });
 
   const videos = data?.videos || [];
   const totalPages = data?.totalPages || 1;
@@ -73,13 +75,13 @@ export function Home() {
             {categories.map((cat) => (
               <NavLink
                 key={cat.id}
-                to={`/category/${cat.slug}`}
+                to={\`/category/\${cat.slug}\`}
                 className={({ isActive }) =>
-                  `whitespace-nowrap px-4 py-1.5 rounded-full font-medium transition-colors ${
+                  \`whitespace-nowrap px-4 py-1.5 rounded-full font-medium transition-colors \${
                     isActive 
                       ? "bg-primary text-white" 
                       : "bg-neutral-900 text-neutral-300 hover:bg-neutral-800 hover:text-white border border-neutral-800"
-                  }`
+                  }\`
                 }
               >
                 {cat.name}
@@ -106,7 +108,7 @@ export function Home() {
             {/* Premium Featured / Hero Video */}
             {!isLoading && heroVideo && page === 1 && (
               <div className="mb-10 sm:mb-12">
-                <Link to={`/video/${heroVideo.slug}`} className="group relative block aspect-video sm:aspect-[21/9] lg:aspect-[2.5/1] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-800 isolate">
+                <Link to={\`/video/\${heroVideo.slug}\`} className="group relative block aspect-video sm:aspect-[21/9] lg:aspect-[2.5/1] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-800 isolate">
                   <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent z-10" />
                   <img 
                     src={heroVideo.thumbnailUrl} 
@@ -161,7 +163,7 @@ export function Home() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                   {randomVideos.map((video) => (
-                    <VideoCard key={`trending-${video.id}`} video={video} enablePreview={true} />
+                    <VideoCard key={\`trending-\${video.id}\`} video={video} enablePreview={true} />
                   ))}
                 </div>
               </div>
@@ -171,7 +173,7 @@ export function Home() {
             <div className="mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-neutral-800 pb-4">
                 <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
-                  {page === 1 ? "Newest Videos" : `Page ${page} Videos`}
+                  {page === 1 ? "Newest Videos" : \`Page \${page} Videos\`}
                 </h2>
                 <div className="relative">
                   <button
@@ -181,7 +183,7 @@ export function Home() {
                     <span>
                       Sort by: <span className="text-white ml-1">{SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label}</span>
                     </span>
-                    <ChevronDown className={`w-4 h-4 ${isSortOpen ? "rotate-180 text-white" : "text-neutral-400"}`} />
+                    <ChevronDown className={\`w-4 h-4 \${isSortOpen ? "rotate-180 text-white" : "text-neutral-400"}\`} />
                   </button>
                   {isSortOpen && (
                     <>
@@ -194,11 +196,11 @@ export function Home() {
                               setSortBy(option.value);
                               setIsSortOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                            className={\`w-full text-left px-4 py-2 text-sm font-medium transition-colors \${
                               sortBy === option.value
                                 ? "bg-neutral-800 text-primary"
                                 : "text-neutral-400 hover:bg-neutral-800 hover:text-white"
-                            }`}
+                            }\`}
                           >
                             {option.label}
                           </button>
@@ -244,3 +246,6 @@ export function Home() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/pages/Home.tsx', homeContent);

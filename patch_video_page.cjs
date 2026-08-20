@@ -1,12 +1,8 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { useVideoBySlug, useAdjacentVideos } from "../hooks/useVideos";
-import { VideoPlayer } from "../components/video/VideoPlayer";
-import { VideoGallery } from "../components/video/VideoGallery";
-import { RelatedVideos } from "../components/video/RelatedVideos";
-import { SEO } from "../components/seo/SEO";
-import { formatTimeAgo } from "../lib/utils";
-import {
+const fs = require('fs');
+let code = fs.readFileSync('src/pages/Video.tsx', 'utf8');
+
+const importRegex = /import \{\s*ThumbsUp,\s*Heart,\s*Share2,\s*Tag,\s*Flag,\s*Copy,\s*ChevronLeft,\s*ChevronRight,\s*Download,\s*\}\s*from "lucide-react";/;
+code = code.replace(importRegex, `import {
   ThumbsUp,
   Share2,
   Flag,
@@ -18,169 +14,19 @@ import {
   Clock,
   Calendar,
   MoreVertical
-} from "lucide-react";
+} from "lucide-react";`);
 
-const formatIsoDuration = (duration: string) => {
-  if (!duration) return undefined;
-  const parts = duration.split(":").map(Number);
-  if (parts.length === 3) {
-    return `PT${parts[0]}H${parts[1]}M${parts[2]}S`;
-  } else if (parts.length === 2) {
-    return `PT${parts[0]}M${parts[1]}S`;
-  } else if (parts.length === 1) {
-    return `PT${parts[0]}S`;
-  }
-  return undefined;
-};
+// Main replacement
+const startMain = '<div className="flex-1 max-w-[1400px] min-w-0">';
+const endMain = '          {/* Sidebar / Related Videos */}';
 
-export function Video() {
-  const { slug } = useParams<{ slug: string }>();
+const startIndex = code.indexOf(startMain);
+const endIndex = code.indexOf(endMain);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [slug]);
-
-  const { data: video, isLoading, isError } = useVideoBySlug(slug);
-  const { data: adjacent } = useAdjacentVideos(video?.publishedAt, video?.slug);
-  const [isTagsExpanded, setIsTagsExpanded] = useState(false);
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert("Link copied to clipboard!");
-  };
-
-  const handleReport = () => {
-    alert("Thank you for your report. Our team will review this content.");
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex-1 min-w-0 p-4 container mx-auto">
-        <div className="flex flex-col lg:flex-row gap-0 sm:gap-6 min-w-0 w-full">
-          <div className="flex-1">
-            <div className="w-full aspect-video bg-neutral-900 rounded-xl mb-4" />
-            <div className="h-8 bg-neutral-900 rounded w-3/4 mb-2" />
-            <div className="h-4 bg-neutral-900 rounded w-1/4 mb-6" />
-            <div className="h-20 bg-neutral-900 rounded w-full" />
-          </div>
-          <div className="w-full lg:w-[400px]">
-            <div className="h-6 bg-neutral-900 rounded w-1/2 mb-4" />
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex gap-2">
-                  <div className="w-32 sm:w-40 aspect-video bg-neutral-900 rounded-lg shrink-0" />
-                  <div className="flex-1 space-y-2 min-w-0">
-                    <div className="h-4 bg-neutral-900 rounded w-full" />
-                    <div className="h-3 bg-neutral-900 rounded w-1/2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isError || !video) {
-    return (
-      <div className="flex-1 p-4 container mx-auto flex items-center justify-center min-h-[50vh]">
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold text-neutral-300">
-            Video not found
-          </h2>
-          <p className="text-neutral-500">
-            The video you are looking for does not exist or has been removed.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const categoryName = video.categories?.[0] || (video as any).category;
-  const categorySlug = categoryName
-    ? categoryName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)+/g, "")
-    : null;
-
-  const breadcrumbs = [
-    { name: "Home", item: "/" },
-    ...(categoryName && categorySlug
-      ? [{ name: categoryName, item: `/category/${categorySlug}` }]
-      : []),
-    { name: video.title, item: `/video/${video.slug}` },
-  ];
-
-  let metaDesc = video.metaDescription || "";
-  if (!metaDesc) {
-    let text = (video.description || "").replace(/\s+/g, " ").trim();
-    if (text.length > 155) {
-      let cutoff = text.substring(0, 153).lastIndexOf(" ");
-      if (cutoff === -1) cutoff = 152;
-      metaDesc = text.substring(0, cutoff).trim() + "...";
-    } else {
-      metaDesc = text;
-    }
-  }
-
-  return (
-    <>
-      <SEO
-        title={`${video.title} - DesiredHub`}
-        description={metaDesc}
-        image={video.thumbnailUrl}
-        exactTitle={true}
-        breadcrumbs={breadcrumbs}
-        video={{
-          name: video.title,
-          description: metaDesc,
-          thumbnailUrl: video.thumbnailUrl,
-          uploadDate: video.publishedAt?.toDate
-            ? video.publishedAt.toDate().toISOString()
-            : new Date().toISOString(),
-          ...(video.duration && {
-            duration: formatIsoDuration(video.duration),
-          }),
-          contentUrl: video.videoUrl,
-        }}
-      />
-      <div className="flex-1 min-w-0 sm:p-6 lg:p-8 max-w-[1920px] mx-auto pb-20 w-full overflow-x-hidden">
-        <nav className="flex text-neutral-400 text-[13px] font-medium mb-4 sm:mb-6 px-4 sm:px-0 min-w-0 w-full overflow-hidden">
-          <ol className="flex items-center space-x-2.5 min-w-0 w-full">
-            <li className="shrink-0">
-              <Link to="/" className="hover:text-white ">
-                Home
-              </Link>
-            </li>
-            {categoryName && categorySlug && (
-              <>
-                <li className="shrink-0 text-neutral-600">/</li>
-                <li className="shrink-0 min-w-0 truncate max-w-[120px] sm:max-w-none">
-                  <Link
-                    to={`/category/${categorySlug}`}
-                    className="hover:text-white  truncate block"
-                  >
-                    {categoryName}
-                  </Link>
-                </li>
-              </>
-            )}
-            <li className="shrink-0 text-neutral-600">/</li>
-            <li
-              className="text-neutral-200 truncate min-w-0"
-              aria-current="page"
-            >
-              {video.title}
-            </li>
-          </ol>
-        </nav>
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 min-w-0 w-full">
-          {/* Main Video Section */}
-          <div className="flex-1 max-w-[1400px] min-w-0">
+if (startIndex !== -1 && endIndex !== -1) {
+  const replacement = `<div className="flex-1 max-w-[1400px] min-w-0">
             {/* Premium Player Container */}
-            <div className="sm:rounded-2xl lg:rounded-[24px] overflow-hidden bg-black shadow-[0_8px_30px_rgb(0,0,0,0.6)] sm:border border-white/5 sm:ring-1 ring-white/10 relative w-full">
+            <div className="rounded-2xl lg:rounded-[24px] overflow-hidden bg-black shadow-[0_8px_30px_rgb(0,0,0,0.6)] border border-white/5 ring-1 ring-white/10 relative">
               <div className="relative w-full aspect-video bg-black">
                 <VideoPlayer
                   videoId={video.id}
@@ -191,7 +37,7 @@ export function Video() {
             </div>
 
             {/* Video Meta Info */}
-            <div className="mt-5 sm:mt-6 flex flex-col min-w-0 w-full px-4 sm:px-0 lg:px-2">
+            <div className="mt-5 sm:mt-6 flex flex-col min-w-0 w-full px-1 lg:px-2">
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white leading-tight break-words tracking-tight">
                 {video.title}
               </h1>
@@ -282,7 +128,7 @@ export function Video() {
                   ).map((cat) => (
                     <Link
                       key={cat}
-                      to={`/category/${cat.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}`}
+                      to={\`/category/\${cat.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}\`}
                     >
                       <span className="bg-white/5 border border-white/10 hover:bg-white/10 text-neutral-300 hover:text-white px-3 py-1.5 rounded-full text-[13px] font-semibold transition-colors shadow-sm inline-flex">
                         {cat}
@@ -296,7 +142,7 @@ export function Video() {
                         : video.tags.slice(0, 8)
                       ).map((tag) => (
                         <Link
-                          to={`/tag/${tag.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}`}
+                          to={\`/tag/\${tag.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}\`}
                           key={tag}
                           className="text-neutral-500 hover:text-neutral-300 bg-transparent px-2 py-1 rounded-full text-[13px] font-medium transition-colors inline-flex"
                         >
@@ -316,7 +162,7 @@ export function Video() {
                 </div>
                 
                 <div className="relative">
-                  <p className={`text-neutral-300 text-[14px] sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words ${!isTagsExpanded ? 'line-clamp-3' : ''}`}>
+                  <p className={\`text-neutral-300 text-[14px] sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words \${!isTagsExpanded ? 'line-clamp-3' : ''}\`}>
                     {video.description}
                   </p>
                   {!isTagsExpanded && video.description && video.description.length > 150 && (
@@ -337,7 +183,7 @@ export function Video() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
                   {adjacent.next ? (
                     <Link
-                      to={`/video/${adjacent.next.slug}`}
+                      to={\`/video/\${adjacent.next.slug}\`}
                       className="flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/5 p-4 sm:p-5 rounded-2xl group transition-all shadow-sm"
                     >
                       <div className="bg-white/5 group-hover:bg-white/10 p-2 rounded-full shrink-0 transition-colors">
@@ -357,7 +203,7 @@ export function Video() {
                   )}
                   {adjacent.prev ? (
                     <Link
-                      to={`/video/${adjacent.prev.slug}`}
+                      to={\`/video/\${adjacent.prev.slug}\`}
                       className="flex items-center justify-end text-right gap-4 bg-white/5 hover:bg-white/10 border border-white/5 p-4 sm:p-5 rounded-2xl group transition-all shadow-sm"
                     >
                       <div className="min-w-0">
@@ -378,23 +224,10 @@ export function Video() {
                 </div>
               )}
             </div>
-          </div>
-          {/* Sidebar / Related Videos */}
-          <div className="w-full lg:w-[400px] xl:w-[450px] px-4 sm:px-0 mt-6 lg:mt-0">
-            <RelatedVideos
-              videoId={video.id}
-              categories={
-                video.categories
-                  ? video.categories
-                  : (video as any).category
-                    ? [(video as any).category]
-                    : []
-              }
-              tags={video.tags}
-            />
-          </div>
-        </div>
-      </div>
-    </>
-  );
+          </div>\n`;
+  code = code.substring(0, startIndex) + replacement + code.substring(endIndex);
+  fs.writeFileSync('src/pages/Video.tsx', code);
+  console.log("Patched successfully");
+} else {
+  console.log("Failed to find boundaries");
 }

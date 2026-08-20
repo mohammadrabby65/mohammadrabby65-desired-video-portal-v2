@@ -11,7 +11,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/admin/ProtectedRoute";
 
 const Home = lazy(() =>
-  import("./pages/Home?v=2").then((module) => ({ default: module.Home })),
+  import("./pages/Home").then((module) => ({ default: module.Home })),
 );
 const Video = lazy(() =>
   import("./pages/Video").then((module) => ({ default: module.Video })),

@@ -188,7 +188,7 @@ export function Search() {
   };
 
   return (
-    <div className="flex-1 flex flex-col w-full animate-fade-in">
+    <div className="flex-1 flex flex-col w-full ">
       <SEO
         title={
           queryTextUrl
@@ -249,7 +249,7 @@ export function Search() {
       <main className="flex-1 container mx-auto max-w-4xl px-4 py-6">
         {showSuggestionsOverlay ? (
           /* Suggestions / Recent / Popular Section */
-          <div className="max-w-2xl mx-auto space-y-8 animate-fade-in">
+          <div className="max-w-2xl mx-auto space-y-8 ">
             {queryText.trim() ? (
               <div className="bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden shadow-sm">
                 {isFetchingSuggestions && !suggestions.length ? (
@@ -353,7 +353,7 @@ export function Search() {
           </div>
         ) : (
           /* Search Results Section */
-          <div className="animate-fade-in">
+          <div className="">
             <div className="mb-6 px-2">
               <h2 className="text-xl md:text-2xl font-bold text-neutral-100 flex items-center gap-2 tracking-tight">
                 Results for "{queryTextUrl}"

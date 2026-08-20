@@ -1,20 +1,9 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/components/video/RelatedVideos.tsx', 'utf8');
+let code = fs.readFileSync('src/components/video/RelatedVideos.tsx', 'utf8');
 
-if (!content.includes('AdsterraNativeBanner')) {
-  content = content.replace(
-    "import React, { memo } from 'react';",
-    "import React, { memo, Fragment } from 'react';\nimport { AdsterraNativeBanner } from '../ads/AdsterraNativeBanner';"
-  );
+code = code.replace(
+  /className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 xl:gap-10 min-w-0 w-full"/,
+  'className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-5 min-w-0 w-full"'
+);
 
-  content = content.replace(
-    /displayVideos\.map\(\s*video\s*=>\s*<VideoCard key=\{video\.id\} video=\{video\} \/>\)/g,
-    `displayVideos.map((video, index) => (
-            <Fragment key={video.id}>
-              <VideoCard video={video} />
-              {(index === 4 || index === 14) && <AdsterraNativeBanner />}
-            </Fragment>
-          ))`
-  );
-  fs.writeFileSync('src/components/video/RelatedVideos.tsx', content);
-}
+fs.writeFileSync('src/components/video/RelatedVideos.tsx', code);

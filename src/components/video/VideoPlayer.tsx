@@ -14,15 +14,26 @@ import {
 } from "lucide-react";
 
 interface VideoPlayerProps {
+  videoId?: string;
   videoUrl: string;
   thumbnailUrl?: string;
 }
 
-export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
+export function VideoPlayer({ videoUrl, thumbnailUrl, videoId }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const progressRef = useRef<HTMLDivElement>(null);
+  const accumulatedPlayTime = useRef(0);
+  const lastTimeRef = useRef(0);
+  const viewReported = useRef(false);
+
+  useEffect(() => {
+    accumulatedPlayTime.current = 0;
+    lastTimeRef.current = 0;
+    viewReported.current = false;
+  }, [videoId]);
+
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -161,10 +172,49 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
     }
   };
 
+  
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+      const current = videoRef.current.currentTime;
+      setCurrentTime(current);
       setDuration(videoRef.current.duration);
+
+      if (videoId && !viewReported.current && !videoRef.current.paused) {
+        const diff = current - lastTimeRef.current;
+        if (diff > 0 && diff < 1.0) {
+          accumulatedPlayTime.current += diff;
+        }
+        if (accumulatedPlayTime.current >= 4) {
+          viewReported.current = true;
+          
+          const storageKey = `viewed_${videoId}`;
+          const lastViewedStr = localStorage.getItem(storageKey);
+          const now = Date.now();
+          let shouldReport = true;
+          if (lastViewedStr) {
+             const lastViewed = parseInt(lastViewedStr, 10);
+             if (!isNaN(lastViewed) && (now - lastViewed < 24 * 60 * 60 * 1000)) {
+                 shouldReport = false;
+             }
+          }
+          
+          if (shouldReport) {
+             fetch(`/api/video/${videoId}/view`, { method: "POST" })
+               .then(res => {
+                   if (res.ok) {
+                       localStorage.setItem(storageKey, now.toString());
+                   } else {
+                       viewReported.current = false;
+                   }
+               })
+               .catch(err => {
+                   console.error("View reporting failed", err);
+                   viewReported.current = false;
+               });
+          }
+        }
+      }
+      lastTimeRef.current = current;
     }
   };
 
@@ -288,9 +338,33 @@ export function VideoPlayer({ videoUrl, thumbnailUrl }: VideoPlayerProps) {
       onMouseLeave={handleMouseLeave}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
-          <Loader2 className="w-10 h-10 text-red-500 " />
+      {loading && !playError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10 backdrop-blur-sm transition-opacity duration-300" aria-label="Loading video">
+          <div className="relative flex items-center justify-center w-20 h-20 mb-6">
+            {/* Expanding Pulse Rings */}
+            <div className="absolute inset-0 rounded-full border border-primary/60 animate-desired-ring-1"></div>
+            <div className="absolute inset-0 rounded-full border border-primary/40 animate-desired-ring-2"></div>
+            <div className="absolute inset-0 rounded-full border border-primary/20 animate-desired-ring-3"></div>
+            
+            {/* Rotating Progress Ring */}
+            <div className="absolute -inset-2 rounded-full border border-transparent border-t-primary/80 border-l-primary/30 animate-desired-spin"></div>
+            
+            {/* Center Play Emblem */}
+            <div className="relative w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(229,9,20,0.6)] animate-desired-glow">
+              <Play className="w-6 h-6 text-white fill-white ml-1" />
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-white/90 text-[11px] sm:text-xs font-bold tracking-[0.2em] uppercase">
+              Loading Video
+            </span>
+            <div className="flex gap-1 text-primary text-sm sm:text-base leading-none">
+              <span className="animate-desired-dot-1">•</span>
+              <span className="animate-desired-dot-2">•</span>
+              <span className="animate-desired-dot-3">•</span>
+            </div>
+          </div>
         </div>
       )}
 
