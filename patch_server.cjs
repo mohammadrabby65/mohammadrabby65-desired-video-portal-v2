@@ -1,61 +1,32 @@
 const fs = require('fs');
 let code = fs.readFileSync('server.ts', 'utf8');
 
-if (!code.includes(' increment,')) {
-  code = code.replace(
-    'updateDoc, getCountFromServer',
-    'updateDoc, getCountFromServer, increment'
-  );
-}
+const anchor = `  app.get("/api/videos/adjacent", async (req, res) => {`;
 
-const endpoint = `
-
-  app.post("/api/video/:id/view", async (req, res) => {
+const patch = `  app.get("/api/videos/random-slug", async (req, res) => {
     try {
-      const { id } = req.params;
-      
-      const videoIndex = publicDataSnapshot.posts.findIndex(v => v.id === id);
-      if (videoIndex === -1) {
-        return res.status(404).json({ error: "Not found" });
+      await ensureSnapshot();
+      const posts = publicDataSnapshot.posts;
+      if (posts.length === 0) {
+        return res.status(404).json({ error: "No videos found" });
       }
-      
-      const video = publicDataSnapshot.posts[videoIndex];
-      const currentViews = video.views || 0;
-      
-      publicDataSnapshot.posts[videoIndex].views = currentViews + 1;
-      
-      let p = 1.0;
-      let inc = 1;
-      
-      if (currentViews > 10000) {
-        p = 0.01;
-        inc = 100;
-      } else if (currentViews > 1000) {
-        p = 0.02;
-        inc = 50;
-      } else if (currentViews > 100) {
-        p = 0.1;
-        inc = 10;
-      }
-      
-      if (Math.random() < p) {
-        const docRef = doc(db, 'posts', id);
-        await updateDoc(docRef, { views: increment(inc) });
-      }
-      
-      res.json({ success: true });
+      const randomVideo = posts[Math.floor(Math.random() * posts.length)];
+      res.set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store'
+      }).json({ slug: randomVideo.slug });
     } catch (err) {
-      console.error("View API Error");
-      res.status(500).json({ success: false });
+      console.error("API /videos/random-slug error:", err);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
-`;
 
-if (!code.includes('app.post("/api/video/:id/view"')) {
-  code = code.replace(
-    'app.get("/", (req, res, next) => {',
-    endpoint + '\\n  app.get("/", (req, res, next) => {'
-  );
+  app.get("/api/videos/adjacent", async (req, res) => {`;
+
+if (code.includes(anchor)) {
+  code = code.replace(anchor, patch);
+  fs.writeFileSync('server.ts', code);
+  console.log("Patched server.ts");
+} else {
+  console.log("Anchor not found in server.ts");
 }
-
-fs.writeFileSync('server.ts', code);

@@ -523,6 +523,24 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
+  app.get("/api/videos/random-slug", async (req, res) => {
+    try {
+      await ensureSnapshot();
+      const posts = publicDataSnapshot.posts;
+      if (posts.length === 0) {
+        return res.status(404).json({ error: "No videos found" });
+      }
+      const randomVideo = posts[Math.floor(Math.random() * posts.length)];
+      res.set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store'
+      }).json({ slug: randomVideo.slug });
+    } catch (err) {
+      console.error("API /videos/random-slug error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/videos/adjacent", async (req, res) => {
     try {
       await ensureSnapshot();

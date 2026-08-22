@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link, Outlet } from "react-router-dom";
-import { Menu, User } from "lucide-react";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Menu, Dices } from "lucide-react";
 import { LiveSearch } from "./LiveSearch";
 import { Sidebar } from "./Sidebar";
 import { ScriptManager } from "./ScriptManager";
@@ -8,7 +8,27 @@ import { usePopunderRecovery } from "../../hooks/usePopunderRecovery";
 
 export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isNavigatingRandom, setIsNavigatingRandom] = useState(false);
+  const navigate = useNavigate();
   usePopunderRecovery();
+
+  const handleRandomVideo = async () => {
+    if (isNavigatingRandom) return;
+    setIsNavigatingRandom(true);
+    try {
+      const res = await fetch("/api/videos/random-slug");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.slug) {
+          navigate(`/video/${data.slug}`);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch random video", err);
+    } finally {
+      setIsNavigatingRandom(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col w-full overflow-x-hidden relative selection:bg-primary/30 selection:text-white">
@@ -45,15 +65,17 @@ export function Layout() {
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <LiveSearch />
-            <Link
-              to="/admin"
-              className="p-2 rounded-full    group relative overflow-hidden flex items-center justify-center"
+            <button
+              onClick={handleRandomVideo}
+              disabled={isNavigatingRandom}
+              title="Random Video"
+              className="p-2 rounded-full group relative overflow-hidden flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 transition-transform duration-200"
             >
-              <div className="absolute inset-0 bg-neutral-800/0 group-hover:bg-white/10 rounded-full  " />
-              <div className="bg-neutral-900/80 backdrop-blur-md p-2 rounded-full  relative z-10">
-                <User className="w-5 h-5 text-neutral-400 group-hover:text-white  " />
+              <div className="absolute inset-0 bg-neutral-800/0 group-hover:bg-primary/20 rounded-full transition-colors duration-300" />
+              <div className="bg-neutral-900/80 backdrop-blur-md p-2 rounded-full relative z-10 border border-neutral-800 group-hover:border-primary/50 transition-colors duration-300">
+                <Dices className={`w-5 h-5 text-primary group-hover:text-accent transition-colors ${isNavigatingRandom ? 'animate-spin' : ''}`} />
               </div>
-            </Link>
+            </button>
           </div>
         </div>
       </header>
