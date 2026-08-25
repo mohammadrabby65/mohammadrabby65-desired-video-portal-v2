@@ -71,7 +71,7 @@ export function Home() {
       {/* Category Horizontal Navigation */}
       {categories.length > 0 && (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-8">
-          <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide text-sm items-center">
+          <div className="flex overflow-x-auto gap-3 pb-2 px-4 sm:px-6 lg:px-8 -mx-4 sm:-mx-6 lg:-mx-8 scrollbar-hide text-sm items-center">
             {categories.map((cat) => (
               <NavLink
                 key={cat.id}
