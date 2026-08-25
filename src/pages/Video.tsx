@@ -6,6 +6,8 @@ import { VideoGallery } from "../components/video/VideoGallery";
 import { RelatedVideos } from "../components/video/RelatedVideos";
 import { SEO } from "../components/seo/SEO";
 import { formatTimeAgo } from "../lib/utils";
+import { useTranslatedVideo } from "../hooks/useTranslatedVideo";
+import { useLanguage } from "../contexts/LanguageContext";
 import {
   ThumbsUp,
   Share2,
@@ -30,17 +32,22 @@ const formatIsoDuration = (duration: string) => {
   } else if (parts.length === 1) {
     return `PT${parts[0]}S`;
   }
-  return undefined;
 };
 
 export function Video() {
   const { slug } = useParams<{ slug: string }>();
+  const { t } = useLanguage();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [slug]);
 
-  const { data: video, isLoading, isError } = useVideoBySlug(slug);
+  const { data: baseVideo, isLoading: isBaseLoading, isError: isBaseError } = useVideoBySlug(slug);
+  const { data: video, isLoading: isTransLoading } = useTranslatedVideo(baseVideo);
+  
+  const isLoading = isBaseLoading || isTransLoading;
+  const isError = isBaseError;
+
   const { data: adjacent } = useAdjacentVideos(video?.publishedAt, video?.slug);
   const [isTagsExpanded, setIsTagsExpanded] = useState(false);
 

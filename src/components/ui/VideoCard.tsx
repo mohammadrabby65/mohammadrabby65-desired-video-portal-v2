@@ -1,5 +1,6 @@
 import React, { memo } from "react";
 import { Link } from "react-router-dom";
+import { useTranslatedVideo } from "../../hooks/useTranslatedVideo";
 import { VideoPost } from "../../types";
 import { formatTimeAgo } from "../../lib/utils";
 import { Play } from "lucide-react";

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useLanguage } from "../../contexts/LanguageContext";
 import { Home, List, X, Flame, Clock } from "lucide-react";
 import { usePublicCategories } from "../../hooks/useCategories";
 
@@ -9,6 +10,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const { t } = useLanguage();
   const location = useLocation();
 
   const { data: rawCategories = [], isLoading } = usePublicCategories(isOpen);

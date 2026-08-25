@@ -5,6 +5,7 @@ import { LiveSearch } from "./LiveSearch";
 import { Sidebar } from "./Sidebar";
 import { ScriptManager } from "./ScriptManager";
 import { usePopunderRecovery } from "../../hooks/usePopunderRecovery";
+import { LanguageSelector } from "./LanguageSelector";
 
 export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -42,14 +43,12 @@ export function Layout() {
               aria-label="Menu"
             >
               <Menu className="w-6 h-6 text-neutral-300 group-hover:text-white  relative z-10" />
-              
-            </button>
+                          </button>
             <Link
               to="/"
               className="flex items-center min-w-0 shrink   hover:scale-[1.02]  group relative"
             >
-              
-              <img
+                            <img
                 src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png"
                 alt="DesiredHub"
                 className="h-10 sm:h-12 md:h-[50px] w-auto max-w-[150px] sm:max-w-[200px] md:max-w-none object-contain dark:hidden  relative z-10"
@@ -65,6 +64,7 @@ export function Layout() {
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <LiveSearch />
+            <LanguageSelector />
             <button
               onClick={handleRandomVideo}
               disabled={isNavigatingRandom}

@@ -1,0 +1,12 @@
+--- src/pages/Video.tsx
++++ src/pages/Video.tsx
+@@ -29,8 +29,8 @@
+   } else if (parts.length === 1) {
+     return `PT${parts[0]}S`;
+   }
+-import { useLanguage } from "../contexts/LanguageContext";export function Video() {
++};
++
++export function Video() {
+   const { slug } = useParams<{ slug: string }>();
+   const { t } = useLanguage();

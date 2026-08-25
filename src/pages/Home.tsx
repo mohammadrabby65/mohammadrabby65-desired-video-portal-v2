@@ -8,6 +8,7 @@ import { usePublicCategories } from "../hooks/useCategories";
 import { NavLink, useSearchParams, Link } from "react-router-dom";
 import { SEO } from "../components/seo/SEO";
 import { Pagination } from "../components/ui/Pagination";
+import { useLanguage } from "../contexts/LanguageContext";
 
 type SortOption = {
   label: string;
@@ -23,6 +24,7 @@ const SORT_OPTIONS: SortOption[] = [
 ];
 
 export function Home() {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const page = parseInt(searchParams.get("page") || "1", 10);
   const [sortBy, setSortBy] = useState<PaginationFilter["sortBy"]>("publishedAt");
@@ -155,9 +157,7 @@ export function Home() {
               <div className="mb-10 sm:mb-12">
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2 tracking-tight">
-                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                    Trending Now
-                  </h2>
+                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />{t("Trending Now")}</h2>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                   {randomVideos.map((video) => (
@@ -171,7 +171,7 @@ export function Home() {
             <div className="mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-neutral-800 pb-4">
                 <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
-                  {page === 1 ? "Newest Videos" : `Page ${page} Videos`}
+                  {page === 1 ? t("Newest Videos") : `Page ${page} Videos`}
                 </h2>
                 <div className="relative">
                   <button
