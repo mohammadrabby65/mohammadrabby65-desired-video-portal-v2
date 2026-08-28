@@ -672,23 +672,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     };
   }
 
-  
-  function generateHreflangTags(originalUrl) {
-    const baseUrl = (host) => `https://${host}${originalUrl}`;
-    
-    // We assume the base host (e.g. desiredhub.xyz)
-    // Actually we can just use SITE_URL and replace www. with the respective subdomain.
-    const baseDomain = SITE_URL.replace('https://www.', '').replace('https://', '');
-    
-    return `
-      <link rel="alternate" hreflang="en" href="https://www.${baseDomain}${originalUrl}" />
-      <link rel="alternate" hreflang="bn-BD" href="https://bd.${baseDomain}${originalUrl}" />
-      <link rel="alternate" hreflang="hi" href="https://hi.${baseDomain}${originalUrl}" />
-      <link rel="alternate" hreflang="ar" href="https://ar.${baseDomain}${originalUrl}" />
-      <link rel="alternate" hreflang="x-default" href="https://www.${baseDomain}${originalUrl}" />
-    `;
-  }
-
   async function renderSeoPage(req: any, res: any, next: any, rawTitle: string, rawDesc: string, canonicalUrl: string, extraTags: string = "", extraHtmlReplace?: (html: string) => string) {
     try {
       let template = "";
@@ -700,7 +683,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
 
       const seo = formatSeo(rawTitle, rawDesc, canonicalUrl);
-      const hreflangTags = generateHreflangTags(req.originalUrl);
 
       const seoTags = `
         <title data-rh="true">${seo.title}</title>
@@ -717,7 +699,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <meta data-rh="true" name="twitter:title" content="${seo.title}" />
         <meta data-rh="true" name="twitter:description" content="${seo.description}" />
         ${extraTags}
-        ${hreflangTags}
       `;
 
       let html = template;

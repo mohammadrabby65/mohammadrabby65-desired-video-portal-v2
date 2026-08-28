@@ -1,10 +1,10 @@
 import React, { memo } from "react";
 import { Link } from "react-router-dom";
-import { useTranslatedVideo } from "../../hooks/useTranslatedVideo";
 import { VideoPost } from "../../types";
 import { formatTimeAgo } from "../../lib/utils";
 import { Play } from "lucide-react";
 import Hls from "hls.js";
+import { useVote } from "../../hooks/useVote";
 
 let currentPlayingId: string | number | null = null;
 let stopCurrentPreview: (() => void) | null = null;
@@ -152,6 +152,7 @@ export const VideoCard = memo(function VideoCard({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [isIntersecting, setIsIntersecting] = React.useState(false);
   const [isPreviewing, setIsPreviewing] = React.useState(false);
+  const { likePercentage } = useVote(video);
 
   React.useEffect(() => {
     if (!enablePreview) return;
@@ -214,6 +215,7 @@ export const VideoCard = memo(function VideoCard({
         <div className="absolute bottom-2 right-2 z-30 bg-black/80 px-1.5 py-0.5 rounded text-[11px] font-medium text-pure-white whitespace-nowrap">
           {video.duration}
         </div>
+        
         {/* Top Badges Area */}
         {video.badges && video.badges.length > 0 && (
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[calc(100%-40px)] z-30">
@@ -245,6 +247,12 @@ export const VideoCard = memo(function VideoCard({
             <>
               <span className="text-neutral-600">•</span>
               <span>{video.views.toLocaleString()} views</span>
+            </>
+          )}
+          {likePercentage !== null && (
+            <>
+              <span className="text-neutral-600">•</span>
+              <span>{likePercentage}%</span>
             </>
           )}
         </div>

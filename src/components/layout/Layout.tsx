@@ -5,7 +5,6 @@ import { LiveSearch } from "./LiveSearch";
 import { Sidebar } from "./Sidebar";
 import { ScriptManager } from "./ScriptManager";
 import { usePopunderRecovery } from "../../hooks/usePopunderRecovery";
-import { LanguageSelector } from "./LanguageSelector";
 
 export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -35,45 +34,46 @@ export function Layout() {
     <div className="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col w-full overflow-x-hidden relative selection:bg-primary/30 selection:text-white">
       <ScriptManager />
       <header className="sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-xl border-b border-neutral-800   shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
-        <div className="container mx-auto px-2 sm:px-6 lg:px-8 h-14 sm:h-20 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 sm:gap-4 min-w-0 shrink">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4 min-w-0 shrink">
             <button
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 hover:bg-white/10 rounded-full    group relative"
               aria-label="Menu"
             >
               <Menu className="w-6 h-6 text-neutral-300 group-hover:text-white  relative z-10" />
-                          </button>
+              
+            </button>
             <Link
               to="/"
               className="flex items-center min-w-0 shrink   hover:scale-[1.02]  group relative"
             >
-                            <img
+              
+              <img
                 src="https://i.ibb.co.com/ZzT2wvV0/Header-Logo-White-Version.png"
                 alt="DesiredHub"
-                className="h-7 sm:h-12 md:h-[50px] w-auto max-w-[110px] sm:max-w-[200px] md:max-w-none object-contain dark:hidden relative z-10"
+                className="h-10 sm:h-12 md:h-[50px] w-auto max-w-[150px] sm:max-w-[200px] md:max-w-none object-contain dark:hidden  relative z-10"
                 referrerPolicy="no-referrer"
               />
               <img
                 src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png"
                 alt="DesiredHub"
-                className="h-7 sm:h-12 md:h-[50px] w-auto max-w-[110px] sm:max-w-[200px] md:max-w-none object-contain hidden dark:block drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.2)] relative z-10"
+                className="h-10 sm:h-12 md:h-[50px] w-auto max-w-[150px] sm:max-w-[200px] md:max-w-none object-contain hidden dark:block  drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.2)] relative z-10"
                 referrerPolicy="no-referrer"
               />
             </Link>
           </div>
-          <div className="flex items-center gap-1 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4">
             <LiveSearch />
-            <LanguageSelector />
             <button
               onClick={handleRandomVideo}
               disabled={isNavigatingRandom}
               title="Random Video"
-              className="p-1 sm:p-2 rounded-full group relative overflow-hidden flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 transition-transform duration-200"
+              className="p-2 rounded-full group relative overflow-hidden flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 transition-transform duration-200"
             >
               <div className="absolute inset-0 bg-neutral-800/0 group-hover:bg-primary/20 rounded-full transition-colors duration-300" />
-              <div className="bg-neutral-900/80 backdrop-blur-md p-1.5 sm:p-2 rounded-full relative z-10 border border-neutral-800 group-hover:border-primary/50 transition-colors duration-300">
-                <Dices className={`w-4 h-4 sm:w-5 sm:h-5 text-primary group-hover:text-accent transition-colors ${isNavigatingRandom ? 'animate-spin' : ''}`} />
+              <div className="bg-neutral-900/80 backdrop-blur-md p-2 rounded-full relative z-10 border border-neutral-800 group-hover:border-primary/50 transition-colors duration-300">
+                <Dices className={`w-5 h-5 text-primary group-hover:text-accent transition-colors ${isNavigatingRandom ? 'animate-spin' : ''}`} />
               </div>
             </button>
           </div>

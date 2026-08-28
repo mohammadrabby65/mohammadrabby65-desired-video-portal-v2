@@ -15,6 +15,8 @@ export interface VideoPost {
   gallery?: string[];
   publishedAt: any;
   views: number;
+  likeCount?: number;
+  dislikeCount?: number;
   featured: boolean;
   trending: boolean;
 }

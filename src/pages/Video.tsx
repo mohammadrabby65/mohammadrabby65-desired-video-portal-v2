@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useVideoBySlug, useAdjacentVideos } from "../hooks/useVideos";
+import { useVote } from "../hooks/useVote";
 import { VideoPlayer } from "../components/video/VideoPlayer";
 import { VideoGallery } from "../components/video/VideoGallery";
 import { RelatedVideos } from "../components/video/RelatedVideos";
 import { SEO } from "../components/seo/SEO";
 import { formatTimeAgo } from "../lib/utils";
-import { useTranslatedVideo } from "../hooks/useTranslatedVideo";
-import { useLanguage } from "../contexts/LanguageContext";
 import {
   ThumbsUp,
+  ThumbsDown,
   Share2,
   Flag,
   Copy,
@@ -32,24 +32,22 @@ const formatIsoDuration = (duration: string) => {
   } else if (parts.length === 1) {
     return `PT${parts[0]}S`;
   }
+  return undefined;
 };
 
 export function Video() {
   const { slug } = useParams<{ slug: string }>();
-  const { t } = useLanguage();
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [slug]);
 
-  const { data: baseVideo, isLoading: isBaseLoading, isError: isBaseError } = useVideoBySlug(slug);
-  const { data: video, isLoading: isTransLoading } = useTranslatedVideo(baseVideo);
-  
-  const isLoading = isBaseLoading || isTransLoading;
-  const isError = isBaseError;
-
+  const { data: video, isLoading, isError } = useVideoBySlug(slug);
   const { data: adjacent } = useAdjacentVideos(video?.publishedAt, video?.slug);
   const [isTagsExpanded, setIsTagsExpanded] = useState(false);
+
+  // Default to empty object if video is undefined for useVote hook safety
+  const { likeCount, dislikeCount, likePercentage, localVote, handleVote } = useVote(video || ({} as any));
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -231,10 +229,25 @@ export function Video() {
 
               {/* Action Bar */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 py-4">
-                <button className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[13px] sm:text-sm font-semibold text-neutral-300 hover:text-white transition-colors">
-                  <ThumbsUp className="w-4 h-4" />
-                  <span>Like</span>
-                </button>
+                <div className="flex items-center bg-white/5 border border-white/10 rounded-full">
+                  <button
+                    onClick={() => handleVote('like')}
+                    className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-l-full text-[13px] sm:text-sm font-semibold transition-colors ${localVote === 'like' ? 'bg-white text-black' : 'text-neutral-300 hover:bg-white/10 hover:text-white'}`}
+                  >
+                    <ThumbsUp className={`w-4 h-4 ${localVote === 'like' ? 'fill-current' : ''}`} />
+                    <span className="hidden sm:inline">Like</span>
+                  </button>
+                  <div className="flex items-center px-4 font-bold text-[13px] sm:text-sm text-neutral-200 border-x border-white/10 h-6">
+                    {likePercentage !== null ? `${likePercentage}%` : <span className="font-medium text-neutral-500 text-[12px]">No votes yet</span>}
+                  </div>
+                  <button
+                    onClick={() => handleVote('dislike')}
+                    className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-r-full text-[13px] sm:text-sm font-semibold transition-colors ${localVote === 'dislike' ? 'bg-white text-black' : 'text-neutral-300 hover:bg-white/10 hover:text-white'}`}
+                  >
+                    <ThumbsDown className={`w-4 h-4 ${localVote === 'dislike' ? 'fill-current' : ''}`} />
+                    <span className="hidden sm:inline">Dislike</span>
+                  </button>
+                </div>
                 <button onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[13px] sm:text-sm font-semibold text-neutral-300 hover:text-white transition-colors">
                   <Copy className="w-4 h-4" />
                   <span className="hidden sm:inline">Copy</span>

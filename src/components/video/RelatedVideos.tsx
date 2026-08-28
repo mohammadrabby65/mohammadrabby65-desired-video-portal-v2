@@ -2,7 +2,6 @@ import React, { memo, Fragment } from "react";
 import { PromoWidget } from "../widgets/PromoWidget";
 import { useRelatedVideos } from "../../hooks/useVideos";
 import { VideoCard } from "../ui/VideoCard";
-import { useLanguage } from "../../contexts/LanguageContext";
 import { SkeletonCard } from "../ui/SkeletonCard";
 
 interface RelatedVideosProps {
@@ -16,12 +15,11 @@ export const RelatedVideos = memo(function RelatedVideos({
   categories,
   tags,
 }: RelatedVideosProps) {
-  const { t } = useLanguage();
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
     useRelatedVideos(videoId, categories, tags);
 
   const displayVideos = data?.pages.flatMap((page) => page.videos) || [];
-  const title = t("Related Videos");
+  const title = "Related Videos";
 
   return (
     <div className="w-full">
