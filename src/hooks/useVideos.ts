@@ -193,22 +193,57 @@ export function useRelatedVideos(
         else if (data.posts) allVideos.push(...data.posts);
       });
 
-      let related = allVideos.filter(
-        (v) =>
-          v.id !== videoId &&
-          v.categories &&
-          categories &&
-          v.categories.some((c) => categories.includes(c)),
-      );
+      const uniqueVideos = Array.from(new Map(allVideos.map((v) => [v.id, v])).values());
+      const currentVideo = uniqueVideos.find((v) => v.id === videoId);
+      const titleKeywords = currentVideo?.title
+        ? currentVideo.title.toLowerCase().split(/\s+/).filter((w) => w.length > 3)
+        : [];
 
-      related = Array.from(new Map(related.map((v) => [v.id, v])).values());
-      related.sort(
-        (a, b) => (b.publishedAt?.seconds || 0) - (a.publishedAt?.seconds || 0),
-      );
+      let scoredVideos = uniqueVideos
+        .filter((v) => v.id !== videoId)
+        .map((v) => {
+          let score = 0;
+          if (v.categories && categories && categories.length > 0) {
+            const hasCommonCategory = v.categories.some((c) => categories.includes(c));
+            if (hasCommonCategory) score += 5;
+          } else if ((v as any).category && categories && categories.includes((v as any).category)) {
+            score += 5;
+          }
+          if (v.tags && tags && tags.length > 0) {
+            v.tags.forEach((t) => {
+              if (tags.includes(t)) score += 3;
+            });
+          }
+          if (v.title && titleKeywords.length > 0) {
+            const vTitle = v.title.toLowerCase();
+            titleKeywords.forEach((kw) => {
+              if (vTitle.includes(kw)) score += 2;
+            });
+          }
+          const publishedAtMs = (v as any)._publishedAtMs || (v.publishedAt?.seconds ? v.publishedAt.seconds * 1000 : 0);
+          const ageDays = (Date.now() - publishedAtMs) / (1000 * 60 * 60 * 24);
+          if (ageDays >= 0 && ageDays < 30) score += 1;
+          
+          return { video: v, score };
+        });
 
-      if (related.length >= limitCount) {
+      scoredVideos.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const aPub = (a.video as any)._publishedAtMs || (a.video.publishedAt?.seconds || 0) * 1000;
+        const bPub = (b.video as any)._publishedAtMs || (b.video.publishedAt?.seconds || 0) * 1000;
+        return bPub - aPub;
+      });
+
+      const related = scoredVideos.map((s) => s.video);
+
+      if (related.length > 0) {
+        const paginatedDocs = related.slice(0, limitCount);
+        let nextCursor: string | null = null;
+        if (related.length > limitCount) {
+          nextCursor = paginatedDocs[paginatedDocs.length - 1]?.id || null;
+        }
         return {
-          pages: [{ videos: related.slice(0, limitCount), nextCursor: null }],
+          pages: [{ videos: paginatedDocs, nextCursor }],
           pageParams: [1],
         };
       }

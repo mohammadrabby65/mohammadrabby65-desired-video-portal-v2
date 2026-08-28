@@ -487,20 +487,57 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
 
       const categories = categoriesStr ? (categoriesStr as string).split(',').filter(Boolean) : [];
-      if (categories.length === 0) {
-        return res.json({ videos: [], nextCursor: null });
-      }
+      const tags = tagsStr ? (tagsStr as string).split(',').filter(Boolean) : [];
 
-      let filtered = publicDataSnapshot.posts.filter(v => 
-        v.id !== videoId && 
-        v.categories && 
-        v.categories.some((c: string) => categories.includes(c))
-      );
+      const currentVideo = publicDataSnapshot.posts.find((v: any) => v.id === videoId);
+      const titleKeywords = currentVideo?.title 
+        ? currentVideo.title.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3)
+        : [];
 
-      fs.writeFileSync("/tmp/debug3.json", JSON.stringify({filtered: filtered.length}));
+      let scoredVideos = publicDataSnapshot.posts
+        .filter((v: any) => v.id !== videoId)
+        .map((v: any) => {
+          let score = 0;
+          
+          if (v.categories && categories.length > 0) {
+            const hasCommonCategory = v.categories.some((c: string) => categories.includes(c));
+            if (hasCommonCategory) score += 5;
+          } else if (v.category && categories.includes(v.category)) {
+            score += 5;
+          }
+
+          if (v.tags && tags.length > 0) {
+            v.tags.forEach((t: string) => {
+              if (tags.includes(t)) score += 3;
+            });
+          }
+
+          if (v.title && titleKeywords.length > 0) {
+            const vTitle = v.title.toLowerCase();
+            titleKeywords.forEach((kw: string) => {
+              if (vTitle.includes(kw)) score += 2;
+            });
+          }
+
+          const publishedAtMs = v._publishedAtMs || (v.publishedAt?.seconds ? v.publishedAt.seconds * 1000 : 0);
+          const ageDays = (Date.now() - publishedAtMs) / (1000 * 60 * 60 * 24);
+          if (ageDays >= 0 && ageDays < 30) score += 1; // +1 for recent videos
+
+          return { video: v, score };
+        });
+
+      scoredVideos.sort((a: any, b: any) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const aPub = a.video._publishedAtMs || (a.video.publishedAt?.seconds || 0) * 1000;
+        const bPub = b.video._publishedAtMs || (b.video.publishedAt?.seconds || 0) * 1000;
+        return bPub - aPub;
+      });
+
+      const filtered = scoredVideos.map((s: any) => s.video);
+
       let startIndex = 0;
       if (lastId) {
-        const lastIdx = filtered.findIndex(v => v.id === lastId);
+        const lastIdx = filtered.findIndex((v: any) => v.id === lastId);
         if (lastIdx !== -1) {
           startIndex = lastIdx + 1;
         }
