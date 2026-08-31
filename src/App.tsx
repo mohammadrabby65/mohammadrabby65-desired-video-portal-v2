@@ -25,6 +25,9 @@ const Tag = lazy(() =>
 const Search = lazy(() =>
   import("./pages/Search").then((module) => ({ default: module.Search })),
 );
+const Download = lazy(() =>
+  import("./pages/Download").then((module) => ({ default: module.Download })),
+);
 const DMCA = lazy(() =>
   import("./pages/DMCA").then((module) => ({ default: module.DMCA })),
 );
@@ -169,6 +172,7 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="page/:page" element={<Navigate to="/" replace />} />
             <Route path="video/:slug" element={<Video />} />
+            <Route path="download/:slug" element={<Download />} />
             <Route path="category/:slug" element={<Category />} />
             <Route path="categories" element={<Categories />} />
             <Route path="tag/:slug" element={<Tag />} />

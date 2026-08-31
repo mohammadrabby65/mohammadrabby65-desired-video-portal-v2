@@ -256,15 +256,25 @@ export function Video() {
                   <Share2 className="w-4 h-4" />
                   <span>Share</span>
                 </button>
-                <a
-                  href="https://predestineheadypleasure.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-red-600 hover:bg-red-500 rounded-full text-[13px] sm:text-sm font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download</span>
-                </a>
+                {video.downloadUrl && video.downloadUrl.trim() !== "" ? (
+                  <Link
+                    to={`/download/${video.slug}`}
+                    className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-red-600 hover:bg-red-500 rounded-full text-[13px] sm:text-sm font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download</span>
+                  </Link>
+                ) : (
+                  <a
+                    href="https://predestineheadypleasure.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-red-600 hover:bg-red-500 rounded-full text-[13px] sm:text-sm font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download</span>
+                  </a>
+                )}
                 <button
                   onClick={handleReport}
                   className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-transparent hover:bg-red-500/10 border border-transparent hover:border-red-500/30 rounded-full text-[13px] sm:text-sm font-semibold text-neutral-500 hover:text-red-500 transition-colors ml-auto"
@@ -286,7 +296,7 @@ export function Video() {
               {/* Collapsible Description & Tags */}
               <div className="bg-neutral-900/40 backdrop-blur-md border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col gap-5 shadow-inner mt-2">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  {video.badges?.map((badge) => (
+                  {Array.from(new Set(video.badges || [])).map((badge) => (
                     <span
                       key={badge}
                       className="bg-primary/20 border border-primary/30 text-primary px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase"
@@ -294,12 +304,12 @@ export function Video() {
                       {badge}
                     </span>
                   ))}
-                  {(video.categories
+                  {Array.from(new Set(video.categories
                     ? video.categories
                     : (video as any).category
                       ? [(video as any).category]
                       : []
-                  ).map((cat) => (
+                  )).map((cat: any) => (
                     <Link
                       key={cat}
                       to={`/category/${cat.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}`}
@@ -311,10 +321,10 @@ export function Video() {
                   ))}
                   {video.tags && (
                     <>
-                      {(isTagsExpanded
+                      {Array.from(new Set(isTagsExpanded
                         ? video.tags
                         : video.tags.slice(0, 8)
-                      ).map((tag) => (
+                      )).map((tag: any) => (
                         <Link
                           to={`/tag/${tag.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}`}
                           key={tag}

@@ -219,7 +219,7 @@ export const VideoCard = memo(function VideoCard({
         {/* Top Badges Area */}
         {video.badges && video.badges.length > 0 && (
           <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[calc(100%-40px)] z-30">
-            {video.badges.map((badge) => (
+            {Array.from(new Set(video.badges)).map((badge) => (
               <div
                 key={badge}
                 className="bg-primary/90 backdrop-blur-md border border-pure-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider uppercase"

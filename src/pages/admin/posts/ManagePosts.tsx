@@ -125,12 +125,12 @@ export function ManagePosts() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {(post.categories
+                        {Array.from(new Set(post.categories
                           ? post.categories
                           : (post as any).category
                             ? [(post as any).category]
                             : []
-                        ).map((cat) => (
+                        )).map((cat: any) => (
                           <Link
                             key={cat}
                             to={`/category/${cat

@@ -17,6 +17,7 @@ export interface VideoPost {
   views: number;
   likeCount?: number;
   dislikeCount?: number;
+  downloadUrl?: string;
   featured: boolean;
   trending: boolean;
 }
