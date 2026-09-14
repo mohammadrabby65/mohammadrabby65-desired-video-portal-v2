@@ -107,7 +107,6 @@ export function Home() {
             {!isLoading && heroVideo && page === 1 && (
               <div className="mb-10 sm:mb-12">
                 <Link to={`/video/${heroVideo.slug}`} className="group relative block aspect-video sm:aspect-[21/9] lg:aspect-[2.5/1] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-800 isolate">
-                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent z-10" />
                   <img 
                     src={heroVideo.thumbnailUrl} 
                     alt={heroVideo.title} 

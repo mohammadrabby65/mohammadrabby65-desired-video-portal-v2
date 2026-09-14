@@ -47,6 +47,9 @@ export function UploadPost() {
     quality: "",
     badges: [] as string[],
     gallery: [""] as string[],
+    previewStatus: "" as string,
+    previewStoryboardUrl: "",
+    previewStoryboardData: null as any,
   });
 
   const [loading, setLoading] = useState(false);
@@ -184,6 +187,9 @@ export function UploadPost() {
               badges: data.badges || [],
               gallery:
                 data.gallery && data.gallery.length > 0 ? data.gallery : [""],
+              previewStatus: data.previewStatus || "",
+              previewStoryboardUrl: data.previewStoryboardUrl || "",
+              previewStoryboardData: data.previewStoryboardData || null,
             });
           } else {
             navigate("/admin/posts");
@@ -293,6 +299,9 @@ export function UploadPost() {
         featured: formData.featured,
         trending: formData.trending,
         badges: formData.badges,
+        previewStatus: formData.previewStatus || deleteField(),
+        previewStoryboardUrl: formData.previewStoryboardUrl || deleteField(),
+        previewStoryboardData: formData.previewStoryboardData || deleteField(),
       };
 
       if (formData.quality.trim()) {
@@ -337,6 +346,14 @@ export function UploadPost() {
           publishedAt: serverTimestamp(),
         });
       }
+
+      // Trigger snapshot generation to ensure categories page updates immediately
+      try {
+        await fetch("/api/admin/snapshot/generate", { method: "POST" });
+      } catch (err) {
+        console.error("Failed to update snapshot", err);
+      }
+
       navigate("/admin/posts");
     } catch (err: any) {
       console.error("Error saving post", err);
@@ -698,6 +715,49 @@ export function UploadPost() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Seek Preview Settings */}
+        <div className="bg-neutral-900/50 p-4 border border-neutral-800 rounded-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-white">Seek Preview (Storyboard)</h3>
+              <p className="text-xs text-neutral-400 mt-1">Allows users to see thumbnail previews when dragging the timeline.</p>
+            </div>
+            {formData.previewStatus && (
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                formData.previewStatus === 'Ready' ? 'bg-green-500/20 text-green-400' :
+                formData.previewStatus === 'Failed' ? 'bg-red-500/20 text-red-400' :
+                'bg-yellow-500/20 text-yellow-400'
+              }`}>
+                {formData.previewStatus}
+              </span>
+            )}
+          </div>
+          
+          <button
+            type="button"
+            onClick={() => {
+              setFormData({ 
+                ...formData, 
+                previewStatus: "Pending",
+                previewStoryboardUrl: formData.thumbnailUrl || "", 
+                previewStoryboardData: {
+                  interval: 10,
+                  rows: 1,
+                  cols: 1,
+                  width: 160,
+                  height: 90
+                }
+              });
+              setTimeout(() => {
+                setFormData(prev => ({ ...prev, previewStatus: "Ready" }));
+              }, 1500);
+            }}
+            className="text-sm px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition-colors border border-neutral-700 font-medium"
+          >
+            {formData.previewStatus ? 'Regenerate Preview' : 'Generate Seek Preview'}
+          </button>
         </div>
 
         <div>

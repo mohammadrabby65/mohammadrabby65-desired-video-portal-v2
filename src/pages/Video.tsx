@@ -191,6 +191,8 @@ export function Video() {
                   videoId={video.id}
                   videoUrl={video.videoUrl}
                   thumbnailUrl={video.thumbnailUrl}
+                  previewStoryboardUrl={video.previewStoryboardUrl}
+                  previewStoryboardData={video.previewStoryboardData}
                 />
               </div>
             </div>

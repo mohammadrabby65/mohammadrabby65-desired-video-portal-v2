@@ -17,6 +17,14 @@ export function ManagePosts() {
     if (confirm("Are you sure you want to delete this post?")) {
       try {
         await deleteDoc(doc(db, "posts", id));
+        
+        // Trigger snapshot generation to ensure UI updates immediately
+        try {
+          await fetch("/api/admin/snapshot/generate", { method: "POST" });
+        } catch (err) {
+          console.error("Failed to update snapshot", err);
+        }
+
         queryClient.invalidateQueries({ queryKey: ["admin", "posts"] });
       } catch (e) {
         console.error("Error deleting", e);

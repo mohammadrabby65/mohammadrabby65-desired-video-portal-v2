@@ -139,7 +139,7 @@ export default function App() {
     if (storedTheme === "dark" || storedTheme === "light") {
       applyTheme(storedTheme);
     } else {
-      applyTheme(mediaQuery.matches ? "dark" : "light");
+      applyTheme("dark");
     }
 
     // Register real-time change listener

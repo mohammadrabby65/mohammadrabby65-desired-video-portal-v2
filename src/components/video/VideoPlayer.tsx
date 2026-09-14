@@ -17,9 +17,17 @@ interface VideoPlayerProps {
   videoId?: string;
   videoUrl: string;
   thumbnailUrl?: string;
+  previewStoryboardUrl?: string;
+  previewStoryboardData?: {
+    interval: number;
+    rows: number;
+    cols: number;
+    width: number;
+    height: number;
+  };
 }
 
-export function VideoPlayer({ videoUrl, thumbnailUrl, videoId }: VideoPlayerProps) {
+export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboardUrl, previewStoryboardData }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -50,6 +58,11 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId }: VideoPlayerProp
 
   const [showPoster, setShowPoster] = useState(true);
   const [playError, setPlayError] = useState(false);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPos, setDragPos] = useState(0); // 0 to 1
+  const [hoverPos, setHoverPos] = useState(0); // 0 to 1
+  const [isHovering, setIsHovering] = useState(false);
 
   const [hlsLevels, setHlsLevels] = useState<any[]>([]);
   const [currentLevel, setCurrentLevel] = useState<number>(-1); // -1 is Auto
@@ -218,15 +231,73 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId }: VideoPlayerProp
     }
   };
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Dragging logic
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (progressRef.current && videoRef.current) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setIsDragging(true);
       const rect = progressRef.current.getBoundingClientRect();
-      const pos = (e.clientX - rect.left) / rect.width;
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      setDragPos(pos);
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (progressRef.current) {
+      const rect = progressRef.current.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      if (isDragging) {
+        setDragPos(pos);
+      } else {
+        setHoverPos(pos);
+        setIsHovering(true);
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging && progressRef.current && videoRef.current) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+      setIsDragging(false);
+      const rect = progressRef.current.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
       const targetTime = pos * duration;
       if (Number.isFinite(targetTime) && targetTime >= 0) {
         videoRef.current.currentTime = targetTime;
       }
     }
+  };
+
+  const handlePointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) {
+      setIsHovering(false);
+    }
+  };
+
+  const getStoryboardStyles = () => {
+    if (!previewStoryboardData || !previewStoryboardUrl) return {};
+    const { interval, cols, rows, width, height } = previewStoryboardData;
+    const targetTime = (isDragging ? dragPos : hoverPos) * duration;
+    
+    // Clamp frame index
+    const totalFrames = cols * rows;
+    let frameIndex = Math.floor(targetTime / interval);
+    frameIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1));
+    
+    const r = Math.floor(frameIndex / cols);
+    const c = frameIndex % cols;
+    
+    return {
+      backgroundImage: `url(${previewStoryboardUrl})`,
+      backgroundPosition: `-${c * width}px -${r * height}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+      backgroundSize: `${cols * width}px ${rows * height}px`
+    };
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only used as fallback now if needed, but Pointer events cover click
   };
 
   const formatTime = (time: number) => {
@@ -436,17 +507,40 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId }: VideoPlayerProp
             {/* Progress Bar */}
             <div
               ref={progressRef}
-              className="w-full h-1.5 sm:h-2 bg-neutral-600/40 rounded-full cursor-pointer group/progress relative overflow-visible hover:scale-y-125  "
-              onClick={handleProgressClick}
+              className="w-full h-1.5 sm:h-2 bg-neutral-600/40 rounded-full cursor-pointer group/progress relative overflow-visible hover:scale-y-125 touch-none"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerLeave}
+              onPointerCancel={handlePointerUp}
             >
+              {/* Seek Preview */}
+              {(isDragging || isHovering) && (
+                <div
+                  className="absolute bottom-full mb-3 -translate-x-1/2 flex flex-col items-center pointer-events-none z-30"
+                  style={{
+                    left: `clamp(${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px, ${(isDragging ? dragPos : hoverPos) * 100}%, calc(100% - ${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px))`
+                  }}
+                >
+                  {previewStoryboardData && previewStoryboardUrl ? (
+                    <div className="rounded-lg overflow-hidden border border-white/20 shadow-2xl bg-black">
+                      <div style={getStoryboardStyles()} />
+                    </div>
+                  ) : null}
+                  <div className={`bg-black/80 backdrop-blur text-white text-xs font-medium px-2 py-1 rounded shadow-lg ${previewStoryboardData ? 'mt-1' : ''}`}>
+                    {formatTime((isDragging ? dragPos : hoverPos) * duration)}
+                  </div>
+                </div>
+              )}
+
               <div className="absolute inset-0 bg-white/20 rounded-full hover:bg-white/30 " />
               <div
                 className="absolute top-0 left-0 h-full bg-primary rounded-full group-hover/progress:bg-red-500 "
                 style={{
-                  width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
+                  width: `${duration > 0 ? (isDragging ? dragPos * 100 : (currentTime / duration) * 100) : 0}%`,
                 }}
               >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] opacity-0 group-hover/progress:opacity-100   scale-50 group-hover/progress:scale-100" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] opacity-0 group-hover/progress:opacity-100 scale-50 group-hover/progress:scale-100" />
               </div>
             </div>
 

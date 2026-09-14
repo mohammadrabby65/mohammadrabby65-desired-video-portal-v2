@@ -181,10 +181,7 @@ export const VideoCard = memo(function VideoCard({
 
   return (
     <Link to={'/video/' + video.slug} className="group flex flex-col gap-3" onClick={() => enablePreview && cancelPreview(video.id)}>
-      <div ref={containerRef} className="relative aspect-video rounded-lg overflow-hidden bg-neutral-900 shadow-sm isolate group-hover:shadow-md transition-shadow">
-        {/* CSS Skeleton Base */}
-        <div className="absolute inset-0 bg-neutral-800/50 -z-10 rounded-xl" />
-        
+      <div ref={containerRef} className="relative aspect-video rounded-lg overflow-hidden bg-[#141417] shadow-sm isolate group-hover:shadow-md transition-shadow">
         {isPreviewing && video.videoUrl && (
           <VideoPreview 
             videoUrl={video.videoUrl} 
@@ -203,10 +200,10 @@ export const VideoCard = memo(function VideoCard({
           decoding="async"
           width="600"
           height="338"
-          className="w-full h-full object-cover rounded-xl"
+          className="w-full h-full object-cover rounded-lg"
         />
-        {/* Play Button Overlay (Premium Glass) */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 z-30">
+        {/* Play Button Overlay (Desktop hover only, hidden on mobile touch) */}
+        <div className="absolute inset-0 hidden sm:flex items-center justify-center opacity-0 sm:group-hover:opacity-100 z-30 pointer-events-none">
           <div className="bg-pure-white/10 backdrop-blur-md rounded-full p-4 border border-pure-white/20">
             <Play className="w-7 h-7 text-pure-white fill-pure-white translate-x-0.5" />
           </div>

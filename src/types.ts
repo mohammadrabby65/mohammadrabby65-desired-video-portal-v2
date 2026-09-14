@@ -20,6 +20,15 @@ export interface VideoPost {
   downloadUrl?: string;
   featured: boolean;
   trending: boolean;
+  previewStoryboardUrl?: string;
+  previewStoryboardData?: {
+    interval: number;
+    rows: number;
+    cols: number;
+    width: number;
+    height: number;
+  };
+  previewStatus?: "Pending" | "Processing" | "Ready" | "Failed";
 }
 
 export interface Category {
