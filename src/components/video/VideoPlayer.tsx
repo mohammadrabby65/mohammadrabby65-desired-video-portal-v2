@@ -234,41 +234,57 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
   // Dragging logic
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (progressRef.current && videoRef.current) {
-      e.currentTarget.setPointerCapture(e.pointerId);
       setIsDragging(true);
       const rect = progressRef.current.getBoundingClientRect();
       const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
       setDragPos(pos);
+      // Optional: pause video while dragging
+      // videoRef.current.pause();
     }
   };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (progressRef.current) {
-      const rect = progressRef.current.getBoundingClientRect();
-      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      if (isDragging) {
+  useEffect(() => {
+    const handlePointerMove = (e: PointerEvent) => {
+      if (isDragging && progressRef.current) {
+        e.preventDefault(); // Prevent text selection/scrolling while dragging
+        const rect = progressRef.current.getBoundingClientRect();
+        const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
         setDragPos(pos);
-      } else {
-        setHoverPos(pos);
-        setIsHovering(true);
       }
-    }
-  };
+    };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isDragging && progressRef.current && videoRef.current) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-      setIsDragging(false);
+    const handlePointerUp = (e: PointerEvent) => {
+      if (isDragging && progressRef.current && videoRef.current) {
+        setIsDragging(false);
+        const rect = progressRef.current.getBoundingClientRect();
+        const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const targetTime = pos * duration;
+        if (Number.isFinite(targetTime) && targetTime >= 0) {
+          videoRef.current.currentTime = targetTime;
+        }
+      }
+    };
+
+    if (isDragging) {
+      window.addEventListener("pointermove", handlePointerMove, { passive: false });
+      window.addEventListener("pointerup", handlePointerUp);
+    }
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [isDragging, duration]);
+
+  const handlePointerHoverMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (progressRef.current && !isDragging) {
       const rect = progressRef.current.getBoundingClientRect();
       const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      const targetTime = pos * duration;
-      if (Number.isFinite(targetTime) && targetTime >= 0) {
-        videoRef.current.currentTime = targetTime;
-      }
+      setHoverPos(pos);
+      setIsHovering(true);
     }
   };
 
-  const handlePointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerHoverLeave = () => {
     if (!isDragging) {
       setIsHovering(false);
     }
@@ -509,18 +525,14 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
               ref={progressRef}
               className="w-full h-1.5 sm:h-2 bg-neutral-600/40 rounded-full cursor-pointer group/progress relative overflow-visible hover:scale-y-125 touch-none"
               onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerLeave={handlePointerLeave}
-              onPointerCancel={handlePointerUp}
+              onPointerMove={handlePointerHoverMove}
+              onPointerLeave={handlePointerHoverLeave}
             >
               {/* Seek Preview */}
               {(isDragging || isHovering) && (
                 <div
                   className="absolute bottom-full mb-3 -translate-x-1/2 flex flex-col items-center pointer-events-none z-30"
-                  style={{
-                    left: `clamp(${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px, ${(isDragging ? dragPos : hoverPos) * 100}%, calc(100% - ${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px))`
-                  }}
+                  style={{ left: `${(isDragging ? dragPos : hoverPos) * 100}%` }}
                 >
                   {previewStoryboardData && previewStoryboardUrl ? (
                     <div className="rounded-lg overflow-hidden border border-white/20 shadow-2xl bg-black">

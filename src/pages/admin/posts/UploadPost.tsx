@@ -346,14 +346,6 @@ export function UploadPost() {
           publishedAt: serverTimestamp(),
         });
       }
-
-      // Trigger snapshot generation to ensure categories page updates immediately
-      try {
-        await fetch("/api/admin/snapshot/generate", { method: "POST" });
-      } catch (err) {
-        console.error("Failed to update snapshot", err);
-      }
-
       navigate("/admin/posts");
     } catch (err: any) {
       console.error("Error saving post", err);

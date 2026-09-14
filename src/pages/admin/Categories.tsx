@@ -94,13 +94,6 @@ export function Categories() {
         await setDoc(newRef, dataToSave);
       }
 
-      // Trigger snapshot generation to ensure UI updates immediately
-      try {
-        await fetch("/api/admin/snapshot/generate", { method: "POST" });
-      } catch (err) {
-        console.error("Failed to update snapshot", err);
-      }
-
       setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
     } catch (err) {
@@ -128,14 +121,6 @@ export function Categories() {
 
     try {
       await deleteDoc(doc(db, "categories", cat.id));
-      
-      // Trigger snapshot generation to ensure UI updates immediately
-      try {
-        await fetch("/api/admin/snapshot/generate", { method: "POST" });
-      } catch (err) {
-        console.error("Failed to update snapshot", err);
-      }
-
       queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
       setDeleteDialog({ isOpen: false });
     } catch (err) {
