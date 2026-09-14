@@ -185,8 +185,8 @@ export function Video() {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 min-w-0 w-full">
           {/* Main Video Section */}
           <div className="flex-1 max-w-[1400px] min-w-0">
-            {/* Banner Ad directly above video player */}
-            <AdsterraBanner320x50 />
+            {/* Adsterra 320x50 Banner (Directly Above Video Player) */}
+            <AdsterraBanner320x50 key={video.id} />
 
             {/* Premium Player Container */}
             <div className="sm:rounded-2xl lg:rounded-[24px] overflow-hidden bg-black shadow-[0_8px_30px_rgb(0,0,0,0.6)] sm:border border-white/5 sm:ring-1 ring-white/10 relative w-full">
