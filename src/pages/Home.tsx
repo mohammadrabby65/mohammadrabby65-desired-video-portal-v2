@@ -89,6 +89,25 @@ export function Home() {
         </div>
       )}
 
+      {/* Promotional Banner */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-8 flex justify-center">
+        <a 
+          href="https://call-me-1.vercel.app/" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="block w-[300px] max-w-full hover:opacity-90 transition-opacity"
+        >
+          <img 
+            src="https://file.garden/amW_alkR9Rqi49hU/banner_300x50.webp" 
+            alt="Promotional Offer" 
+            className="w-full h-auto rounded"
+            style={{ aspectRatio: "300/50" }}
+            width="300"
+            height="50"
+          />
+        </a>
+      </div>
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {isError ? (
           <div className="text-center py-20 bg-neutral-900/50 rounded-xl border border-red-900/30">
