@@ -234,7 +234,7 @@ async function startServer() {
   // Dynamic sitemap.xml and sitemap-main.xml Route
   app.get("/robots.txt", (req, res) => {
     const host = req.headers.host || 'www.desiredhub.xyz';
-    const DYNAMIC_SITE_URL = host.startsWith('www.') ? `https://${host}` : `https://www.${host}`;
+    const DYNAMIC_SITE_URL = host === 'desiredhub.xyz' ? 'https://www.desiredhub.xyz' : `https://${host}`;
     
     const robotsTxt = `User-agent: *
 Allow: /
@@ -247,7 +247,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
   app.get(["/sitemap.xml", "/sitemap-main.xml"], async (req, res) => {
     try {
       const host = req.headers.host || 'www.desiredhub.xyz';
-      const DYNAMIC_SITE_URL = host.startsWith('www.') ? `https://${host}` : `https://www.${host}`;
+      const DYNAMIC_SITE_URL = host === 'desiredhub.xyz' ? 'https://www.desiredhub.xyz' : `https://${host}`;
 
       const [categoriesSnapshot, postsSnapshot] = await Promise.all([
         getDocs(query(collection(db, 'categories'), limit(1000))),
@@ -711,6 +711,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
 
   async function renderSeoPage(req: any, res: any, next: any, rawTitle: string, rawDesc: string, canonicalUrl: string, extraTags: string = "", extraHtmlReplace?: (html: string) => string) {
     try {
+      const host = req.headers.host || 'www.desiredhub.xyz';
+      const DYNAMIC_SITE_URL = host === 'desiredhub.xyz' ? 'https://www.desiredhub.xyz' : `https://${host}`;
+      canonicalUrl = canonicalUrl.replace(SITE_URL, DYNAMIC_SITE_URL);
       let template = "";
       if (process.env.NODE_ENV !== "production") {
         template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
@@ -719,15 +722,20 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
 
-      const seo = formatSeo(rawTitle, rawDesc, canonicalUrl);
+      const seo = formatSeo(rawTitle, rawDesc, canonicalUrl, req);
 
       const seoTags = `
         <title data-rh="true">${seo.title}</title>
         <meta data-rh="true" name="description" content="${seo.description}" />
         <link data-rh="true" rel="canonical" href="${seo.canonical}" />
+        <link data-rh="true" rel="alternate" hrefLang="en" href="${seo.canonical.replace(/https:\/\/[a-z0-9.]+\//, 'https://www.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="bn" href="${seo.canonical.replace(/https:\/\/[a-z0-9.]+\//, 'https://bd.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="hi" href="${seo.canonical.replace(/https:\/\/[a-z0-9.]+\//, 'https://hi.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="ar" href="${seo.canonical.replace(/https:\/\/[a-z0-9.]+\//, 'https://ar.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="x-default" href="${seo.canonical.replace(/https:\/\/[a-z0-9.]+\//, 'https://www.desiredhub.xyz/')}" />
         <meta data-rh="true" property="og:site_name" content="DesiredHub" />
         <meta data-rh="true" property="og:locale" content="en_US" />
-        <meta data-rh="true" property="og:type" content="website" />
+        <meta data-rh="true" property="og:type" content="${req.originalUrl.startsWith('/video/') ? 'video.other' : 'website'}" />
         <meta data-rh="true" property="og:url" content="${seo.canonical}" />
         <meta data-rh="true" property="og:title" content="${seo.title}" />
         <meta data-rh="true" property="og:description" content="${seo.description}" />
@@ -837,6 +845,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
   });
 
   app.get("/category/:slug", async (req, res, next) => {
+    const host = req.headers.host || 'www.desiredhub.xyz';
+    const DYNAMIC_SITE_URL = host === 'desiredhub.xyz' ? 'https://www.desiredhub.xyz' : `https://${host}`;
+
     try {
       await ensureSnapshot();
       let template = "";
@@ -869,7 +880,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       
       const title = escapeHtml(`${categoryName} - DesiredHub`);
       const description = escapeHtml(categoryDesc);
-      const currentUrl = escapeHtml(`${SITE_URL}/category/${slug}`);
+      const currentUrl = escapeHtml(`${DYNAMIC_SITE_URL}/category/${slug}`);
       
       const breadcrumbsJsonLd = {
         "@context": "https://schema.org",
@@ -879,7 +890,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
             "@type": "ListItem",
             "position": 1,
             "name": "Home",
-            "item": SITE_URL
+            "item": DYNAMIC_SITE_URL
           },
           {
             "@type": "ListItem",
@@ -904,10 +915,15 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <title data-rh="true">${title}</title>
         <meta data-rh="true" name="description" content="${description}" />
         <link data-rh="true" rel="canonical" href="${currentUrl}" />
+        <link data-rh="true" rel="alternate" hrefLang="en" href="${currentUrl.replace(/https:\/\/[a-z0-9.]+\//, 'https://www.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="bn" href="${currentUrl.replace(/https:\/\/[a-z0-9.]+\//, 'https://bd.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="hi" href="${currentUrl.replace(/https:\/\/[a-z0-9.]+\//, 'https://hi.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="ar" href="${currentUrl.replace(/https:\/\/[a-z0-9.]+\//, 'https://ar.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="x-default" href="${currentUrl.replace(/https:\/\/[a-z0-9.]+\//, 'https://www.desiredhub.xyz/')}" />
         <meta data-rh="true" property="og:title" content="${title}" />
         <meta data-rh="true" property="og:description" content="${description}" />
         <meta data-rh="true" property="og:url" content="${currentUrl}" />
-        <meta data-rh="true" property="og:type" content="website" />
+        <meta data-rh="true" property="og:type" content="${req.originalUrl.startsWith('/video/') ? 'video.other' : 'website'}" />
         <meta data-rh="true" name="twitter:title" content="${title}" />
         <meta data-rh="true" name="twitter:description" content="${description}" />
         ${jsonLdScript}
@@ -922,9 +938,13 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       console.error("Category SEO Injection Error:", e);
       next();
     }
+  
   });
 
   app.get("/video/:slug", async (req, res, next) => {
+    const host = req.headers.host || 'www.desiredhub.xyz';
+    const DYNAMIC_SITE_URL = host === 'desiredhub.xyz' ? 'https://www.desiredhub.xyz' : `https://${host}`;
+
     try {
       await ensureSnapshot();
       const slug = req.params.slug;
@@ -1063,7 +1083,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
       const description = escapeHtml(optimalDesc);
       const image = escapeHtml(video.thumbnailUrl || "");
-      const currentUrl = escapeHtml(`${SITE_URL}/video/${slug}`);
+      const currentUrl = escapeHtml(`${DYNAMIC_SITE_URL}/video/${slug}`);
       
       let uploadDate = new Date().toISOString();
       if (video.publishedAt) {
@@ -1098,19 +1118,19 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
             "@type": "ListItem",
             "position": 1,
             "name": "Home",
-            "item": SITE_URL
+            "item": DYNAMIC_SITE_URL
           },
           ...(categoryName && categorySlug ? [{
             "@type": "ListItem",
             "position": 2,
             "name": categoryName,
-            "item": `${SITE_URL}/category/${categorySlug}`
+            "item": `${DYNAMIC_SITE_URL}/category/${categorySlug}`
           }] : []),
           {
             "@type": "ListItem",
             "position": categoryName && categorySlug ? 3 : 2,
             "name": video.title,
-            "item": `${SITE_URL}/video/${slug}`
+            "item": `${DYNAMIC_SITE_URL}/video/${slug}`
           }
         ]
       };
@@ -1119,9 +1139,14 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <title data-rh="true">${title}</title>
         <meta data-rh="true" name="description" content="${description}" />
         <link data-rh="true" rel="canonical" href="${currentUrl}" />
+        <link data-rh="true" rel="alternate" hrefLang="en" href="${currentUrl.replace(/https:\/\/[a-z0-9.]+\//, 'https://www.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="bn" href="${currentUrl.replace(/https:\/\/[a-z0-9.]+\//, 'https://bd.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="hi" href="${currentUrl.replace(/https:\/\/[a-z0-9.]+\//, 'https://hi.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="ar" href="${currentUrl.replace(/https:\/\/[a-z0-9.]+\//, 'https://ar.desiredhub.xyz/')}" />
+        <link data-rh="true" rel="alternate" hrefLang="x-default" href="${currentUrl.replace(/https:\/\/[a-z0-9.]+\//, 'https://www.desiredhub.xyz/')}" />
         <meta data-rh="true" property="og:site_name" content="DesiredHub" />
         <meta data-rh="true" property="og:locale" content="en_US" />
-        <meta data-rh="true" property="og:type" content="website" />
+        <meta data-rh="true" property="og:type" content="${req.originalUrl.startsWith('/video/') ? 'video.other' : 'website'}" />
         <meta data-rh="true" property="og:url" content="${currentUrl}" />
         <meta data-rh="true" property="og:title" content="${title}" />
         <meta data-rh="true" property="og:description" content="${description}" />
@@ -1152,6 +1177,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       console.error("SEO Injection Error:", e);
       next();
     }
+  
   });
 
   if (process.env.NODE_ENV !== "production") {

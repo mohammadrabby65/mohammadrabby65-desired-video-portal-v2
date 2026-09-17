@@ -135,33 +135,33 @@ export function Home() {
                   
                   <div className="absolute bottom-0 left-0 p-5 sm:p-8 md:p-12 z-20 w-full max-w-4xl">
                     <div className="flex flex-wrap gap-2 mb-3">
-                      <span className="bg-primary/90 shadow-sm text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                      <span className="bg-primary px-2.5 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white">
                         Featured
                       </span>
                       {heroVideo.quality && (
-                        <span className="bg-white/20 backdrop-blur-md border border-white/10 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
+                        <span className="bg-black/60 backdrop-blur-md border border-white/10 text-white text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
                           {heroVideo.quality}
                         </span>
                       )}
                     </div>
-                    <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2 sm:mb-4 line-clamp-2 leading-tight tracking-tight drop-shadow-md">
+                    <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 line-clamp-2 leading-tight tracking-tight">
                       {heroVideo.title}
                     </h1>
                     <div className="flex items-center gap-4 text-xs sm:text-sm text-neutral-300 font-medium">
-                      <div className="flex items-center gap-1.5 bg-black/60 border border-white/10 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-sm">
+                      <div className="flex items-center gap-1.5 bg-black/60 border border-white/10 px-2.5 py-1 rounded-md backdrop-blur-md">
                         <Clock className="w-3.5 h-3.5" />
                         <span>{heroVideo.duration}</span>
                       </div>
                       {heroVideo.views !== undefined && (
-                        <div className="flex items-center gap-1.5">
-                          <Flame className="w-4 h-4 text-primary drop-shadow-[0_0_8px_rgba(229,9,20,0.5)]" />
+                        <div className="flex items-center gap-1.5 bg-black/60 border border-white/10 px-2.5 py-1 rounded-md backdrop-blur-md">
+                          <Flame className="w-3.5 h-3.5 text-primary" />
                           <span>{heroVideo.views.toLocaleString()} views</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 z-30 transition-opacity duration-300">
-                    <div className="bg-primary text-white rounded-full p-5 shadow-[0_0_30px_rgba(229,9,20,0.5)] transform scale-90 group-hover:scale-100 transition-transform">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 z-30 transition-opacity duration-300 pointer-events-none">
+                    <div className="bg-black/50 backdrop-blur-md border border-white/10 text-white rounded-full p-4 transform scale-90 group-hover:scale-100 transition-transform">
                       <Play className="w-8 h-8 fill-current translate-x-0.5" />
                     </div>
                   </div>
@@ -195,7 +195,7 @@ export function Home() {
                 <div className="relative">
                   <button
                     onClick={() => setIsSortOpen(!isSortOpen)}
-                    className="flex items-center justify-between w-full sm:w-auto gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-lg text-sm font-medium text-neutral-300 hover:text-white transition-colors"
+                    className="flex items-center justify-between w-full sm:w-auto gap-2 px-5 py-2.5 bg-neutral-900 border border-neutral-800/80 hover:bg-neutral-800 rounded-full text-[13px] font-semibold text-neutral-300 hover:text-white transition-colors"
                   >
                     <span>
                       Sort by: <span className="text-white ml-1">{SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label}</span>

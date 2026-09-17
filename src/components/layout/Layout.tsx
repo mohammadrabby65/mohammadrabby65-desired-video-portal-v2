@@ -58,7 +58,7 @@ export function Layout() {
               <img
                 src="https://i.ibb.co.com/SwNGJTLW/Header-Logo-black-Version.png"
                 alt="DesiredHub"
-                className="h-10 sm:h-12 md:h-[50px] w-auto max-w-[150px] sm:max-w-[200px] md:max-w-none object-contain hidden dark:block  drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.2)] relative z-10"
+                className="h-10 sm:h-12 md:h-[50px] w-auto max-w-[150px] sm:max-w-[200px] md:max-w-none object-contain hidden dark:block relative z-10 transition-transform duration-300"
                 referrerPolicy="no-referrer"
               />
             </Link>
@@ -69,12 +69,10 @@ export function Layout() {
               onClick={handleRandomVideo}
               disabled={isNavigatingRandom}
               title="Random Video"
-              className="p-2 rounded-full group relative overflow-hidden flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110 active:scale-95 transition-transform duration-200"
+              className="p-2.5 rounded-full transition-all duration-200 group relative disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="absolute inset-0 bg-neutral-800/0 group-hover:bg-primary/20 rounded-full transition-colors duration-300" />
-              <div className="bg-neutral-900/80 backdrop-blur-md p-2 rounded-full relative z-10 border border-neutral-800 group-hover:border-primary/50 transition-colors duration-300">
-                <Dices className={`w-5 h-5 text-primary group-hover:text-accent transition-colors ${isNavigatingRandom ? 'animate-spin' : ''}`} />
-              </div>
+              <div className="absolute inset-0 bg-neutral-800/0 group-hover:bg-neutral-800/80 rounded-full transition-colors" />
+              <Dices className={`w-5 h-5 text-neutral-400 group-hover:text-white relative z-10 transition-colors ${isNavigatingRandom ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>

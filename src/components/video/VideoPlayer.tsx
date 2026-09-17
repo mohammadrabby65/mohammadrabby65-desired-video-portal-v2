@@ -282,11 +282,10 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     // Clamp frame index
     const totalFrames = cols * rows;
     let frameIndex = Math.floor(targetTime / interval);
-    if (isNaN(frameIndex)) frameIndex = 0;
     frameIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1));
     
-    const r = Math.floor(frameIndex / cols) || 0;
-    const c = (frameIndex % cols) || 0;
+    const r = Math.floor(frameIndex / cols);
+    const c = frameIndex % cols;
     
     return {
       backgroundImage: `url(${previewStoryboardUrl})`,
@@ -499,54 +498,49 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
         </div>
       )}
 
-      {/* Global Seek Preview (Direct child of root to avoid any clipping) */}
-      {(isDragging || isHovering) && (
-        <div
-          className="absolute flex flex-col items-center pointer-events-none drop-shadow-2xl z-[60] transition-none"
-          style={{
-            bottom: 'calc(4rem + 10px)', // 4rem is roughly the height of the controls area
-            left: `clamp(${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px, ${(isDragging ? dragPos : hoverPos) * 100}%, calc(100% - ${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px))`,
-            transform: 'translateX(-50%)'
-          }}
-        >
-          {previewStoryboardData && previewStoryboardUrl ? (
-            <div className="rounded-lg overflow-hidden border border-white/20 shadow-2xl bg-black">
-              <div style={getStoryboardStyles()} />
-            </div>
-          ) : null}
-          <div className={`bg-black/90 backdrop-blur text-white text-xs font-bold px-3 py-1.5 rounded shadow-lg border border-white/10 ${previewStoryboardData ? 'mt-1' : ''}`}>
-            {formatTime((isDragging ? dragPos : hoverPos) * duration)}
-          </div>
-        </div>
-      )}
-
       {/* Controls Overlay */}
       {!showPoster && (
         <div
           className={`absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/90 via-transparent to-transparent   ${showControls ? "opacity-100" : "opacity-0 cursor-none"}`}
         >
-          <div className="p-4 sm:p-6 flex flex-col gap-3 w-full relative">
-            
-            {/* Progress Bar Hit Area */}
+          <div className="p-4 sm:p-6 flex flex-col gap-3 w-full">
+            {/* Progress Bar */}
             <div
               ref={progressRef}
-              className="w-full py-4 -my-4 cursor-pointer group/progress relative touch-none flex items-center"
+              className="w-full h-1.5 sm:h-2 bg-neutral-600/40 rounded-full cursor-pointer group/progress relative overflow-visible hover:scale-y-125 touch-none"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerLeave={handlePointerLeave}
               onPointerCancel={handlePointerUp}
             >
-              <div className="w-full h-1.5 sm:h-2 bg-neutral-600/40 rounded-full relative overflow-visible group-hover/progress:scale-y-125 transition-transform">
-                <div className="absolute inset-0 bg-white/20 rounded-full hover:bg-white/30 " />
+              {/* Seek Preview */}
+              {(isDragging || isHovering) && (
                 <div
-                  className="absolute top-0 left-0 h-full bg-primary rounded-full group-hover/progress:bg-red-500 "
+                  className="absolute bottom-full mb-3 -translate-x-1/2 flex flex-col items-center pointer-events-none z-30"
                   style={{
-                    width: `${duration > 0 ? (isDragging ? dragPos * 100 : (currentTime / duration) * 100) : 0}%`,
+                    left: `clamp(${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px, ${(isDragging ? dragPos : hoverPos) * 100}%, calc(100% - ${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px))`
                   }}
                 >
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] opacity-0 group-hover/progress:opacity-100 scale-50 group-hover/progress:scale-100 transition-all duration-200" />
+                  {previewStoryboardData && previewStoryboardUrl ? (
+                    <div className="rounded-lg overflow-hidden border border-white/20 shadow-2xl bg-black">
+                      <div style={getStoryboardStyles()} />
+                    </div>
+                  ) : null}
+                  <div className={`bg-black/80 backdrop-blur text-white text-xs font-medium px-2 py-1 rounded shadow-lg ${previewStoryboardData ? 'mt-1' : ''}`}>
+                    {formatTime((isDragging ? dragPos : hoverPos) * duration)}
+                  </div>
                 </div>
+              )}
+
+              <div className="absolute inset-0 bg-white/20 rounded-full hover:bg-white/30 " />
+              <div
+                className="absolute top-0 left-0 h-full bg-primary rounded-full group-hover/progress:bg-red-500 "
+                style={{
+                  width: `${duration > 0 ? (isDragging ? dragPos * 100 : (currentTime / duration) * 100) : 0}%`,
+                }}
+              >
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] opacity-0 group-hover/progress:opacity-100 scale-50 group-hover/progress:scale-100" />
               </div>
             </div>
 
