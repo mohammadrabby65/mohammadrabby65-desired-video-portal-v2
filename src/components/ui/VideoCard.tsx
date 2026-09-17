@@ -209,17 +209,17 @@ export const VideoCard = memo(function VideoCard({
           </div>
         </div>
         {/* Duration Badge (Glassmorphism) */}
-        <div className="absolute bottom-2 right-2 z-30 bg-black/80 px-1.5 py-0.5 rounded text-[11px] font-medium text-pure-white whitespace-nowrap">
+        <div className="absolute bottom-2 right-2 z-30 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded text-[11px] font-semibold text-pure-white whitespace-nowrap tracking-wide">
           {video.duration}
         </div>
         
         {/* Top Badges Area */}
         {video.badges && video.badges.length > 0 && (
-          <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[calc(100%-40px)] z-30">
+          <div className="absolute top-2 left-2 flex flex-wrap gap-1.5 max-w-[calc(100%-40px)] z-30">
             {Array.from(new Set(video.badges)).map((badge) => (
               <div
                 key={badge}
-                className="bg-primary/90 backdrop-blur-md border border-pure-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider uppercase"
+                className="bg-primary/90 backdrop-blur-md border border-pure-white/10 px-2 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider uppercase shadow-sm"
               >
                 {badge}
               </div>
@@ -228,27 +228,27 @@ export const VideoCard = memo(function VideoCard({
         )}
         {/* Quality Badge */}
         {video.quality && (
-          <div className="absolute top-3 right-3 z-30 bg-pure-white/10 backdrop-blur-md border border-pure-white/20 px-2 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider uppercase">
+          <div className="absolute top-2 right-2 z-30 bg-pure-white/10 backdrop-blur-md border border-pure-white/20 px-2 py-0.5 rounded text-[10px] font-bold text-pure-white tracking-wider uppercase shadow-sm">
             {video.quality}
           </div>
         )}
       </div>
       {/* Typography & Metadata */}
-      <div className="flex flex-col mt-2 min-w-0 w-full gap-1">
-        <h3 className="text-sm sm:text-[15px] font-semibold text-neutral-100 line-clamp-2 leading-tight group-hover:text-primary break-words">
+      <div className="flex flex-col mt-2.5 px-0.5 min-w-0 w-full gap-1.5">
+        <h3 className="text-sm sm:text-[15px] font-bold text-neutral-100 line-clamp-2 leading-snug group-hover:text-primary break-words transition-colors">
           {video.title}
         </h3>
-        <div className="flex flex-wrap items-center text-xs sm:text-[13px] text-neutral-400 font-medium gap-1.5">
+        <div className="flex flex-wrap items-center text-xs sm:text-[13px] text-neutral-400 font-medium gap-2">
           <span>{formatTimeAgo(video.publishedAt)}</span>
           {video.views !== undefined && (
             <>
-              <span className="text-neutral-600">•</span>
+              <span className="text-neutral-600 text-[10px]">•</span>
               <span>{video.views.toLocaleString()} views</span>
             </>
           )}
           {likePercentage !== null && (
             <>
-              <span className="text-neutral-600">•</span>
+              <span className="text-neutral-600 text-[10px]">•</span>
               <span>{likePercentage}%</span>
             </>
           )}
