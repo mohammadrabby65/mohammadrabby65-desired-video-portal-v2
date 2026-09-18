@@ -91,21 +91,12 @@ export function Home() {
 
       {/* Promotional Banner */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-8 flex justify-center">
-        <a 
-          href="https://call-me-1.vercel.app/" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="block w-[300px] max-w-full hover:opacity-90 transition-opacity"
-        >
-          <img 
-            src="https://file.garden/amW_alkR9Rqi49hU/banner_300x50.webp" 
-            alt="Promotional Offer" 
-            className="w-full h-auto rounded"
-            style={{ aspectRatio: "300/50" }}
-            width="300"
-            height="50"
-          />
-        </a>
+        <div 
+          className="w-[300px] max-w-full flex justify-center overflow-hidden"
+          dangerouslySetInnerHTML={{
+            __html: '<iframe src="https://creative.whitetrafsa.com/widgets/wrapper?userId=792e7183c648cdf5071dcded7446fcf18c20447a9bf1c3576998bfb26fd8b640&bb=760143a2.gif" width="300" height="50" marginwidth="0" marginheight="0" frameborder="0" scrolling="no"></iframe>'
+          }}
+        />
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

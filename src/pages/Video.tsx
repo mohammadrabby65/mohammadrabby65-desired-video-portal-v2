@@ -138,7 +138,6 @@ export function Video() {
         description={metaDesc}
         image={video.thumbnailUrl}
         exactTitle={true}
-        ogType="video.other"
         breadcrumbs={breadcrumbs}
         video={{
           name: video.title,
