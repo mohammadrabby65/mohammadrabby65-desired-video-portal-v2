@@ -91,7 +91,7 @@ export function Home() {
       )}
 
       {/* Ad Banner */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-8 flex justify-center">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-3 sm:mb-5 flex justify-center">
         <AdsterraBanner320x50 />
       </div>
 
