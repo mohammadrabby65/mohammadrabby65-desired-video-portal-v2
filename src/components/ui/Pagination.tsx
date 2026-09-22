@@ -66,10 +66,10 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
             <Link
               key={idx}
               to={createPageUrl(page)}
-              className={`w-10 h-10 flex items-center justify-center rounded-full font-medium transition-colors ${
+              className={`w-10 h-10 flex items-center justify-center rounded-full font-bold transition-colors ${
                 currentPage === page
-                  ? "bg-primary text-white shadow-[0_2px_10px_0_rgba(229,9,20,0.3)]"
-                  : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white"
+                  ? "bg-primary text-white"
+                  : "bg-neutral-800/80 text-neutral-300 hover:bg-neutral-700 hover:text-white"
               }`}
             >
               {page}
