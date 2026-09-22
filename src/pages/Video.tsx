@@ -262,25 +262,13 @@ export function Video() {
                   <Share2 className="w-4 h-4" />
                   <span>Share</span>
                 </button>
-                {video.downloadUrl && video.downloadUrl.trim() !== "" ? (
-                  <Link
-                    to={`/download/${video.slug}`}
-                    className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-red-600 hover:bg-red-500 rounded-full text-[13px] sm:text-sm font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download</span>
-                  </Link>
-                ) : (
-                  <a
-                    href="https://predestineheadypleasure.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-red-600 hover:bg-red-500 rounded-full text-[13px] sm:text-sm font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download</span>
-                  </a>
-                )}
+                <Link
+                  to={`/download/${video.slug}`}
+                  className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-red-600 hover:bg-red-500 rounded-full text-[13px] sm:text-sm font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download</span>
+                </Link>
                 <button
                   onClick={handleReport}
                   className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-transparent hover:bg-red-500/10 border border-transparent hover:border-red-500/30 rounded-full text-[13px] sm:text-sm font-semibold text-neutral-500 hover:text-red-500 transition-colors ml-auto"

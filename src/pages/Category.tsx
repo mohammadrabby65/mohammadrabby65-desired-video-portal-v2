@@ -1,5 +1,3 @@
-import { Fragment } from "react";
-import { PromoWidget } from "../components/widgets/PromoWidget";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { VideoCard } from "../components/ui/VideoCard";
@@ -166,10 +164,7 @@ export function Category() {
                     <SkeletonCard key={i} />
                   ))
                 : videos.map((video: any, index: number) => (
-                    <Fragment key={video.id}>
-                      <VideoCard video={video} priority={index < 4} />
-                      {index === 4 && <PromoWidget />}
-                    </Fragment>
+                    <VideoCard key={video.id} video={video} priority={index < 4} />
                   ))}
             </div>
 
