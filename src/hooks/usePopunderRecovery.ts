@@ -27,7 +27,7 @@ export function usePopunderRecovery() {
           // on their intended video.
           setTimeout(() => {
             if (window.location.pathname !== href) {
-              navigate(href);
+              navigate(href, { replace: true });
             }
           }, 150);
         }

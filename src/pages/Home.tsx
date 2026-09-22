@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
+import { PromoWidget } from "../components/widgets/PromoWidget";
 import { usePaginationVideos, PaginationFilter } from "../hooks/useVideos";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
@@ -218,7 +219,10 @@ export function Home() {
                 {isLoading
                   ? Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
                   : gridVideos.map((video, index) => (
-                      <VideoCard key={video.id} video={video} priority={index < 4} enablePreview={true} />
+                      <Fragment key={video.id}>
+                        <VideoCard video={video} priority={index < 4} enablePreview={true} />
+                        {index === 3 && <PromoWidget />}
+                      </Fragment>
                     ))}
               </div>
             </div>
