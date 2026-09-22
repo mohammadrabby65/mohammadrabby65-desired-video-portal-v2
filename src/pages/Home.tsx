@@ -3,7 +3,6 @@ import { PromoWidget } from "../components/widgets/PromoWidget";
 import { usePaginationVideos, PaginationFilter } from "../hooks/useVideos";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
-import { AdsterraBanner320x50 } from "../components/ads/AdsterraBanner320x50";
 import { ChevronDown, Play, Flame, Clock, TrendingUp } from "lucide-react";
 import { usePublicCategories } from "../hooks/useCategories";
 import { NavLink, useSearchParams, Link } from "react-router-dom";
@@ -59,7 +58,7 @@ export function Home() {
   const gridVideos = videos.length > 1 ? videos.slice(1) : [];
 
   return (
-    <div className="flex-1 pb-16 pt-3 sm:pt-6 bg-neutral-950">
+    <div className="flex-1 pb-20 pt-2 sm:pt-6 bg-neutral-950">
       <SEO
         title="DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online"
         description="Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality."
@@ -90,11 +89,6 @@ export function Home() {
         </div>
       )}
 
-      {/* Ad Banner */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-3 sm:mb-5 flex justify-center">
-        <AdsterraBanner320x50 />
-      </div>
-
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {isError ? (
           <div className="text-center py-20 bg-neutral-900/50 rounded-xl border border-red-900/30">
@@ -111,44 +105,43 @@ export function Home() {
           <>
             {/* Premium Featured / Hero Video */}
             {!isLoading && heroVideo && page === 1 && (
-              <div className="mb-8 sm:mb-10">
-                <Link to={`/video/${heroVideo.slug}`} className="group relative block aspect-video sm:aspect-[21/9] lg:aspect-[2.5/1] rounded-2xl sm:rounded-[24px] overflow-hidden bg-neutral-900 border border-neutral-800 isolate">
+              <div className="mb-10 sm:mb-12">
+                <Link to={`/video/${heroVideo.slug}`} className="group relative block aspect-video sm:aspect-[21/9] lg:aspect-[2.5/1] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-800 isolate">
                   <img 
                     src={heroVideo.thumbnailUrl} 
                     alt={heroVideo.title} 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                     loading="eager"
                   />
-                  
-                  <div className="absolute bottom-0 left-0 p-5 sm:p-8 md:p-12 z-20 w-full max-w-4xl">
+                  <div className="absolute bottom-0 left-0 p-4 sm:p-8 md:p-12 z-20 w-full max-w-4xl">
                     <div className="flex flex-wrap gap-2 mb-3">
-                      <span className="bg-primary px-2.5 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white">
+                      <span className="bg-primary/90 text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">
                         Featured
                       </span>
                       {heroVideo.quality && (
-                        <span className="bg-black/60 backdrop-blur-md border border-white/10 text-white text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">
+                        <span className="bg-white/20 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider">
                           {heroVideo.quality}
                         </span>
                       )}
                     </div>
-                    <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 line-clamp-2 leading-tight tracking-tight">
+                    <h1 className="text-xl sm:text-3xl md:text-5xl font-bold text-white mb-2 sm:mb-4 line-clamp-2 leading-tight tracking-tight drop-shadow-md">
                       {heroVideo.title}
                     </h1>
                     <div className="flex items-center gap-4 text-xs sm:text-sm text-neutral-300 font-medium">
-                      <div className="flex items-center gap-1.5 bg-black/60 border border-white/10 px-2.5 py-1 rounded-md backdrop-blur-md">
+                      <div className="flex items-center gap-1.5 bg-black/60 px-2.5 py-1 rounded-md backdrop-blur-sm">
                         <Clock className="w-3.5 h-3.5" />
                         <span>{heroVideo.duration}</span>
                       </div>
                       {heroVideo.views !== undefined && (
-                        <div className="flex items-center gap-1.5 bg-black/60 border border-white/10 px-2.5 py-1 rounded-md backdrop-blur-md">
-                          <Flame className="w-3.5 h-3.5 text-primary" />
+                        <div className="flex items-center gap-1.5">
+                          <Flame className="w-4 h-4 text-primary" />
                           <span>{heroVideo.views.toLocaleString()} views</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 z-30 transition-opacity duration-300 pointer-events-none">
-                    <div className="bg-black/50 backdrop-blur-md border border-white/10 text-white rounded-full p-4 transform scale-90 group-hover:scale-100 transition-transform">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 z-30 transition-opacity duration-300">
+                    <div className="bg-primary text-white rounded-full p-5 shadow-[0_0_30px_rgba(229,9,20,0.5)] transform scale-90 group-hover:scale-100 transition-transform">
                       <Play className="w-8 h-8 fill-current translate-x-0.5" />
                     </div>
                   </div>
@@ -158,10 +151,10 @@ export function Home() {
 
             {/* Trending/Random Quick Row */}
             {!isLoading && randomVideos.length > 0 && page === 1 && (
-              <div className="mb-8 sm:mb-10">
-                <div className="flex items-center justify-between mb-4 sm:mb-5">
-                  <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 tracking-tight">
-                    <TrendingUp className="w-5 h-5 text-primary" />
+              <div className="mb-10 sm:mb-12">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2 tracking-tight">
+                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                     Trending Now
                   </h2>
                 </div>
@@ -175,14 +168,14 @@ export function Home() {
 
             {/* Main Video Grid */}
             <div className="mb-8">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 sm:mb-6 border-b border-neutral-800/80 pb-4">
-                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-neutral-800 pb-4">
+                <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
                   {page === 1 ? "Newest Videos" : `Page ${page} Videos`}
                 </h2>
                 <div className="relative">
                   <button
                     onClick={() => setIsSortOpen(!isSortOpen)}
-                    className="flex items-center justify-between w-full sm:w-auto gap-2 px-5 py-2.5 bg-neutral-900 border border-neutral-800/80 hover:bg-neutral-800 rounded-full text-[13px] font-semibold text-neutral-300 hover:text-white transition-colors"
+                    className="flex items-center justify-between w-full sm:w-auto gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 rounded-lg text-sm font-medium text-neutral-300 hover:text-white transition-colors"
                   >
                     <span>
                       Sort by: <span className="text-white ml-1">{SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label}</span>

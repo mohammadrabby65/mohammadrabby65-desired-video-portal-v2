@@ -48,10 +48,10 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
   };
 
   return (
-    <div className="mt-10 sm:mt-16 flex flex-wrap justify-center items-center gap-1.5 sm:gap-2 px-2 max-w-full">
+    <div className="mt-14 sm:mt-20 flex justify-center items-center gap-2">
       <Link
         to={currentPage > 1 ? createPageUrl(currentPage - 1) : "#"}
-        className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+        className={`px-4 py-2 rounded-full font-medium transition-colors ${
           currentPage > 1
             ? "bg-neutral-800 text-white hover:bg-neutral-700"
             : "bg-neutral-900 text-neutral-600 cursor-not-allowed pointer-events-none"
@@ -66,10 +66,10 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
             <Link
               key={idx}
               to={createPageUrl(page)}
-              className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-xs sm:text-sm font-bold transition-colors ${
+              className={`w-10 h-10 flex items-center justify-center rounded-full font-medium transition-colors ${
                 currentPage === page
-                  ? "bg-primary text-white"
-                  : "bg-neutral-800/80 text-neutral-300 hover:bg-neutral-700 hover:text-white"
+                  ? "bg-primary text-white shadow-[0_2px_10px_0_rgba(229,9,20,0.3)]"
+                  : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white"
               }`}
             >
               {page}
@@ -77,7 +77,7 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
           ) : (
             <span
               key={idx}
-              className="w-6 sm:w-8 flex justify-center text-xs sm:text-sm text-neutral-500"
+              className="w-8 flex justify-center text-neutral-500"
             >
               ...
             </span>
@@ -87,7 +87,7 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
 
       <Link
         to={currentPage < totalPages ? createPageUrl(currentPage + 1) : "#"}
-        className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+        className={`px-4 py-2 rounded-full font-medium transition-colors ${
           currentPage < totalPages
             ? "bg-neutral-800 text-white hover:bg-neutral-700"
             : "bg-neutral-900 text-neutral-600 cursor-not-allowed pointer-events-none"

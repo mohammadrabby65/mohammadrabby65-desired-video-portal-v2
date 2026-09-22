@@ -99,19 +99,20 @@ export function Category() {
             <div className="relative z-10">
               <button
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800/80 rounded-full text-[13px] font-semibold text-neutral-300 hover:text-white w-full sm:w-auto justify-between group transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-800 hover:border-neutral-700 rounded-full text-[13px] font-semibold text-neutral-300 hover:text-white shadow-sm hover:shadow-md w-full sm:w-auto justify-between group"
               >
                 Sort by:{" "}
                 {SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label}
                 <ChevronDown className="w-4 h-4 text-neutral-400 group-hover:text-white" />
               </button>
+
               {isSortOpen && (
                 <>
                   <div
                     className="fixed inset-0 z-10"
                     onClick={() => setIsSortOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-full sm:w-56 bg-neutral-900 border border-neutral-800/80 rounded-xl shadow-lg z-20 py-1 origin-top-right">
+                  <div className="absolute right-0 mt-2 w-full sm:w-56 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/50 rounded-2xl shadow-2xl z-20 p-2 origin-top-right">
                     {SORT_OPTIONS.map((option) => (
                       <button
                         key={option.value}

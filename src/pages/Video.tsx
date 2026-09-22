@@ -189,7 +189,7 @@ export function Video() {
             <AdsterraBanner320x50 key={video.id} />
 
             {/* Premium Player Container */}
-            <div className="sm:rounded-2xl overflow-hidden bg-black sm:border sm:border-neutral-800/60 relative w-full shadow-xl">
+            <div className="sm:rounded-2xl lg:rounded-[24px] overflow-hidden bg-black shadow-[0_8px_30px_rgb(0,0,0,0.6)] sm:border border-white/5 sm:ring-1 ring-white/10 relative w-full">
               <div className="relative w-full aspect-video bg-black">
                 <VideoPlayer
                   videoId={video.id}
@@ -235,34 +235,34 @@ export function Video() {
 
               {/* Action Bar */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 py-4">
-                <div className="flex items-center bg-neutral-900 border border-neutral-800/80 rounded-full overflow-hidden">
+                <div className="flex items-center bg-white/5 border border-white/10 rounded-full">
                   <button
                     onClick={() => handleVote('like')}
-                    className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 text-[13px] sm:text-sm font-semibold transition-colors ${localVote === 'like' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-300 hover:bg-neutral-800 hover:text-white'}`}
+                    className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-l-full text-[13px] sm:text-sm font-semibold transition-colors ${localVote === 'like' ? 'bg-white text-black' : 'text-neutral-300 hover:bg-white/10 hover:text-white'}`}
                   >
                     <ThumbsUp className={`w-4 h-4 ${localVote === 'like' ? 'fill-current' : ''}`} />
                     <span className="hidden sm:inline">Like</span>
                   </button>
-                  <div className="flex items-center px-4 font-bold text-[13px] sm:text-sm text-neutral-300 border-x border-neutral-800/80 h-6">
+                  <div className="flex items-center px-4 font-bold text-[13px] sm:text-sm text-neutral-200 border-x border-white/10 h-6">
                     {likePercentage !== null ? `${likePercentage}%` : <span className="font-medium text-neutral-500 text-[12px]">No votes yet</span>}
                   </div>
                   <button
                     onClick={() => handleVote('dislike')}
-                    className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 text-[13px] sm:text-sm font-semibold transition-colors ${localVote === 'dislike' ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-300 hover:bg-neutral-800 hover:text-white'}`}
+                    className={`flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-r-full text-[13px] sm:text-sm font-semibold transition-colors ${localVote === 'dislike' ? 'bg-white text-black' : 'text-neutral-300 hover:bg-white/10 hover:text-white'}`}
                   >
                     <ThumbsDown className={`w-4 h-4 ${localVote === 'dislike' ? 'fill-current' : ''}`} />
                     <span className="hidden sm:inline">Dislike</span>
                   </button>
                 </div>
-                <button onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800/80 rounded-full text-[13px] sm:text-sm font-semibold text-neutral-300 hover:text-white transition-colors">
+                <button onClick={handleCopyLink} className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[13px] sm:text-sm font-semibold text-neutral-300 hover:text-white transition-colors">
                   <Copy className="w-4 h-4" />
                   <span className="hidden sm:inline">Copy</span>
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800/80 rounded-full text-[13px] sm:text-sm font-semibold text-neutral-300 hover:text-white transition-colors">
+                <button className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[13px] sm:text-sm font-semibold text-neutral-300 hover:text-white transition-colors">
                   <Share2 className="w-4 h-4" />
                   <span>Share</span>
                 </button>
-                {video.downloadUrl && video.downloadUrl.trim() !== "" && (
+                {video.downloadUrl && video.downloadUrl.trim() !== "" ? (
                   <Link
                     to={`/download/${video.slug}`}
                     className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-red-600 hover:bg-red-500 rounded-full text-[13px] sm:text-sm font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
@@ -270,6 +270,16 @@ export function Video() {
                     <Download className="w-4 h-4" />
                     <span>Download</span>
                   </Link>
+                ) : (
+                  <a
+                    href="https://predestineheadypleasure.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-red-600 hover:bg-red-500 rounded-full text-[13px] sm:text-sm font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download</span>
+                  </a>
                 )}
                 <button
                   onClick={handleReport}
@@ -290,9 +300,9 @@ export function Video() {
               )}
 
               {/* Collapsible Description & Tags */}
-              <div className="bg-neutral-900 border border-neutral-800/60 rounded-2xl p-5 sm:p-6 flex flex-col gap-5 mt-2">
+              <div className="bg-neutral-900/40 backdrop-blur-md border border-white/5 rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col gap-5 shadow-inner mt-2">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  {Array.from(new Set(video.badges || [])).map((badge: string) => (
+                  {Array.from(new Set(video.badges || [])).map((badge) => (
                     <span
                       key={badge}
                       className="bg-primary/20 border border-primary/30 text-primary px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase"
@@ -310,7 +320,7 @@ export function Video() {
                       key={cat}
                       to={`/category/${cat.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}`}
                     >
-                      <span className="bg-neutral-800/80 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 hover:text-white px-3 py-1.5 rounded-full text-[13px] font-semibold transition-colors inline-flex">
+                      <span className="bg-white/5 border border-white/10 hover:bg-white/10 text-neutral-300 hover:text-white px-3 py-1.5 rounded-full text-[13px] font-semibold transition-colors shadow-sm inline-flex">
                         {cat}
                       </span>
                     </Link>
@@ -364,9 +374,9 @@ export function Video() {
                   {adjacent.next ? (
                     <Link
                       to={`/video/${adjacent.next.slug}`}
-                      className="flex items-center gap-4 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800/80 p-4 sm:p-5 rounded-2xl group transition-all"
+                      className="flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/5 p-4 sm:p-5 rounded-2xl group transition-all shadow-sm"
                     >
-                      <div className="bg-neutral-800/50 group-hover:bg-neutral-700/50 p-2 rounded-full shrink-0 transition-colors">
+                      <div className="bg-white/5 group-hover:bg-white/10 p-2 rounded-full shrink-0 transition-colors">
                         <ChevronLeft className="w-5 h-5 text-neutral-400 group-hover:text-white" />
                       </div>
                       <div className="min-w-0">
@@ -384,7 +394,7 @@ export function Video() {
                   {adjacent.prev ? (
                     <Link
                       to={`/video/${adjacent.prev.slug}`}
-                      className="flex items-center justify-end text-right gap-4 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800/80 p-4 sm:p-5 rounded-2xl group transition-all"
+                      className="flex items-center justify-end text-right gap-4 bg-white/5 hover:bg-white/10 border border-white/5 p-4 sm:p-5 rounded-2xl group transition-all shadow-sm"
                     >
                       <div className="min-w-0">
                         <div className="text-[11px] font-bold text-neutral-500 mb-1 tracking-wider uppercase">
@@ -394,7 +404,7 @@ export function Video() {
                           {adjacent.prev.title}
                         </div>
                       </div>
-                      <div className="bg-neutral-800/50 group-hover:bg-neutral-700/50 p-2 rounded-full shrink-0 transition-colors">
+                      <div className="bg-white/5 group-hover:bg-white/10 p-2 rounded-full shrink-0 transition-colors">
                         <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-white" />
                       </div>
                     </Link>
