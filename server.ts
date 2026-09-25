@@ -844,14 +844,31 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     };
   }
 
+  function getTemplate() {
+    if (process.env.NODE_ENV !== "production") {
+      return fs.readFileSync(
+        path.resolve(process.cwd(), "index.html"),
+        "utf-8"
+      );
+    }
+
+    const appHtmlPath = path.resolve(process.cwd(), "dist/app.html");
+
+    if (fs.existsSync(appHtmlPath)) {
+      return fs.readFileSync(appHtmlPath, "utf-8");
+    }
+
+    return fs.readFileSync(
+      path.resolve(process.cwd(), "dist/index.html"),
+      "utf-8"
+    );
+  }
+
   async function renderSeoPage(req: any, res: any, next: any, rawTitle: string, rawDesc: string, canonicalUrl: string, extraTags: string = "", extraHtmlReplace?: (html: string) => string) {
     try {
-      let template = "";
+      let template = getTemplate();
       if (process.env.NODE_ENV !== "production") {
-        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
-      } else {
-        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
 
       const seo = formatSeo(rawTitle, rawDesc, canonicalUrl);
@@ -1327,12 +1344,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
   app.get("/category/:slug", async (req, res, next) => {
     try {
       await ensureSnapshot();
-      let template = "";
+      let template = getTemplate();
       if (process.env.NODE_ENV !== "production") {
-        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
-      } else {
-        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
       
       const slug = req.params.slug;
@@ -1590,12 +1604,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         return;
       }
       
-      let template = "";
+      let template = getTemplate();
       if (process.env.NODE_ENV !== "production") {
-        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
-      } else {
-        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
       
       const title = escapeHtml(`${video.title} - DesiredHub`);
@@ -1830,7 +1841,11 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      res.sendFile(
+        fs.existsSync(path.join(distPath, "app.html"))
+          ? path.join(distPath, "app.html")
+          : path.join(distPath, "index.html")
+      );
     });
   }
 
