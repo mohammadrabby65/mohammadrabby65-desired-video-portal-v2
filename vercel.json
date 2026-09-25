@@ -21,11 +21,23 @@
       "destination": "/api/server"
     },
     {
+      "source": "/",
+      "destination": "/api/server"
+    },
+    {
       "source": "/video/:slug",
       "destination": "/api/server"
     },
     {
       "source": "/category/:slug",
+      "destination": "/api/server"
+    },
+    {
+      "source": "/tag/:slug",
+      "destination": "/api/server"
+    },
+    {
+      "source": "/categories",
       "destination": "/api/server"
     },
     {

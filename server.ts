@@ -26,6 +26,23 @@ let publicDataSnapshot: {
   lastUpdated: 0
 };
 
+try {
+  const localSnapshotPath = path.resolve(process.cwd(), "data-snapshot.json");
+  if (fs.existsSync(localSnapshotPath)) {
+    const raw = JSON.parse(fs.readFileSync(localSnapshotPath, "utf-8"));
+    if (raw && Array.isArray(raw.posts) && raw.posts.length > 0) {
+      publicDataSnapshot = {
+        posts: raw.posts,
+        categories: raw.categories || [],
+        lastUpdated: raw.lastUpdated || Date.now()
+      };
+      console.log(`Loaded initial snapshot from data-snapshot.json: ${publicDataSnapshot.posts.length} posts, ${publicDataSnapshot.categories.length} categories`);
+    }
+  }
+} catch (e) {
+  // Ignore local snapshot load errors
+}
+
 function escapeXml(unsafe: string) {
   return unsafe.replace(/[<>&'"]/g, (c) => {
     switch (c) {
@@ -87,6 +104,11 @@ async function generateSnapshot() {
       categories,
       lastUpdated: Date.now()
     };
+    try {
+      fs.writeFileSync(path.resolve(process.cwd(), "data-snapshot.json"), JSON.stringify(publicDataSnapshot));
+    } catch (e) {
+      // Ignore write errors in read-only environments
+    }
     
     console.log(`Snapshot generated. Posts: ${posts.length}, Categories: ${categories.length}`);
   } catch (err) {
@@ -659,6 +681,58 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     return duration;
   }
 
+  function getAdjacentVideos(pubAtMs: number) {
+    let prev: any = null;
+    let next: any = null;
+    const active = publicDataSnapshot.posts.filter((v: any) => v.isActive !== false && v.slug && v._publishedAtMs);
+    const older = active.filter((v: any) => v._publishedAtMs < pubAtMs);
+    if (older.length > 0) prev = older[0];
+    const newer = active.filter((v: any) => v._publishedAtMs > pubAtMs);
+    if (newer.length > 0) next = newer[newer.length - 1];
+    return { prev, next };
+  }
+
+  function getRelatedVideos(videoId: string, categories: string[] = [], tags: string[] = [], currentTitle: string = "", limitCount: number = 6) {
+    const titleKeywords = currentTitle 
+      ? currentTitle.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3)
+      : [];
+
+    let scoredVideos = publicDataSnapshot.posts
+      .filter((v: any) => v.id !== videoId && v.isActive !== false && v.slug)
+      .map((v: any) => {
+        let score = 0;
+        if (v.categories && categories.length > 0) {
+          if (v.categories.some((c: string) => categories.includes(c))) score += 5;
+        } else if (v.category && categories.includes(v.category)) {
+          score += 5;
+        }
+        if (v.tags && tags.length > 0) {
+          v.tags.forEach((t: string) => {
+            if (tags.includes(t)) score += 3;
+          });
+        }
+        if (v.title && titleKeywords.length > 0) {
+          const vTitle = v.title.toLowerCase();
+          titleKeywords.forEach((kw: string) => {
+            if (vTitle.includes(kw)) score += 2;
+          });
+        }
+        const publishedAtMs = v._publishedAtMs || (v.publishedAt?.seconds ? v.publishedAt.seconds * 1000 : 0);
+        const ageDays = (Date.now() - publishedAtMs) / (1000 * 60 * 60 * 24);
+        if (ageDays >= 0 && ageDays < 30) score += 1;
+        return { video: v, score };
+      });
+
+    scoredVideos.sort((a: any, b: any) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const aPub = a.video._publishedAtMs || (a.video.publishedAt?.seconds || 0) * 1000;
+      const bPub = b.video._publishedAtMs || (b.video.publishedAt?.seconds || 0) * 1000;
+      return bPub - aPub;
+    });
+
+    return scoredVideos.slice(0, limitCount).map((s: any) => s.video);
+  }
+
 
   app.get("/api/video/:slug", async (req, res) => {
     try {
@@ -803,12 +877,179 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
-  app.get("/", (req, res, next) => {
-    renderSeoPage(req, res, next, "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online", "Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality.", `${SITE_URL}/`);
+  app.get("/", async (req, res, next) => {
+    try {
+      await ensureSnapshot();
+      const activePosts = publicDataSnapshot.posts.filter((p: any) => p.isActive !== false && p.slug);
+      const activeCats = publicDataSnapshot.categories.filter((c: any) => c.isActive !== false && c.slug);
+      
+      // Latest 36 videos
+      const latestVideos = activePosts.slice(0, 36);
+      
+      // Popular 12 videos (excluding ones already in latest to maximize coverage of older high-value videos)
+      const popularVideos = [...activePosts]
+        .sort((a, b) => (b.views || 0) - (a.views || 0))
+        .filter((p: any) => !latestVideos.some((lv: any) => lv.slug === p.slug))
+        .slice(0, 12);
+
+      const categoryLinksHtml = activeCats.map((cat: any) => 
+        `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/category/${cat.slug}" style="color: #d4d4d4; text-decoration: none; background: #1f1f1f; padding: 6px 14px; border-radius: 9999px; font-size: 13px; display: inline-block; border: 1px solid #2e2e2e;">${escapeHtml(cat.name)}</a></li>`
+      ).join("") + `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/categories" style="color: #ef4444; text-decoration: none; background: #1f1f1f; padding: 6px 14px; border-radius: 9999px; font-size: 13px; display: inline-block; border: 1px solid #ef4444;">Browse All Categories &rarr;</a></li>`;
+
+      const renderVideoListItem = (post: any) => `
+        <li style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px;">
+          <a href="/video/${post.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 14px; display: block; line-height: 1.4;">${escapeHtml(post.title)}</a>
+          <div style="font-size: 12px; color: #737373; margin-top: 6px; display: flex; gap: 8px; align-items: center;">
+            ${post.duration ? `<span>${escapeHtml(post.duration)}</span>` : ''}
+            ${post.views ? `<span>&bull; ${post.views} views</span>` : ''}
+            ${post.quality ? `<span style="background: #262626; color: #a3a3a3; padding: 1px 4px; border-radius: 4px; font-size: 11px;">${escapeHtml(post.quality)}</span>` : ''}
+          </div>
+        </li>
+      `.trim();
+
+      const latestVideosHtml = latestVideos.map(renderVideoListItem).join("");
+      const popularVideosHtml = popularVideos.map(renderVideoListItem).join("");
+
+      const rootContent = `
+        <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <header style="margin-bottom: 2rem;">
+            <h1 style="color: #ffffff; font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin: 0 0 1rem 0;">DesiredHub - Free Desi Porn &amp; Hot Indian Sex Videos Online</h1>
+            <nav aria-label="Categories" style="margin-bottom: 1.5rem;">
+              <ul style="list-style: none; padding: 0; margin: 0;">
+                ${categoryLinksHtml}
+              </ul>
+            </nav>
+          </header>
+          <main>
+            <section style="margin-bottom: 2.5rem;">
+              <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Latest Videos</h2>
+              <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
+                ${latestVideosHtml}
+              </ul>
+            </section>
+            ${popularVideos.length > 0 ? `
+              <section>
+                <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Popular Videos</h2>
+                <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
+                  ${popularVideosHtml}
+                </ul>
+              </section>
+            ` : ''}
+          </main>
+        </div>
+      `.trim();
+
+      const allHomepageVideos = [...latestVideos, ...popularVideos];
+      const itemListJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Latest Indian Adult Videos",
+        "numberOfItems": allHomepageVideos.length,
+        "itemListElement": allHomepageVideos.map((post: any, idx: number) => ({
+          "@type": "ListItem",
+          "position": idx + 1,
+          "name": post.title,
+          "url": `${SITE_URL}/video/${post.slug}`
+        }))
+      };
+
+      const extraTags = `<script data-rh="true" type="application/ld+json">${JSON.stringify(itemListJsonLd)}</script>`;
+
+      renderSeoPage(
+        req, 
+        res, 
+        next, 
+        "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online", 
+        "Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality.", 
+        `${SITE_URL}/`,
+        extraTags,
+        (html) => html.replace('<div id="root"></div>', `<div id="root">${rootContent}</div>`)
+      );
+    } catch (e) {
+      console.error("Home SEO error:", e);
+      next();
+    }
   });
 
-  app.get("/categories", (req, res, next) => {
-    renderSeoPage(req, res, next, "All Categories - DesiredHub", "Browse all video categories on DesiredHub. Find your favorite desi porn, horny bhabhis, Indian sex videos, and adult content streamed in high quality.", `${SITE_URL}/categories`);
+  app.get("/categories", async (req, res, next) => {
+    try {
+      await ensureSnapshot();
+      const activeCats = publicDataSnapshot.categories.filter((c: any) => c.isActive !== false && c.slug);
+      
+      const catLinksHtml = activeCats.map((cat: any) => {
+        const catPostCount = publicDataSnapshot.posts.filter((p: any) => 
+          p.isActive !== false && ((p.categories && p.categories.includes(cat.slug)) || p.category === cat.slug)
+        ).length;
+        return `<li style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 14px 18px;">
+          <a href="/category/${cat.slug}" style="color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; display: block;">${escapeHtml(cat.name)}</a>
+          <span style="font-size: 13px; color: #737373; margin-top: 4px; display: block;">${catPostCount} videos</span>
+        </li>`;
+      }).join("");
+
+      const categoriesRootHtml = `
+        <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <nav aria-label="Breadcrumb" style="margin-bottom: 1rem; font-size: 0.875rem; color: #737373;">
+            <a href="/" style="color: #a3a3a3; text-decoration: none;">Home</a>
+            <span> / Categories</span>
+          </nav>
+          <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem 0;">All Categories</h1>
+          <p style="color: #a3a3a3; font-size: 0.95rem; margin: 0 0 1.5rem 0;">Browse our full collection of desi adult categories.</p>
+          <section>
+            <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
+              ${catLinksHtml}
+            </ul>
+          </section>
+        </div>
+      `.trim();
+
+      const breadcrumbsJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": SITE_URL
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Categories",
+            "item": `${SITE_URL}/categories`
+          }
+        ]
+      };
+
+      const itemListJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Adult Video Categories",
+        "numberOfItems": activeCats.length,
+        "itemListElement": activeCats.map((cat: any, idx: number) => ({
+          "@type": "ListItem",
+          "position": idx + 1,
+          "name": cat.name,
+          "url": `${SITE_URL}/category/${cat.slug}`
+        }))
+      };
+
+      const extraTags = `<script data-rh="true" type="application/ld+json">${JSON.stringify([breadcrumbsJsonLd, itemListJsonLd])}</script>`;
+
+      renderSeoPage(
+        req, 
+        res, 
+        next, 
+        "All Categories - DesiredHub", 
+        "Browse all video categories on DesiredHub. Find your favorite desi porn, horny bhabhis, Indian sex videos, and adult content streamed in high quality.", 
+        `${SITE_URL}/categories`,
+        extraTags,
+        (html) => html.replace('<div id="root"></div>', `<div id="root">${categoriesRootHtml}</div>`)
+      );
+    } catch (e) {
+      console.error("Categories SEO error:", e);
+      next();
+    }
   });
 
   app.get("/dmca", (req, res, next) => {
@@ -823,10 +1064,98 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     renderSeoPage(req, res, next, "Privacy Policy - DesiredHub", "Read the privacy policy for DesiredHub to understand how we collect, use, and protect your personal information while browsing adult content.", `${SITE_URL}/privacy-policy`);
   });
 
-  app.get("/tag/:slug", (req, res, next) => {
-    const slug = req.params.slug;
-    const tagTitle = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    renderSeoPage(req, res, next, `${tagTitle} Videos - DesiredHub`, `Explore free desi porn and hot Indian sex videos tagged with ${tagTitle} on DesiredHub. Enjoy high quality streaming adult entertainment.`, `${SITE_URL}/tag/${slug}`);
+  app.get("/tag/:slug", async (req, res, next) => {
+    try {
+      await ensureSnapshot();
+      const slug = req.params.slug;
+      const tagTitle = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      const tagSlugNormalized = slug.toLowerCase().replace(/-/g, ' ');
+
+      const tagVideos = publicDataSnapshot.posts.filter((v: any) => {
+        if (v.isActive === false || !v.slug) return false;
+        return v.tags && v.tags.some((t: string) => 
+          t.toLowerCase() === tagSlugNormalized || 
+          t.toLowerCase().replace(/[^a-z0-9]+/g, '-') === slug
+        );
+      });
+
+      // Render up to 100 tag videos so all matching videos are crawlable through normal HTML links
+      const displayVideos = tagVideos.slice(0, 100);
+      const tagVideosHtml = displayVideos.map((post: any) =>
+        `<li style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px;">
+          <a href="/video/${post.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 14px; display: block; line-height: 1.4;">${escapeHtml(post.title)}</a>
+          <div style="font-size: 12px; color: #737373; margin-top: 6px; display: flex; gap: 8px; align-items: center;">
+            ${post.duration ? `<span>${escapeHtml(post.duration)}</span>` : ''}
+            ${post.views ? `<span>&bull; ${post.views} views</span>` : ''}
+            ${post.quality ? `<span style="background: #262626; color: #a3a3a3; padding: 1px 4px; border-radius: 4px; font-size: 11px;">${escapeHtml(post.quality)}</span>` : ''}
+          </div>
+        </li>`
+      ).join("");
+
+      const tagRootHtml = `
+        <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <nav aria-label="Breadcrumb" style="margin-bottom: 1rem; font-size: 0.875rem; color: #737373;">
+            <a href="/" style="color: #a3a3a3; text-decoration: none;">Home</a>
+            <span> / #${escapeHtml(tagTitle)}</span>
+          </nav>
+          <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem 0;">#${escapeHtml(tagTitle)} Videos</h1>
+          <p style="color: #a3a3a3; margin: 0 0 1.5rem 0; font-size: 0.95rem;">${tagVideos.length} videos tagged with #${escapeHtml(tagTitle)}</p>
+          <section>
+            <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
+              ${tagVideosHtml}
+            </ul>
+          </section>
+        </div>
+      `.trim();
+
+      const breadcrumbsJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": SITE_URL
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": `#${tagTitle}`,
+            "item": `${SITE_URL}/tag/${slug}`
+          }
+        ]
+      };
+
+      const itemListJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": `#${tagTitle} Videos`,
+        "numberOfItems": displayVideos.length,
+        "itemListElement": displayVideos.map((post: any, idx: number) => ({
+          "@type": "ListItem",
+          "position": idx + 1,
+          "name": post.title,
+          "url": `${SITE_URL}/video/${post.slug}`
+        }))
+      };
+
+      const extraTags = `<script data-rh="true" type="application/ld+json">${JSON.stringify([breadcrumbsJsonLd, itemListJsonLd])}</script>`;
+
+      renderSeoPage(
+        req, 
+        res, 
+        next, 
+        `${tagTitle} Videos - DesiredHub`, 
+        `Explore free desi porn and hot Indian sex videos tagged with ${tagTitle} on DesiredHub. Enjoy high quality streaming adult entertainment.`, 
+        `${SITE_URL}/tag/${slug}`,
+        extraTags,
+        (html) => html.replace('<div id="root"></div>', `<div id="root">${tagRootHtml}</div>`)
+      );
+    } catch (e) {
+      console.error("Tag SEO error:", e);
+      next();
+    }
   });
 
   app.get("/search", (req, res, next) => {
@@ -871,6 +1200,26 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       const description = escapeHtml(categoryDesc);
       const currentUrl = escapeHtml(`${SITE_URL}/category/${slug}`);
       
+      let categoryVideos: any[] = [];
+      if (slug === "trending") {
+        categoryVideos = publicDataSnapshot.posts.filter((v: any) => v.isActive !== false && v.slug && v.trending);
+        if (categoryVideos.length < 20) {
+          categoryVideos = [...publicDataSnapshot.posts.filter((v: any) => v.isActive !== false && v.slug)].sort((a, b) => (b.views || 0) - (a.views || 0));
+        }
+      } else if (slug === "popular") {
+        categoryVideos = [...publicDataSnapshot.posts.filter((v: any) => v.isActive !== false && v.slug)].sort((a, b) => (b.views || 0) - (a.views || 0));
+      } else if (slug === "latest") {
+        categoryVideos = publicDataSnapshot.posts.filter((v: any) => v.isActive !== false && v.slug);
+      } else {
+        categoryVideos = publicDataSnapshot.posts.filter((v: any) => {
+          if (v.isActive === false || !v.slug) return false;
+          return (v.categories && v.categories.includes(slug)) || v.category === slug;
+        });
+      }
+
+      // Render up to 100 category videos so older videos are directly reachable through internal HTML links
+      const displayVideos = categoryVideos.slice(0, 100);
+
       const breadcrumbsJsonLd = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -898,7 +1247,20 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         "url": currentUrl
       };
 
-      const jsonLdScript = `<script type="application/ld+json">${JSON.stringify([breadcrumbsJsonLd, collectionJsonLd])}</script>`;
+      const itemListJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": `${categoryName} Videos`,
+        "numberOfItems": displayVideos.length,
+        "itemListElement": displayVideos.map((post: any, idx: number) => ({
+          "@type": "ListItem",
+          "position": idx + 1,
+          "name": post.title,
+          "url": `${SITE_URL}/video/${post.slug}`
+        }))
+      };
+
+      const jsonLdScript = `<script type="application/ld+json">${JSON.stringify([breadcrumbsJsonLd, collectionJsonLd, itemListJsonLd])}</script>`;
       
       const seoTags = `
         <title data-rh="true">${title}</title>
@@ -912,8 +1274,36 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <meta data-rh="true" name="twitter:description" content="${description}" />
         ${jsonLdScript}
       `;
-      
-            const html = template.replace("<title>DesiredHub</title>", seoTags);
+
+      const categoryVideosHtml = displayVideos.map((post: any) =>
+        `<li style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px;">
+          <a href="/video/${post.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 14px; display: block; line-height: 1.4;">${escapeHtml(post.title)}</a>
+          <div style="font-size: 12px; color: #737373; margin-top: 6px; display: flex; gap: 8px; align-items: center;">
+            ${post.duration ? `<span>${escapeHtml(post.duration)}</span>` : ''}
+            ${post.views ? `<span>&bull; ${post.views} views</span>` : ''}
+            ${post.quality ? `<span style="background: #262626; color: #a3a3a3; padding: 1px 4px; border-radius: 4px; font-size: 11px;">${escapeHtml(post.quality)}</span>` : ''}
+          </div>
+        </li>`
+      ).join("");
+
+      const categoryRootHtml = `
+        <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <nav aria-label="Breadcrumb" style="margin-bottom: 1rem; font-size: 0.875rem; color: #737373;">
+            <a href="/" style="color: #a3a3a3; text-decoration: none;">Home</a>
+            <span> / ${escapeHtml(categoryName)}</span>
+          </nav>
+          <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem 0;">${escapeHtml(categoryName)}</h1>
+          <p style="color: #a3a3a3; margin: 0 0 1.5rem 0; font-size: 0.95rem;">${escapeHtml(categoryDesc)} (${categoryVideos.length} videos available)</p>
+          <section>
+            <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
+              ${categoryVideosHtml}
+            </ul>
+          </section>
+        </div>
+      `.trim();
+
+      let html = template.replace("<title>DesiredHub</title>", seoTags);
+      html = html.replace('<div id="root"></div>', `<div id="root">${categoryRootHtml}</div>`);
       res.status(200).set({ 
         'Content-Type': 'text/html',
         'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400'
@@ -1053,9 +1443,8 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       if (!optimalDesc) {
         let text = (video.description || "").replace(/\s+/g, " ").trim();
         if (text.length > 155) {
-          // Find the last space before or at index 152 to avoid breaking words
           let cutoff = text.substring(0, 153).lastIndexOf(" ");
-          if (cutoff === -1) cutoff = 152; // Fallback if there are no spaces
+          if (cutoff === -1) cutoff = 152;
           optimalDesc = text.substring(0, cutoff).trim() + "...";
         } else {
           optimalDesc = text;
@@ -1076,15 +1465,33 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         }
       }
       
-      const jsonLd = {
+      const jsonLd: any = {
         "@context": "https://schema.org",
         "@type": "VideoObject",
         name: video.title,
-        description: video.description,
-        thumbnailUrl: [video.thumbnailUrl],
+        description: video.description || video.title,
         uploadDate: uploadDate,
-        ...(video.duration && { duration: formatIsoDuration(video.duration) }),
-        contentUrl: video.videoUrl,
+        mainEntityOfPage: currentUrl
+      };
+
+      if (video.thumbnailUrl) {
+        jsonLd.thumbnailUrl = [video.thumbnailUrl];
+      }
+      if (video.duration) {
+        const isoDur = formatIsoDuration(video.duration);
+        if (isoDur) jsonLd.duration = isoDur;
+      }
+      if (video.videoUrl) {
+        jsonLd.contentUrl = video.videoUrl;
+      }
+      jsonLd.publisher = {
+        "@type": "Organization",
+        name: "DesiredHub",
+        url: SITE_URL,
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_URL}/favicon-32x32.png`
+        }
       };
 
       const categoryName = (video.categories && video.categories[0]) || video.category;
@@ -1115,6 +1522,26 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         ]
       };
 
+      // Sanitize video object for public script payload - DO NOT expose admin/private fields
+      const safeVideoData = {
+        id: docId,
+        title: video.title,
+        slug: video.slug,
+        description: video.description || "",
+        thumbnailUrl: video.thumbnailUrl || "",
+        videoUrl: video.videoUrl || "",
+        duration: video.duration || "",
+        quality: video.quality || "HD",
+        views: video.views || 0,
+        categories: video.categories || (video.category ? [video.category] : []),
+        tags: video.tags || [],
+        publishedAt: video.publishedAt || null,
+        _publishedAtMs: video._publishedAtMs || 0,
+        featured: !!video.featured,
+        trending: !!video.trending,
+        badges: video.badges || []
+      };
+
       const seoTags = `
         <title data-rh="true">${title}</title>
         <meta data-rh="true" name="description" content="${description}" />
@@ -1135,14 +1562,96 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <meta data-rh="true" name="twitter:image" content="${image}" />
         <script data-rh="true" type="application/ld+json">${JSON.stringify(jsonLd)}</script>
         <script data-rh="true" type="application/ld+json">${JSON.stringify(breadcrumbsJsonLd)}</script>
-        <script>window.__INITIAL_VIDEO_DATA__ = ${JSON.stringify({ id: docId, ...video }).replace(/</g, '\\u003c')};</script>
+        <script>window.__INITIAL_VIDEO_DATA__ = ${JSON.stringify(safeVideoData).replace(/</g, '\\u003c')};</script>
       `;
 
-            
       let html = template.replace("<title>DesiredHub</title>", seoTags);
       
-      // Inject H1 for SEO
-      html = html.replace('<div id="root"></div>', `<div id="root"><div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem;"><h1 style="color: #ffffff; font-family: sans-serif; font-size: 2.25rem; font-weight: 700; line-height: 1.2;">${escapeHtml(video.title)}</h1></div></div>`);
+      const pubAtMs = video._publishedAtMs || (video.publishedAt?.seconds ? video.publishedAt.seconds * 1000 : 0);
+      const { prev, next: nextVideo } = getAdjacentVideos(pubAtMs);
+
+      const videoCategories = video.categories || (video.category ? [video.category] : []);
+      const videoTags = video.tags || [];
+      const relatedVideos = getRelatedVideos(video.id, videoCategories, videoTags, video.title, 8);
+
+      const adjacentHtml = (prev || nextVideo) ? `
+        <nav aria-label="Adjacent videos" style="margin: 1.5rem 0; padding: 1rem; background: #171717; border: 1px solid #262626; border-radius: 8px;">
+          <h2 style="font-size: 0.95rem; font-weight: 600; color: #a3a3a3; margin: 0 0 0.75rem 0; text-transform: uppercase; letter-spacing: 0.05em;">Adjacent Videos</h2>
+          <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between;">
+            ${prev ? `<div style="flex: 1; min-width: 200px;"><span style="font-size: 0.8rem; color: #737373;">&larr; Previous Video</span><br/><a href="/video/${prev.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 0.95rem;">${escapeHtml(prev.title)}</a></div>` : ''}
+            ${nextVideo ? `<div style="flex: 1; min-width: 200px; text-align: right;"><span style="font-size: 0.8rem; color: #737373;">Next Video &rarr;</span><br/><a href="/video/${nextVideo.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 0.95rem;">${escapeHtml(nextVideo.title)}</a></div>` : ''}
+          </div>
+        </nav>
+      `.trim() : '';
+
+      const tagsHtml = (videoTags && videoTags.length > 0) ? `
+        <nav aria-label="Tags" style="margin: 1.25rem 0;">
+          <h3 style="font-size: 0.85rem; font-weight: 600; color: #737373; text-transform: uppercase; margin: 0 0 0.5rem 0; letter-spacing: 0.05em;">Tags</h3>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            ${videoTags.map((tag: string) => {
+              const tSlug = tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+              return `<a href="/tag/${tSlug}" style="color: #d4d4d4; background: #1c1c1c; border: 1px solid #2e2e2e; padding: 4px 10px; border-radius: 4px; font-size: 13px; text-decoration: none;">#${escapeHtml(tag)}</a>`;
+            }).join("")}
+          </div>
+        </nav>
+      `.trim() : '';
+
+      const relatedHtml = relatedVideos.length > 0 ? `
+        <section aria-label="Related videos" style="margin-top: 2rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Related Videos</h2>
+          <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
+            ${relatedVideos.map((rel: any) => 
+              `<li style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px;">
+                <a href="/video/${rel.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 14px; display: block; line-height: 1.4;">${escapeHtml(rel.title)}</a>
+                <div style="font-size: 12px; color: #737373; margin-top: 6px; display: flex; gap: 8px; align-items: center;">
+                  ${rel.duration ? `<span>${escapeHtml(rel.duration)}</span>` : ''}
+                  ${rel.views ? `<span>&bull; ${rel.views} views</span>` : ''}
+                  ${rel.quality ? `<span style="background: #262626; color: #a3a3a3; padding: 1px 4px; border-radius: 4px; font-size: 11px;">${escapeHtml(rel.quality)}</span>` : ''}
+                </div>
+              </li>`
+            ).join("")}
+          </ul>
+        </section>
+      `.trim() : '';
+
+      const breadcrumbsHtml = `
+        <nav aria-label="Breadcrumb" style="margin-bottom: 1rem; font-size: 0.875rem; color: #737373;">
+          <a href="/" style="color: #a3a3a3; text-decoration: none;">Home</a>
+          ${categoryName && categorySlug ? ` / <a href="/category/${categorySlug}" style="color: #a3a3a3; text-decoration: none;">${escapeHtml(categoryName)}</a>` : ''}
+          <span> / ${escapeHtml(video.title)}</span>
+        </nav>
+      `.trim();
+
+      const formattedDate = uploadDate ? new Date(uploadDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+
+      const videoMetaHtml = `
+        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 1rem; font-size: 0.875rem; color: #a3a3a3;">
+          ${categoryName && categorySlug ? `<span>Category: <a href="/category/${categorySlug}" style="color: #ef4444; text-decoration: none; font-weight: 500;">${escapeHtml(categoryName)}</a></span>` : ''}
+          ${formattedDate ? `<span>&bull; Published: <time datetime="${uploadDate}">${formattedDate}</time></span>` : ''}
+          ${video.duration ? `<span>&bull; Duration: ${escapeHtml(video.duration)}</span>` : ''}
+          ${video.views ? `<span>&bull; ${video.views} views</span>` : ''}
+          ${video.quality ? `<span style="background: #262626; color: #d4d4d4; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">${escapeHtml(video.quality)}</span>` : ''}
+        </div>
+      `.trim();
+
+      const videoRootHtml = `
+        <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          ${breadcrumbsHtml}
+          <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 1rem 0;">${escapeHtml(video.title)}</h1>
+          ${videoMetaHtml}
+          ${image ? `
+            <div style="margin-bottom: 1.5rem; max-width: 640px; aspect-ratio: 16/9; background: #171717; border-radius: 8px; overflow: hidden;">
+              <img src="${image}" alt="${title}" width="640" height="360" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>
+          ` : ''}
+          ${video.description ? `<p style="color: #a3a3a3; font-size: 0.95rem; line-height: 1.6; margin: 0 0 1.5rem 0; max-width: 800px;">${escapeHtml(video.description)}</p>` : ''}
+          ${tagsHtml}
+          ${adjacentHtml}
+          ${relatedHtml}
+        </div>
+      `.trim();
+
+      html = html.replace('<div id="root"></div>', `<div id="root">${videoRootHtml}</div>`);
   
       res.status(200).set({ 
         'Content-Type': 'text/html',

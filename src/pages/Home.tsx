@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect, Fragment } from "react";
-import { PromoWidget } from "../components/widgets/PromoWidget";
+import { useState, useMemo, useEffect } from "react";
 import { usePaginationVideos, PaginationFilter } from "../hooks/useVideos";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
+import { AdsterraBanner320x50 } from "../components/ads/AdsterraBanner320x50";
 import { ChevronDown, Play, Flame, Clock, TrendingUp } from "lucide-react";
 import { usePublicCategories } from "../hooks/useCategories";
 import { NavLink, useSearchParams, Link } from "react-router-dom";
@@ -89,14 +89,9 @@ export function Home() {
         </div>
       )}
 
-      {/* Promotional Banner */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-8 flex justify-center">
-        <div 
-          className="w-[300px] max-w-full flex justify-center overflow-hidden"
-          dangerouslySetInnerHTML={{
-            __html: '<iframe src="https://creative.whitetrafsa.com/widgets/wrapper?userId=792e7183c648cdf5071dcded7446fcf18c20447a9bf1c3576998bfb26fd8b640&bb=760143a2.gif" width="300" height="50" marginwidth="0" marginheight="0" frameborder="0" scrolling="no"></iframe>'
-          }}
-        />
+      {/* Ad Banner */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-3 sm:mb-5 flex justify-center">
+        <AdsterraBanner320x50 />
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -223,10 +218,7 @@ export function Home() {
                 {isLoading
                   ? Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
                   : gridVideos.map((video, index) => (
-                      <Fragment key={video.id}>
-                        <VideoCard video={video} priority={index < 4} enablePreview={true} />
-                        {index === 3 && <PromoWidget />}
-                      </Fragment>
+                      <VideoCard key={video.id} video={video} priority={index < 4} enablePreview={true} />
                     ))}
               </div>
             </div>
@@ -254,3 +246,5 @@ export function Home() {
     </div>
   );
 }
+
+export default Home;

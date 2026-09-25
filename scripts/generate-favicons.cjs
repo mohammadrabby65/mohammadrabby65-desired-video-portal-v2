@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const pngToIco = require('png-to-ico');
+const pngToIcoModule = require('png-to-ico');
+const pngToIco = pngToIcoModule.default || pngToIcoModule;
 
 const publicDir = path.join(__dirname, '..', 'public');
 
