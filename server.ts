@@ -56,13 +56,6 @@ function escapeXml(unsafe: string) {
   });
 }
 
-function normalizeCategory(value: any): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-");
-}
-
 
 
 let snapshotPromise: Promise<void> | null = null;
@@ -442,11 +435,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
            });
         }
       } else if (category && category !== 'All') {
-        const targetNorm = normalizeCategory(category);
-        filtered = filtered.filter(v => {
-          const list = [...(v.categories || []), v.category].filter(Boolean);
-          return list.some((c: any) => normalizeCategory(c) === targetNorm);
-        });
+         filtered = filtered.filter(v => v.categories && v.categories.includes(category));
       } else if (tag) {
          filtered = filtered.filter(v => v.tags && v.tags.includes(tag));
       }
@@ -727,10 +716,10 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       .filter((v: any) => v.id !== videoId && v.isActive !== false && v.slug)
       .map((v: any) => {
         let score = 0;
-        if (categories.length > 0) {
-          const postCats = [...(v.categories || []), v.category].filter(Boolean).map(normalizeCategory);
-          const targetCats = categories.map(normalizeCategory);
-          if (postCats.some((c: string) => targetCats.includes(c))) score += 5;
+        if (v.categories && categories.length > 0) {
+          if (v.categories.some((c: string) => categories.includes(c))) score += 5;
+        } else if (v.category && categories.includes(v.category)) {
+          score += 5;
         }
         if (v.tags && tags.length > 0) {
           v.tags.forEach((t: string) => {
@@ -855,31 +844,14 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     };
   }
 
-  function getTemplate() {
-    if (process.env.NODE_ENV !== "production") {
-      return fs.readFileSync(
-        path.resolve(process.cwd(), "index.html"),
-        "utf-8"
-      );
-    }
-
-    const appHtmlPath = path.resolve(process.cwd(), "dist/app.html");
-
-    if (fs.existsSync(appHtmlPath)) {
-      return fs.readFileSync(appHtmlPath, "utf-8");
-    }
-
-    return fs.readFileSync(
-      path.resolve(process.cwd(), "dist/index.html"),
-      "utf-8"
-    );
-  }
-
   async function renderSeoPage(req: any, res: any, next: any, rawTitle: string, rawDesc: string, canonicalUrl: string, extraTags: string = "", extraHtmlReplace?: (html: string) => string) {
     try {
-      let template = getTemplate();
+      let template = "";
       if (process.env.NODE_ENV !== "production") {
+        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
+      } else {
+        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
 
       const seo = formatSeo(rawTitle, rawDesc, canonicalUrl);
@@ -997,11 +969,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
 
       // Categories pills with counts
       const categoryLinksHtml = activeCats.map((cat: any) => {
-        const targetNorm = normalizeCategory(cat.slug);
-        const catCount = activePosts.filter((p: any) => {
-          const list = [...(p.categories || []), p.category].filter(Boolean);
-          return list.some((c: any) => normalizeCategory(c) === targetNorm);
-        }).length;
+        const catCount = activePosts.filter((p: any) => 
+          (p.categories && p.categories.includes(cat.slug)) || p.category === cat.slug
+        ).length;
         return `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/category/${cat.slug}" style="color: #d4d4d4; text-decoration: none; background: #1f1f1f; padding: 6px 14px; border-radius: 9999px; font-size: 13px; display: inline-block; border: 1px solid #2e2e2e;">${escapeHtml(cat.name)} (${catCount})</a></li>`;
       }).join("") + `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/categories" style="color: #ef4444; text-decoration: none; background: #1f1f1f; padding: 6px 14px; border-radius: 9999px; font-size: 13px; display: inline-block; border: 1px solid #ef4444;">Browse All Categories &rarr;</a></li>`;
 
@@ -1153,11 +1123,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       const activeCats = publicDataSnapshot.categories.filter((c: any) => c.isActive !== false && c.slug);
       
       const catCardsHtml = activeCats.map((cat: any) => {
-        const targetNorm = normalizeCategory(cat.slug);
-        const catVideos = activePosts.filter((p: any) => {
-          const list = [...(p.categories || []), p.category].filter(Boolean);
-          return list.some((c: any) => normalizeCategory(c) === targetNorm);
-        });
+        const catVideos = activePosts.filter((p: any) => 
+          (p.categories && p.categories.includes(cat.slug)) || p.category === cat.slug
+        );
         const top3 = catVideos.slice(0, 3);
         return `
           <article style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between;">
@@ -1359,25 +1327,25 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
   app.get("/category/:slug", async (req, res, next) => {
     try {
       await ensureSnapshot();
-      let template = getTemplate();
+      let template = "";
       if (process.env.NODE_ENV !== "production") {
+        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
+      } else {
+        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
       
       const slug = req.params.slug;
-      const targetNorm = normalizeCategory(slug);
       
       const defaultCats = ["trending", "latest", "popular"];
       let categoryName = "";
       let categoryDesc = "";
       
-      if (defaultCats.includes(targetNorm)) {
+      if (defaultCats.includes(slug.toLowerCase())) {
         categoryName = slug.charAt(0).toUpperCase() + slug.slice(1) + " Videos";
         categoryDesc = `Watch the best ${categoryName.toLowerCase()} on DesiredHub.`;
       } else {
-        const cat = publicDataSnapshot.categories.find((c: any) => 
-          normalizeCategory(c.slug) === targetNorm || normalizeCategory(c.name) === targetNorm
-        );
+        const cat = publicDataSnapshot.categories.find((c: any) => c.slug === slug);
         if (cat) {
           categoryName = cat.name;
           categoryDesc = cat.seoDescription || `Watch the best ${categoryName} videos on DesiredHub.`;
@@ -1404,46 +1372,12 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       } else {
         categoryVideos = publicDataSnapshot.posts.filter((v: any) => {
           if (v.isActive === false || !v.slug) return false;
-          const list = [...(v.categories || []), v.category].filter(Boolean);
-          return list.some((c: any) => normalizeCategory(c) === targetNorm);
+          return (v.categories && v.categories.includes(slug)) || v.category === slug;
         });
       }
 
       // Render up to 100 category videos so older videos are directly reachable through internal HTML links
       const displayVideos = categoryVideos.slice(0, 100);
-
-      const safeCategoryVideos = displayVideos.slice(0, 20).map((v: any) => ({
-        id: v.id,
-        title: v.title,
-        slug: v.slug,
-        description: v.description || "",
-        thumbnailUrl: v.thumbnailUrl || "",
-        videoUrl: v.videoUrl || "",
-        duration: v.duration || "",
-        quality: v.quality || "HD",
-        views: v.views || 0,
-        likeCount: v.likeCount || 0,
-        dislikeCount: v.dislikeCount || 0,
-        categories: v.categories || (v.category ? [v.category] : []),
-        tags: v.tags || [],
-        publishedAt: v.publishedAt || null,
-        _publishedAtMs: v._publishedAtMs || 0,
-        featured: !!v.featured,
-        trending: !!v.trending,
-        badges: v.badges || []
-      }));
-
-      const initialCategoryData = {
-        slug,
-        name: categoryName,
-        description: categoryDesc,
-        videos: safeCategoryVideos,
-        total: categoryVideos.length,
-        page: 1,
-        totalPages: Math.ceil(categoryVideos.length / 20) || 1
-      };
-
-      const initialDataScript = `<script>window.__INITIAL_CATEGORY_DATA__ = ${JSON.stringify(initialCategoryData).replace(/</g, '\\u003c')};</script>`;
 
       const breadcrumbsJsonLd = {
         "@context": "https://schema.org",
@@ -1504,7 +1438,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <meta data-rh="true" name="twitter:title" content="${title}" />
         <meta data-rh="true" name="twitter:description" content="${description}" />
         ${jsonLdScript}
-        ${initialDataScript}
       `;
 
       const categoryVideosHtml = displayVideos.map(renderVideoCardHtml).join("");
@@ -1657,9 +1590,12 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         return;
       }
       
-      let template = getTemplate();
+      let template = "";
       if (process.env.NODE_ENV !== "production") {
+        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
+      } else {
+        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
       
       const title = escapeHtml(`${video.title} - DesiredHub`);
@@ -1894,11 +1830,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(
-        fs.existsSync(path.join(distPath, "app.html"))
-          ? path.join(distPath, "app.html")
-          : path.join(distPath, "index.html")
-      );
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
