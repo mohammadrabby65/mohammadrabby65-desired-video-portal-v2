@@ -126,6 +126,21 @@ async function startServer() {
   
   app.use(express.json());
 
+  // Normalize Vercel serverless request URL from headers
+  app.use((req, res, next) => {
+    const matched = (req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-invoke-path']) as string;
+    if (matched && typeof matched === 'string') {
+      if (req.url === '/api/server' || req.url.startsWith('/api/server?')) {
+        const qIdx = req.url.indexOf('?');
+        const queryString = qIdx !== -1 ? req.url.slice(qIdx) : '';
+        req.url = matched + (matched.includes('?') ? '' : queryString);
+      }
+    } else if (req.url === '/api/server' || req.url === '/api/server/') {
+      req.url = '/';
+    }
+    next();
+  });
+
 
   app.get("/api/admin/snapshot/status", (req, res) => {
     try {
@@ -733,6 +748,52 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     return scoredVideos.slice(0, limitCount).map((s: any) => s.video);
   }
 
+  function renderVideoCardHtml(post: any) {
+    const categoryName = (post.categories && post.categories[0]) || post.category;
+    const categorySlug = categoryName ? categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : null;
+    
+    let postIsoDate = "";
+    let formattedDate = "";
+    if (post.publishedAt) {
+      if (typeof post.publishedAt.toDate === "function") {
+        postIsoDate = post.publishedAt.toDate().toISOString();
+      } else if (post.publishedAt.seconds) {
+        postIsoDate = new Date(post.publishedAt.seconds * 1000).toISOString();
+      } else {
+        postIsoDate = new Date(post.publishedAt).toISOString();
+      }
+      try {
+        formattedDate = new Date(postIsoDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      } catch (e) {}
+    }
+
+    const thumbUrl = post.thumbnailUrl ? escapeHtml(post.thumbnailUrl) : "";
+    const titleText = escapeHtml(post.title || "Video");
+
+    return `
+      <article style="background: #171717; border: 1px solid #262626; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
+        ${thumbUrl ? `
+          <figure style="margin: 0; aspect-ratio: 16/9; background: #0f0f0f; overflow: hidden; position: relative;">
+            <a href="/video/${post.slug}" style="display: block; width: 100%; height: 100%;">
+              <img src="${thumbUrl}" alt="${titleText}" width="320" height="180" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;" />
+            </a>
+            ${post.duration ? `<span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.85); color: #ffffff; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${escapeHtml(post.duration)}</span>` : ''}
+          </figure>
+        ` : ''}
+        <div style="padding: 12px 14px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 500; line-height: 1.4;">
+            <a href="/video/${post.slug}" style="color: #ffffff; text-decoration: none;">${titleText}</a>
+          </h3>
+          <div style="font-size: 12px; color: #737373; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+            ${categoryName && categorySlug ? `<a href="/category/${categorySlug}" style="color: #ef4444; text-decoration: none; font-weight: 500;">${escapeHtml(categoryName)}</a>` : ''}
+            ${post.views ? `<span>&bull; ${post.views} views</span>` : ''}
+            ${formattedDate ? `<span>&bull; <time datetime="${postIsoDate}">${formattedDate}</time></span>` : ''}
+            ${post.quality ? `<span style="background: #262626; color: #a3a3a3; padding: 1px 4px; border-radius: 4px; font-size: 11px;">${escapeHtml(post.quality)}</span>` : ''}
+          </div>
+        </div>
+      </article>
+    `.trim();
+  }
 
   app.get("/api/video/:slug", async (req, res) => {
     try {
@@ -877,75 +938,159 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
-  app.get("/", async (req, res, next) => {
+  app.get(["/", "/api/server"], async (req, res, next) => {
     try {
       await ensureSnapshot();
       const activePosts = publicDataSnapshot.posts.filter((p: any) => p.isActive !== false && p.slug);
       const activeCats = publicDataSnapshot.categories.filter((c: any) => c.isActive !== false && c.slug);
       
+      // Featured and Trending collections if existing flags exist
+      const featuredVideos = activePosts.filter((p: any) => p.featured).slice(0, 6);
+      const trendingVideos = activePosts.filter((p: any) => p.trending && !featuredVideos.some((f: any) => f.slug === p.slug)).slice(0, 6);
+
       // Latest 36 videos
       const latestVideos = activePosts.slice(0, 36);
       
-      // Popular 12 videos (excluding ones already in latest to maximize coverage of older high-value videos)
+      // Popular 12 videos (excluding ones already in latest to maximize unique crawlable internal links)
       const popularVideos = [...activePosts]
         .sort((a, b) => (b.views || 0) - (a.views || 0))
         .filter((p: any) => !latestVideos.some((lv: any) => lv.slug === p.slug))
         .slice(0, 12);
 
-      const categoryLinksHtml = activeCats.map((cat: any) => 
-        `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/category/${cat.slug}" style="color: #d4d4d4; text-decoration: none; background: #1f1f1f; padding: 6px 14px; border-radius: 9999px; font-size: 13px; display: inline-block; border: 1px solid #2e2e2e;">${escapeHtml(cat.name)}</a></li>`
-      ).join("") + `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/categories" style="color: #ef4444; text-decoration: none; background: #1f1f1f; padding: 6px 14px; border-radius: 9999px; font-size: 13px; display: inline-block; border: 1px solid #ef4444;">Browse All Categories &rarr;</a></li>`;
-
-      const renderVideoListItem = (post: any) => `
-        <li style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px;">
-          <a href="/video/${post.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 14px; display: block; line-height: 1.4;">${escapeHtml(post.title)}</a>
-          <div style="font-size: 12px; color: #737373; margin-top: 6px; display: flex; gap: 8px; align-items: center;">
-            ${post.duration ? `<span>${escapeHtml(post.duration)}</span>` : ''}
-            ${post.views ? `<span>&bull; ${post.views} views</span>` : ''}
-            ${post.quality ? `<span style="background: #262626; color: #a3a3a3; padding: 1px 4px; border-radius: 4px; font-size: 11px;">${escapeHtml(post.quality)}</span>` : ''}
-          </div>
-        </li>
+      // Discovery routes
+      const discoveryLinksHtml = `
+        <nav aria-label="Quick Discovery" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5rem;">
+          <a href="/categories" style="color: #ffffff; background: #262626; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;">All Categories</a>
+          <a href="/category/trending" style="color: #ef4444; background: #1c1917; border: 1px solid #78350f; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;">Trending Videos</a>
+          <a href="/category/popular" style="color: #f59e0b; background: #1c1917; border: 1px solid #78350f; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;">Popular Videos</a>
+          <a href="/category/latest" style="color: #38bdf8; background: #082f49; border: 1px solid #0369a1; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;">Latest Releases</a>
+        </nav>
       `.trim();
 
-      const latestVideosHtml = latestVideos.map(renderVideoListItem).join("");
-      const popularVideosHtml = popularVideos.map(renderVideoListItem).join("");
+      // Categories pills with counts
+      const categoryLinksHtml = activeCats.map((cat: any) => {
+        const catCount = activePosts.filter((p: any) => 
+          (p.categories && p.categories.includes(cat.slug)) || p.category === cat.slug
+        ).length;
+        return `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/category/${cat.slug}" style="color: #d4d4d4; text-decoration: none; background: #1f1f1f; padding: 6px 14px; border-radius: 9999px; font-size: 13px; display: inline-block; border: 1px solid #2e2e2e;">${escapeHtml(cat.name)} (${catCount})</a></li>`;
+      }).join("") + `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/categories" style="color: #ef4444; text-decoration: none; background: #1f1f1f; padding: 6px 14px; border-radius: 9999px; font-size: 13px; display: inline-block; border: 1px solid #ef4444;">Browse All Categories &rarr;</a></li>`;
+
+      // Popular tags in memory
+      const tagCounts: Record<string, number> = {};
+      activePosts.forEach((p: any) => {
+        if (Array.isArray(p.tags)) {
+          p.tags.forEach((t: string) => {
+            const clean = t.trim();
+            if (clean) tagCounts[clean] = (tagCounts[clean] || 0) + 1;
+          });
+        }
+      });
+      const topTags = Object.entries(tagCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 16)
+        .map(([name, count]) => ({
+          name,
+          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
+          count
+        }));
+
+      const tagsLinksHtml = topTags.map(t => 
+        `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/tag/${t.slug}" style="color: #a3a3a3; text-decoration: none; background: #141414; padding: 4px 10px; border-radius: 4px; font-size: 12px; display: inline-block; border: 1px solid #262626;">#${escapeHtml(t.name)} (${t.count})</a></li>`
+      ).join("");
+
+      const latestVideosHtml = latestVideos.map(renderVideoCardHtml).join("");
+      const popularVideosHtml = popularVideos.map(renderVideoCardHtml).join("");
+      const featuredVideosHtml = featuredVideos.map(renderVideoCardHtml).join("");
+      const trendingVideosHtml = trendingVideos.map(renderVideoCardHtml).join("");
 
       const rootContent = `
         <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           <header style="margin-bottom: 2rem;">
             <h1 style="color: #ffffff; font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin: 0 0 1rem 0;">DesiredHub - Free Desi Porn &amp; Hot Indian Sex Videos Online</h1>
+            ${discoveryLinksHtml}
             <nav aria-label="Categories" style="margin-bottom: 1.5rem;">
+              <h2 style="font-size: 0.9rem; font-weight: 600; color: #737373; text-transform: uppercase; margin: 0 0 0.5rem 0; letter-spacing: 0.05em;">Categories</h2>
               <ul style="list-style: none; padding: 0; margin: 0;">
                 ${categoryLinksHtml}
               </ul>
             </nav>
+            ${topTags.length > 0 ? `
+              <nav aria-label="Popular Tags" style="margin-bottom: 1.5rem;">
+                <h2 style="font-size: 0.9rem; font-weight: 600; color: #737373; text-transform: uppercase; margin: 0 0 0.5rem 0; letter-spacing: 0.05em;">Popular Tags</h2>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                  ${tagsLinksHtml}
+                </ul>
+              </nav>
+            ` : ''}
           </header>
           <main>
+            ${featuredVideos.length > 0 ? `
+              <section style="margin-bottom: 2.5rem;">
+                <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Featured Videos</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                  ${featuredVideosHtml}
+                </div>
+              </section>
+            ` : ''}
+            ${trendingVideos.length > 0 ? `
+              <section style="margin-bottom: 2.5rem;">
+                <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Trending Videos</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                  ${trendingVideosHtml}
+                </div>
+              </section>
+            ` : ''}
             <section style="margin-bottom: 2.5rem;">
               <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Latest Videos</h2>
-              <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
                 ${latestVideosHtml}
-              </ul>
+              </div>
             </section>
             ${popularVideos.length > 0 ? `
-              <section>
+              <section style="margin-bottom: 2.5rem;">
                 <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Popular Videos</h2>
-                <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
                   ${popularVideosHtml}
-                </ul>
+                </div>
               </section>
             ` : ''}
           </main>
         </div>
       `.trim();
 
-      const allHomepageVideos = [...latestVideos, ...popularVideos];
+      const allHomepageVideos = [...featuredVideos, ...trendingVideos, ...latestVideos, ...popularVideos];
+      // Deduplicate for schema
+      const uniqueHomepageVideos = allHomepageVideos.filter((v, i, a) => a.findIndex(t => t.slug === v.slug) === i);
+
+      const webSiteJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "DesiredHub",
+        "url": SITE_URL,
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": `${SITE_URL}/search?q={search_term_string}`,
+          "query-input": "required name=search_term_string"
+        }
+      };
+
+      const orgJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "DesiredHub",
+        "url": SITE_URL,
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${SITE_URL}/favicon-32x32.png`
+        }
+      };
+
       const itemListJsonLd = {
         "@context": "https://schema.org",
         "@type": "ItemList",
         "name": "Latest Indian Adult Videos",
-        "numberOfItems": allHomepageVideos.length,
-        "itemListElement": allHomepageVideos.map((post: any, idx: number) => ({
+        "numberOfItems": uniqueHomepageVideos.length,
+        "itemListElement": uniqueHomepageVideos.map((post: any, idx: number) => ({
           "@type": "ListItem",
           "position": idx + 1,
           "name": post.title,
@@ -953,7 +1098,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         }))
       };
 
-      const extraTags = `<script data-rh="true" type="application/ld+json">${JSON.stringify(itemListJsonLd)}</script>`;
+      const extraTags = `<script data-rh="true" type="application/ld+json">${JSON.stringify([webSiteJsonLd, orgJsonLd, itemListJsonLd])}</script>`;
 
       renderSeoPage(
         req, 
@@ -974,16 +1119,39 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
   app.get("/categories", async (req, res, next) => {
     try {
       await ensureSnapshot();
+      const activePosts = publicDataSnapshot.posts.filter((p: any) => p.isActive !== false && p.slug);
       const activeCats = publicDataSnapshot.categories.filter((c: any) => c.isActive !== false && c.slug);
       
-      const catLinksHtml = activeCats.map((cat: any) => {
-        const catPostCount = publicDataSnapshot.posts.filter((p: any) => 
-          p.isActive !== false && ((p.categories && p.categories.includes(cat.slug)) || p.category === cat.slug)
-        ).length;
-        return `<li style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 14px 18px;">
-          <a href="/category/${cat.slug}" style="color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; display: block;">${escapeHtml(cat.name)}</a>
-          <span style="font-size: 13px; color: #737373; margin-top: 4px; display: block;">${catPostCount} videos</span>
-        </li>`;
+      const catCardsHtml = activeCats.map((cat: any) => {
+        const catVideos = activePosts.filter((p: any) => 
+          (p.categories && p.categories.includes(cat.slug)) || p.category === cat.slug
+        );
+        const top3 = catVideos.slice(0, 3);
+        return `
+          <article style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                <h2 style="font-size: 1.15rem; font-weight: 600; margin: 0;">
+                  <a href="/category/${cat.slug}" style="color: #ffffff; text-decoration: none;">${escapeHtml(cat.name)}</a>
+                </h2>
+                <span style="font-size: 13px; color: #ef4444; font-weight: 600;">${catVideos.length} videos</span>
+              </div>
+              ${cat.seoDescription ? `<p style="font-size: 13px; color: #a3a3a3; margin: 0 0 12px 0; line-height: 1.4;">${escapeHtml(cat.seoDescription)}</p>` : ''}
+            </div>
+            ${top3.length > 0 ? `
+              <div style="border-top: 1px solid #262626; padding-top: 10px; margin-top: 10px;">
+                <span style="font-size: 11px; text-transform: uppercase; color: #737373; font-weight: 600; letter-spacing: 0.05em; display: block; margin-bottom: 6px;">Featured in this category:</span>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                  ${top3.map((v: any) => `
+                    <li style="margin: 4px 0;">
+                      <a href="/video/${v.slug}" style="color: #d4d4d4; text-decoration: none; font-size: 13px; display: block; line-height: 1.3;">&bull; ${escapeHtml(v.title)}</a>
+                    </li>
+                  `).join("")}
+                </ul>
+              </div>
+            ` : ''}
+          </article>
+        `.trim();
       }).join("");
 
       const categoriesRootHtml = `
@@ -993,11 +1161,11 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
             <span> / Categories</span>
           </nav>
           <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem 0;">All Categories</h1>
-          <p style="color: #a3a3a3; font-size: 0.95rem; margin: 0 0 1.5rem 0;">Browse our full collection of desi adult categories.</p>
+          <p style="color: #a3a3a3; font-size: 0.95rem; margin: 0 0 1.5rem 0;">Browse our complete collection of ${activeCats.length} adult video categories.</p>
           <section>
-            <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
-              ${catLinksHtml}
-            </ul>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+              ${catCardsHtml}
+            </div>
           </section>
         </div>
       `.trim();
@@ -1081,16 +1249,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
 
       // Render up to 100 tag videos so all matching videos are crawlable through normal HTML links
       const displayVideos = tagVideos.slice(0, 100);
-      const tagVideosHtml = displayVideos.map((post: any) =>
-        `<li style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px;">
-          <a href="/video/${post.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 14px; display: block; line-height: 1.4;">${escapeHtml(post.title)}</a>
-          <div style="font-size: 12px; color: #737373; margin-top: 6px; display: flex; gap: 8px; align-items: center;">
-            ${post.duration ? `<span>${escapeHtml(post.duration)}</span>` : ''}
-            ${post.views ? `<span>&bull; ${post.views} views</span>` : ''}
-            ${post.quality ? `<span style="background: #262626; color: #a3a3a3; padding: 1px 4px; border-radius: 4px; font-size: 11px;">${escapeHtml(post.quality)}</span>` : ''}
-          </div>
-        </li>`
-      ).join("");
+      const tagVideosHtml = displayVideos.map(renderVideoCardHtml).join("");
 
       const tagRootHtml = `
         <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
@@ -1101,9 +1260,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
           <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem 0;">#${escapeHtml(tagTitle)} Videos</h1>
           <p style="color: #a3a3a3; margin: 0 0 1.5rem 0; font-size: 0.95rem;">${tagVideos.length} videos tagged with #${escapeHtml(tagTitle)}</p>
           <section>
-            <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
               ${tagVideosHtml}
-            </ul>
+            </div>
           </section>
         </div>
       `.trim();
@@ -1233,6 +1392,12 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
           {
             "@type": "ListItem",
             "position": 2,
+            "name": "Categories",
+            "item": `${SITE_URL}/categories`
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
             "name": categoryName,
             "item": currentUrl
           }
@@ -1275,29 +1440,25 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         ${jsonLdScript}
       `;
 
-      const categoryVideosHtml = displayVideos.map((post: any) =>
-        `<li style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px;">
-          <a href="/video/${post.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 14px; display: block; line-height: 1.4;">${escapeHtml(post.title)}</a>
-          <div style="font-size: 12px; color: #737373; margin-top: 6px; display: flex; gap: 8px; align-items: center;">
-            ${post.duration ? `<span>${escapeHtml(post.duration)}</span>` : ''}
-            ${post.views ? `<span>&bull; ${post.views} views</span>` : ''}
-            ${post.quality ? `<span style="background: #262626; color: #a3a3a3; padding: 1px 4px; border-radius: 4px; font-size: 11px;">${escapeHtml(post.quality)}</span>` : ''}
-          </div>
-        </li>`
-      ).join("");
+      const categoryVideosHtml = displayVideos.map(renderVideoCardHtml).join("");
 
       const categoryRootHtml = `
         <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
           <nav aria-label="Breadcrumb" style="margin-bottom: 1rem; font-size: 0.875rem; color: #737373;">
             <a href="/" style="color: #a3a3a3; text-decoration: none;">Home</a>
+            <span> / </span>
+            <a href="/categories" style="color: #a3a3a3; text-decoration: none;">Categories</a>
             <span> / ${escapeHtml(categoryName)}</span>
           </nav>
-          <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem 0;">${escapeHtml(categoryName)}</h1>
-          <p style="color: #a3a3a3; margin: 0 0 1.5rem 0; font-size: 0.95rem;">${escapeHtml(categoryDesc)} (${categoryVideos.length} videos available)</p>
+          <div style="margin-bottom: 1.5rem;">
+            <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem 0;">${escapeHtml(categoryName)}</h1>
+            <p style="color: #a3a3a3; margin: 0 0 0.75rem 0; font-size: 0.95rem;">${escapeHtml(categoryDesc)} (${categoryVideos.length} videos available)</p>
+            <a href="/categories" style="color: #ef4444; font-size: 0.875rem; text-decoration: none;">&larr; Browse All Categories</a>
+          </div>
           <section>
-            <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
               ${categoryVideosHtml}
-            </ul>
+            </div>
           </section>
         </div>
       `.trim();
