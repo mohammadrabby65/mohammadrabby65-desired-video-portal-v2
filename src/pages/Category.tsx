@@ -1,10 +1,12 @@
+import { Fragment } from "react";
+import { PromoWidget } from "../components/widgets/PromoWidget";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { SEO } from "../components/seo/SEO";
 import { ChevronDown } from "lucide-react";
-import { usePaginationVideos, PaginationFilter } from "../hooks/useVideos";
+import { usePaginationVideos, PaginationFilter, normalizeCategory } from "../hooks/useVideos";
 import { usePublicCategories } from "../hooks/useCategories";
 import { Pagination } from "../components/ui/Pagination";
 
@@ -26,16 +28,41 @@ export function Category() {
   const [sortBy, setSortBy] = useState<SortOption>("publishedAt");
   const [isSortOpen, setIsSortOpen] = useState(false);
 
+  const initialCatData = useMemo(() => {
+    if (
+      typeof window !== "undefined" &&
+      (window as any).__INITIAL_CATEGORY_DATA__ &&
+      slug &&
+      normalizeCategory((window as any).__INITIAL_CATEGORY_DATA__.slug) ===
+        normalizeCategory(slug)
+    ) {
+      return (window as any).__INITIAL_CATEGORY_DATA__;
+    }
+    return null;
+  }, [slug]);
+
   // Try to find the exact category name by slug from categories API
   const { data: categories = [], isPending: isCategoryPending } =
     usePublicCategories();
-  const categoryData = categories.find((cat) => cat.slug === slug) || null;
+  const categoryData =
+    categories.find(
+      (cat) =>
+        normalizeCategory(cat.slug) === normalizeCategory(slug) ||
+        normalizeCategory(cat.name) === normalizeCategory(slug),
+    ) || initialCatData || null;
 
   const categoryName =
     categoryData?.name ||
+    initialCatData?.name ||
     (slug
       ? slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, " ")
       : "Category");
+
+  const categoryDesc =
+    categoryData?.description ||
+    categoryData?.seoDescription ||
+    initialCatData?.description ||
+    `Watch the best ${categoryName} videos on DesiredHub.`;
 
   const filter: PaginationFilter = useMemo(
     () => ({
@@ -47,8 +74,14 @@ export function Category() {
 
   const { data, isLoading, isError } = usePaginationVideos(filter, 20, page);
 
-  const videos = data?.videos || [];
-  const totalPages = data?.totalPages || 1;
+  const videos =
+    data?.videos ||
+    (page === 1 && (!sortBy || sortBy === "publishedAt") && initialCatData?.videos) ||
+    [];
+  const totalPages =
+    data?.totalPages ||
+    (page === 1 && (!sortBy || sortBy === "publishedAt") && initialCatData?.totalPages) ||
+    1;
 
   const jsonLd = useMemo(
     () => ({
@@ -64,8 +97,8 @@ export function Category() {
   return (
     <div className="flex-1 pb-20 pt-8 sm:pt-10">
       <SEO
-        title={`${categoryName} Porn Videos - DesiredHub`}
-        description={`Watch the best desi porn and hot Indian sex videos in the ${categoryName} category on DesiredHub. Stream high quality adult content for free.`}
+        title={`${categoryName} Videos - DesiredHub`}
+        description={categoryDesc}
         jsonLd={jsonLd}
         breadcrumbs={[
           { name: "Home", item: "/" },
@@ -131,14 +164,14 @@ export function Category() {
               )}
             </div>
           </div>
-          {categoryData?.description && (
+          {categoryDesc && (
             <p className="text-neutral-400 text-[15px] max-w-3xl leading-relaxed">
-              {categoryData.description}
+              {categoryDesc}
             </p>
           )}
         </div>
 
-        {isError ? (
+        {isError && videos.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-red-500">
               Error loading videos. Please try again later.
@@ -159,12 +192,15 @@ export function Category() {
         ) : (
           <>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 xl:gap-10">
-              {isLoading || isCategoryPending
+              {isLoading && videos.length === 0
                 ? Array.from({ length: 20 }).map((_, i) => (
                     <SkeletonCard key={i} />
                   ))
                 : videos.map((video: any, index: number) => (
-                    <VideoCard key={video.id} video={video} priority={index < 4} />
+                    <Fragment key={video.id}>
+                      <VideoCard video={video} priority={index < 4} />
+                      {index === 4 && <PromoWidget />}
+                    </Fragment>
                   ))}
             </div>
 
