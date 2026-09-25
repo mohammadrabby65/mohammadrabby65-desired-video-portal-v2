@@ -4,112 +4,93 @@
  */
 
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
-import React, { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/admin/ProtectedRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
-import { Home } from "./pages/Home";
 
-function lazyWithRetry<T extends React.ComponentType<any>>(
-  factory: () => Promise<{ default: T } | any>,
-) {
-  return lazy(async () => {
-    try {
-      const module = await factory();
-      return module.default ? module : { default: module };
-    } catch (error) {
-      console.warn("Retrying dynamic import due to chunk load error:", error);
-      try {
-        await new Promise((r) => setTimeout(r, 600));
-        const module = await factory();
-        return module.default ? module : { default: module };
-      } catch (retryError) {
-        console.error("Dynamic import failed after retry:", retryError);
-        throw retryError;
-      }
-    }
-  });
-}
-
-const Video = lazyWithRetry(() =>
+const Home = lazy(() =>
+  import("./pages/Home").then((module) => ({ default: module.Home })),
+);
+const Video = lazy(() =>
   import("./pages/Video").then((module) => ({ default: module.Video })),
 );
-const Category = lazyWithRetry(() =>
+const Category = lazy(() =>
   import("./pages/Category").then((module) => ({ default: module.Category })),
 );
-const Tag = lazyWithRetry(() =>
+const Tag = lazy(() =>
   import("./pages/Tag").then((module) => ({ default: module.Tag })),
 );
-const Search = lazyWithRetry(() =>
+const Search = lazy(() =>
   import("./pages/Search").then((module) => ({ default: module.Search })),
 );
-const Download = lazyWithRetry(() =>
+const Download = lazy(() =>
   import("./pages/Download").then((module) => ({ default: module.Download })),
 );
-const DMCA = lazyWithRetry(() =>
+const DMCA = lazy(() =>
   import("./pages/DMCA").then((module) => ({ default: module.DMCA })),
 );
-const Compliance2257 = lazyWithRetry(() =>
+const Compliance2257 = lazy(() =>
   import("./pages/Compliance2257").then((module) => ({
     default: module.Compliance2257,
   })),
 );
-const PrivacyPolicy = lazyWithRetry(() =>
+const PrivacyPolicy = lazy(() =>
   import("./pages/PrivacyPolicy").then((module) => ({
     default: module.PrivacyPolicy,
   })),
 );
-const Login = lazyWithRetry(() =>
+const Login = lazy(() =>
   import("./pages/admin/Login").then((module) => ({ default: module.Login })),
 );
-const Dashboard = lazyWithRetry(() =>
+const Dashboard = lazy(() =>
   import("./pages/admin/Dashboard").then((module) => ({
     default: module.Dashboard,
   })),
 );
-const UploadPost = lazyWithRetry(() =>
+const UploadPost = lazy(() =>
   import("./pages/admin/posts/UploadPost").then((module) => ({
     default: module.UploadPost,
   })),
 );
-const ManagePosts = lazyWithRetry(() =>
+const ManagePosts = lazy(() =>
   import("./pages/admin/posts/ManagePosts").then((module) => ({
     default: module.ManagePosts,
   })),
 );
-const Categories = lazyWithRetry(() =>
+const Categories = lazy(() =>
   import("./pages/Categories").then((module) => ({
     default: module.Categories,
   })),
 );
-const AdminCategories = lazyWithRetry(() =>
+const AdminCategories = lazy(() =>
   import("./pages/admin/Categories").then((module) => ({
     default: module.Categories,
   })),
 );
-const DeadUrls = lazyWithRetry(() =>
+const DeadUrls = lazy(() =>
   import("./pages/admin/DeadUrls").then((module) => ({
     default: module.DeadUrls,
   })),
 );
-const Analytics = lazyWithRetry(() =>
+const Analytics = lazy(() =>
   import("./pages/admin/Analytics").then((module) => ({
     default: module.Analytics,
   })),
 );
-const Settings = lazyWithRetry(() =>
+const Settings = lazy(() =>
   import("./pages/admin/Settings").then((module) => ({
     default: module.Settings,
   })),
 );
-const Profile = lazyWithRetry(() =>
+const Profile = lazy(() =>
   import("./pages/admin/Profile").then((module) => ({
     default: module.Profile,
   })),
 );
-const Promotions = lazyWithRetry(() =>
+const Promotions = lazy(() =>
   import("./pages/admin/Promotions").then((module) => ({
     default: module.Promotions,
   })),
