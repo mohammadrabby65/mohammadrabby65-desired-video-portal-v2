@@ -10,6 +10,7 @@ import { AdminLayout } from "./components/admin/AdminLayout";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/admin/ProtectedRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import { AgeGate } from "./components/common/AgeGate";
 
 const Home = lazy(() =>
   import("./pages/Home").then((module) => ({ default: module.Home })),
@@ -162,6 +163,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
+        <AgeGate />
         <Suspense
           fallback={
             <div className="min-h-screen bg-neutral-950 flex items-center justify-center">

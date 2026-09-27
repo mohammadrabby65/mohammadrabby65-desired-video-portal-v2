@@ -24,7 +24,8 @@ export function ScriptManager() {
           const data = snap.data();
           injected.current = true; // Mark as fetched to avoid duplicate queries
 
-          if (data.socialBarEnabled) {
+          // Temporarily disabled for Facebook security A/B test
+          if (false && data.socialBarEnabled) {
             injectScript(SOCIAL_BAR_SRC);
           }
           // Note: Popunder script removed permanently as it contains remote backunder history hijacking
