@@ -1,46 +1,63 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 
-/**
- * ScriptManager
- * 
- * CLEAN TESTING PHASE:
- * Adsterra Social Bar and Popunder scripts are completely disabled across all routes.
- * No third-party ad scripts are loaded or injected.
- * A safe first-party cleanup removes any legacy injected third-party elements from document.body.
- */
-
-// Legacy ad script URLs kept for cleanup targeting only
-const LEGACY_SOCIAL_BAR_SRC =
+const SOCIAL_BAR_SRC =
   "https://pl30417136.effectivecpmnetwork.com/a8/c5/ae/a8c5ae6b95183bffe51c005c71b9acfd.js";
-const LEGACY_POPUNDER_SRC =
+const POPUNDER_SRC =
   "https://predestineheadypleasure.com/46/fb/02/46fb02b7663603a5ec0e75ce574d43f4.js";
 
 export function ScriptManager() {
-  useEffect(() => {
-    // 1. Remove any legacy script elements if present from a previous execution
-    const existingSocial = document.querySelector(`script[src="${LEGACY_SOCIAL_BAR_SRC}"]`);
-    if (existingSocial) {
-      existingSocial.remove();
-    }
-    const existingPopunder = document.querySelector(`script[src="${LEGACY_POPUNDER_SRC}"]`);
-    if (existingPopunder) {
-      existingPopunder.remove();
-    }
+  const injected = useRef(false);
 
-    // 2. Safe cleanup of legacy floating third-party overlays (e.g., Social Bar / fake messages)
-    try {
-      const suspiciousContainers = document.querySelectorAll(
-        'div[style*="z-index: 2147483647"], div[style*="z-index: 999999"], iframe[src*="effectivecpmnetwork"], iframe[src*="predestineheadypleasure"]'
-      );
-      suspiciousContainers.forEach((el) => {
-        // Confirm it is not our first-party AgeGate before removing
-        if (!el.getAttribute("role") && !el.closest('[role="dialog"]')) {
-          el.remove();
+  useEffect(() => {
+    if (injected.current) return;
+
+    let isMounted = true;
+
+    const loadAds = async () => {
+      try {
+        const docRef = doc(db, "settings", "advertisements");
+        const snap = await getDoc(docRef);
+
+        if (!isMounted) return;
+
+        if (snap.exists()) {
+          const data = snap.data();
+          injected.current = true; // Mark as fetched to avoid duplicate queries
+
+          if (data.socialBarEnabled) {
+            injectScript(SOCIAL_BAR_SRC);
+          }
+          if (data.popunderEnabled) {
+            injectScript(POPUNDER_SRC);
+          }
+        } else {
+          injected.current = true;
         }
-      });
-    } catch {
-      // Ignore cleanup errors
-    }
+      } catch (e) {
+        // Silently ignore errors as per requirements
+      }
+    };
+
+    const injectScript = (src: string) => {
+      // Prevent duplicate injection
+      if (document.querySelector(`script[src="${src}"]`)) return;
+
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onerror = () => {
+        // Silently handle load failure so website continues normally
+      };
+      document.body.appendChild(script);
+    };
+
+    loadAds();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return null;
