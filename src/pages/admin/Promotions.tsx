@@ -111,29 +111,6 @@ export function Promotions() {
                 <div className="w-11 h-6 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
               </label>
             </div>
-            \n{" "}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-white font-medium">Native Banner</h3>
-                <p className="text-neutral-400 text-sm">
-                  Enable or disable Native Banner ads.
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="sr-only peer"
-                  checked={formData.nativeBannerEnabled}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      nativeBannerEnabled: e.target.checked,
-                    })
-                  }
-                />
-                <div className="w-11 h-6 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-              </label>
-            </div>
           </div>
         </div>
 

@@ -6,6 +6,16 @@ import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
 import "./index.css";
 
+// Handle Vite dynamic import chunk loading errors gracefully
+window.addEventListener("vite:preloadError", (event) => {
+  console.warn("Vite preload error detected, refreshing page:", event);
+  const reloaded = sessionStorage.getItem("vite_preload_error_reload");
+  if (!reloaded) {
+    sessionStorage.setItem("vite_preload_error_reload", "true");
+    window.location.reload();
+  }
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

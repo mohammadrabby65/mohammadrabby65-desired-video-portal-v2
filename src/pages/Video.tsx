@@ -262,7 +262,7 @@ export function Video() {
                   <Share2 className="w-4 h-4" />
                   <span>Share</span>
                 </button>
-                {video.downloadUrl && video.downloadUrl.trim() !== "" ? (
+                {video.downloadUrl && video.downloadUrl.trim() !== "" && (
                   <Link
                     to={`/download/${video.slug}`}
                     className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-red-600 hover:bg-red-500 rounded-full text-[13px] sm:text-sm font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
@@ -270,16 +270,6 @@ export function Video() {
                     <Download className="w-4 h-4" />
                     <span>Download</span>
                   </Link>
-                ) : (
-                  <a
-                    href="https://predestineheadypleasure.com/wbunjk6rq?key=53693a97cb2d7fe1805610bc89cca2ab"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-red-600 hover:bg-red-500 rounded-full text-[13px] sm:text-sm font-semibold text-white transition-colors shadow-lg shadow-red-500/20"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download</span>
-                  </a>
                 )}
                 <button
                   onClick={handleReport}
@@ -302,7 +292,7 @@ export function Video() {
               {/* Collapsible Description & Tags */}
               <div className="bg-neutral-900 border border-neutral-800/60 rounded-2xl p-5 sm:p-6 flex flex-col gap-5 mt-2">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  {Array.from(new Set(video.badges || [])).map((badge) => (
+                  {Array.from(new Set(video.badges || [])).map((badge: string) => (
                     <span
                       key={badge}
                       className="bg-primary/20 border border-primary/30 text-primary px-3 py-1 rounded-full text-xs font-bold tracking-wider shadow-sm uppercase"

@@ -1,9 +1,7 @@
-import { useState, useMemo, useEffect, Fragment } from "react";
-import { PromoWidget } from "../components/widgets/PromoWidget";
+import { useState, useMemo, useEffect } from "react";
 import { usePaginationVideos, PaginationFilter } from "../hooks/useVideos";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
-import { AdsterraBanner320x50 } from "../components/ads/AdsterraBanner320x50";
 import { ChevronDown, Play, Flame, Clock, TrendingUp } from "lucide-react";
 import { usePublicCategories } from "../hooks/useCategories";
 import { NavLink, useSearchParams, Link } from "react-router-dom";
@@ -69,8 +67,8 @@ export function Home() {
 
       {/* Category Horizontal Navigation */}
       {categories.length > 0 && (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-8">
-          <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide text-sm items-center">
+        <nav aria-label="Categories" className="container mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-8">
+          <div className="flex overflow-x-auto gap-2.5 pb-2 scrollbar-hide text-sm items-center">
             {categories.map((cat) => (
               <NavLink
                 key={cat.id}
@@ -87,14 +85,10 @@ export function Home() {
               </NavLink>
             ))}
           </div>
-        </div>
+        </nav>
       )}
 
-      {/* Ad Banner */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-8 flex justify-center">
-        <AdsterraBanner320x50 />
-      </div>
-
+      {/* Main Content Area - Completely Ad-Free */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {isError ? (
           <div className="text-center py-20 bg-neutral-900/50 rounded-xl border border-red-900/30">
@@ -111,8 +105,11 @@ export function Home() {
           <>
             {/* Premium Featured / Hero Video */}
             {!isLoading && heroVideo && page === 1 && (
-              <div className="mb-8 sm:mb-10">
-                <Link to={`/video/${heroVideo.slug}`} className="group relative block aspect-video sm:aspect-[21/9] lg:aspect-[2.5/1] rounded-2xl sm:rounded-[24px] overflow-hidden bg-neutral-900 border border-neutral-800 isolate">
+              <section aria-label="Featured Video" className="mb-8 sm:mb-10">
+                <Link 
+                  to={`/video/${heroVideo.slug}`} 
+                  className="group relative block aspect-video sm:aspect-[21/9] lg:aspect-[2.5/1] rounded-2xl sm:rounded-[24px] overflow-hidden bg-neutral-900 border border-neutral-800 isolate"
+                >
                   <img 
                     src={heroVideo.thumbnailUrl} 
                     alt={heroVideo.title} 
@@ -120,6 +117,9 @@ export function Home() {
                     loading="eager"
                   />
                   
+                  {/* Gradient Overlay for Text Readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-10" />
+
                   <div className="absolute bottom-0 left-0 p-5 sm:p-8 md:p-12 z-20 w-full max-w-4xl">
                     <div className="flex flex-wrap gap-2 mb-3">
                       <span className="bg-primary px-2.5 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white">
@@ -131,9 +131,9 @@ export function Home() {
                         </span>
                       )}
                     </div>
-                    <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 line-clamp-2 leading-tight tracking-tight">
+                    <h2 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 line-clamp-2 leading-tight tracking-tight">
                       {heroVideo.title}
-                    </h1>
+                    </h2>
                     <div className="flex items-center gap-4 text-xs sm:text-sm text-neutral-300 font-medium">
                       <div className="flex items-center gap-1.5 bg-black/60 border border-white/10 px-2.5 py-1 rounded-md backdrop-blur-md">
                         <Clock className="w-3.5 h-3.5" />
@@ -153,12 +153,12 @@ export function Home() {
                     </div>
                   </div>
                 </Link>
-              </div>
+              </section>
             )}
 
-            {/* Trending/Random Quick Row */}
+            {/* Trending Quick Row */}
             {!isLoading && randomVideos.length > 0 && page === 1 && (
-              <div className="mb-8 sm:mb-10">
+              <section aria-label="Trending Videos" className="mb-8 sm:mb-10">
                 <div className="flex items-center justify-between mb-4 sm:mb-5">
                   <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 tracking-tight">
                     <TrendingUp className="w-5 h-5 text-primary" />
@@ -170,11 +170,11 @@ export function Home() {
                     <VideoCard key={`trending-${video.id}`} video={video} enablePreview={true} />
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
             {/* Main Video Grid */}
-            <div className="mb-8">
+            <section aria-label="Video Catalog" className="mb-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 sm:mb-6 border-b border-neutral-800/80 pb-4">
                 <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                   {page === 1 ? "Newest Videos" : `Page ${page} Videos`}
@@ -219,30 +219,26 @@ export function Home() {
                 {isLoading
                   ? Array.from({ length: 20 }).map((_, i) => <SkeletonCard key={i} />)
                   : gridVideos.map((video, index) => (
-                      <Fragment key={video.id}>
-                        <VideoCard video={video} priority={index < 4} enablePreview={true} />
-                        {index === 3 && <PromoWidget />}
-                      </Fragment>
+                      <VideoCard key={video.id} video={video} priority={index < 4} enablePreview={true} />
                     ))}
               </div>
-            </div>
+            </section>
 
             <Pagination currentPage={page} totalPages={totalPages} />
           </>
         )}
       </div>
 
-      {/* SEO Text Block */}
+      {/* Clean SEO Text Section */}
       {!isLoading && (
-        <section className="container mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-8">
+        <section aria-label="About DesiredHub" className="container mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-8">
           <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 sm:p-8">
             <h1 className="text-lg sm:text-xl font-bold text-white mb-3 tracking-tight">
               Premium Desi Porn & Hot Indian Videos
             </h1>
             <p className="text-neutral-400 text-xs sm:text-sm leading-relaxed max-w-4xl">
-              DesiredHub features a massive collection of the hottest desi sex videos, raw xxx porn, and premium adult entertainment. 
-              Watch gorgeous Indian girls, horny bhabhis, and mature aunties in high quality. Videos play with smooth performance, 
-              titles are displayed directly on clean thumbnails, and the entire platform is optimized for mobile viewing.
+              DesiredHub features a collection of desi sex videos, adult entertainment, and trending clips. 
+              Watch high-quality Indian videos with smooth playback, clear thumbnails, and complete mobile optimization.
             </p>
           </div>
         </section>
@@ -250,3 +246,5 @@ export function Home() {
     </div>
   );
 }
+
+export default Home;

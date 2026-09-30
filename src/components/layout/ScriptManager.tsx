@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 
@@ -8,56 +8,44 @@ const POPUNDER_SRC =
   "https://predestineheadypleasure.com/46/fb/02/46fb02b7663603a5ec0e75ce574d43f4.js";
 
 export function ScriptManager() {
-  const injected = useRef(false);
-
   useEffect(() => {
-    if (injected.current) return;
-
-    let isMounted = true;
-
-    const loadAds = async () => {
-      try {
-        const docRef = doc(db, "settings", "advertisements");
-        const snap = await getDoc(docRef);
-
-        if (!isMounted) return;
-
-        if (snap.exists()) {
-          const data = snap.data();
-          injected.current = true; // Mark as fetched to avoid duplicate queries
-
-          if (data.socialBarEnabled) {
-            injectScript(SOCIAL_BAR_SRC);
-          }
-          if (data.popunderEnabled) {
-            injectScript(POPUNDER_SRC);
-          }
-        } else {
-          injected.current = true;
-        }
-      } catch (e) {
-        // Silently ignore errors as per requirements
+    const injectScript = (src: string) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (!existing) {
+        const script = document.createElement("script");
+        script.type = "text/javascript";
+        script.src = src;
+        script.async = true;
+        document.body.appendChild(script);
       }
     };
 
-    const injectScript = (src: string) => {
-      // Prevent duplicate injection
-      if (document.querySelector(`script[src="${src}"]`)) return;
+    const loadSettings = async () => {
+      try {
+        const docRef = doc(db, "settings", "advertisements");
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.socialBarEnabled) {
+            injectScript(SOCIAL_BAR_SRC);
+          } else {
+            const existingSocial = document.querySelector(`script[src="${SOCIAL_BAR_SRC}"]`);
+            if (existingSocial) existingSocial.remove();
+          }
 
-      const script = document.createElement("script");
-      script.src = src;
-      script.async = true;
-      script.onerror = () => {
-        // Silently handle load failure so website continues normally
-      };
-      document.body.appendChild(script);
+          if (data.popunderEnabled) {
+            injectScript(POPUNDER_SRC);
+          } else {
+            const existingPopunder = document.querySelector(`script[src="${POPUNDER_SRC}"]`);
+            if (existingPopunder) existingPopunder.remove();
+          }
+        }
+      } catch (err) {
+        console.error("Error loading ad settings:", err);
+      }
     };
 
-    loadAds();
-
-    return () => {
-      isMounted = false;
-    };
+    loadSettings();
   }, []);
 
   return null;
