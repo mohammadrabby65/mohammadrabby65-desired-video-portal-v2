@@ -198,7 +198,13 @@ export default function App() {
   return (
     <AuthProvider>
       <ErrorBoundary>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense
+          fallback={
+            <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          }
+        >
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
