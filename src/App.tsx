@@ -4,93 +4,129 @@
  */
 
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, ComponentType } from "react";
 import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/admin/ProtectedRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import { Home } from "./pages/Home";
+import { safeLocalStorage, safeSessionStorage } from "./lib/storage";
 
-const Home = lazy(() =>
-  import("./pages/Home").then((module) => ({ default: module.Home })),
-);
-const Video = lazy(() =>
+function lazyWithRetry<T extends ComponentType<any>>(
+  factory: () => Promise<{ default: T }>,
+  retries = 2,
+  interval = 800
+) {
+  return lazy(() =>
+    new Promise<{ default: T }>((resolve, reject) => {
+      const attempt = (remaining: number) => {
+        factory()
+          .then(resolve)
+          .catch((error) => {
+            if (remaining <= 0) {
+              const msg = error?.message || "";
+              if (
+                msg.includes("Failed to fetch dynamically imported module") ||
+                error?.name === "ChunkLoadError"
+              ) {
+                const storageKey = "vite_chunk_reload";
+                const lastReload = safeSessionStorage.getItem(storageKey);
+                const now = Date.now();
+                if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+                  safeSessionStorage.setItem(storageKey, now.toString());
+                  window.location.reload();
+                  return;
+                }
+              }
+              reject(error);
+              return;
+            }
+            setTimeout(() => attempt(remaining - 1), interval);
+          });
+      };
+      attempt(retries);
+    })
+  );
+}
+
+const Video = lazyWithRetry(() =>
   import("./pages/Video").then((module) => ({ default: module.Video })),
 );
-const Category = lazy(() =>
+const Category = lazyWithRetry(() =>
   import("./pages/Category").then((module) => ({ default: module.Category })),
 );
-const Tag = lazy(() =>
+const Tag = lazyWithRetry(() =>
   import("./pages/Tag").then((module) => ({ default: module.Tag })),
 );
-const Search = lazy(() =>
+const Search = lazyWithRetry(() =>
   import("./pages/Search").then((module) => ({ default: module.Search })),
 );
-const Download = lazy(() =>
+const Download = lazyWithRetry(() =>
   import("./pages/Download").then((module) => ({ default: module.Download })),
 );
-const DMCA = lazy(() =>
+const DMCA = lazyWithRetry(() =>
   import("./pages/DMCA").then((module) => ({ default: module.DMCA })),
 );
-const Compliance2257 = lazy(() =>
+const Compliance2257 = lazyWithRetry(() =>
   import("./pages/Compliance2257").then((module) => ({
     default: module.Compliance2257,
   })),
 );
-const PrivacyPolicy = lazy(() =>
+const PrivacyPolicy = lazyWithRetry(() =>
   import("./pages/PrivacyPolicy").then((module) => ({
     default: module.PrivacyPolicy,
   })),
 );
-const Login = lazy(() =>
+const Login = lazyWithRetry(() =>
   import("./pages/admin/Login").then((module) => ({ default: module.Login })),
 );
-const Dashboard = lazy(() =>
+const Dashboard = lazyWithRetry(() =>
   import("./pages/admin/Dashboard").then((module) => ({
     default: module.Dashboard,
   })),
 );
-const UploadPost = lazy(() =>
+const UploadPost = lazyWithRetry(() =>
   import("./pages/admin/posts/UploadPost").then((module) => ({
     default: module.UploadPost,
   })),
 );
-const ManagePosts = lazy(() =>
+const ManagePosts = lazyWithRetry(() =>
   import("./pages/admin/posts/ManagePosts").then((module) => ({
     default: module.ManagePosts,
   })),
 );
-const Categories = lazy(() =>
+const Categories = lazyWithRetry(() =>
   import("./pages/Categories").then((module) => ({
     default: module.Categories,
   })),
 );
-const AdminCategories = lazy(() =>
+const AdminCategories = lazyWithRetry(() =>
   import("./pages/admin/Categories").then((module) => ({
     default: module.Categories,
   })),
 );
-const DeadUrls = lazy(() =>
+const DeadUrls = lazyWithRetry(() =>
   import("./pages/admin/DeadUrls").then((module) => ({
     default: module.DeadUrls,
   })),
 );
-const Analytics = lazy(() =>
+const Analytics = lazyWithRetry(() =>
   import("./pages/admin/Analytics").then((module) => ({
     default: module.Analytics,
   })),
 );
-const Settings = lazy(() =>
+const Settings = lazyWithRetry(() =>
   import("./pages/admin/Settings").then((module) => ({
     default: module.Settings,
   })),
 );
-const Profile = lazy(() =>
+const Profile = lazyWithRetry(() =>
   import("./pages/admin/Profile").then((module) => ({
     default: module.Profile,
   })),
 );
-const Promotions = lazy(() =>
+const Promotions = lazyWithRetry(() =>
   import("./pages/admin/Promotions").then((module) => ({
     default: module.Promotions,
   })),
@@ -130,13 +166,13 @@ export default function App() {
     };
 
     const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      if (!localStorage.getItem("theme")) {
+      if (!safeLocalStorage.getItem("theme")) {
         applyTheme(e.matches ? "dark" : "light");
       }
     };
 
     // Initial check on mount
-    const storedTheme = localStorage.getItem("theme");
+    const storedTheme = safeLocalStorage.getItem("theme");
     if (storedTheme === "dark" || storedTheme === "light") {
       applyTheme(storedTheme);
     } else {
@@ -160,15 +196,9 @@ export default function App() {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <Suspense
-          fallback={
-            <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          }
-        >
+    <AuthProvider>
+      <ErrorBoundary>
+        <Suspense fallback={<div>Loading...</div>}>
           <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
@@ -207,7 +237,7 @@ export default function App() {
             </Route>
           </Routes>
         </Suspense>
-      </AuthProvider>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </AuthProvider>
   );
 }
