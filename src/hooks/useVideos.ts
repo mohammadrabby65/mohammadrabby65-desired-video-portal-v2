@@ -22,6 +22,13 @@ import {
 import { db } from "../lib/firebase";
 import { VideoPost } from "../types";
 
+export function normalizeCategory(value: any): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-");
+}
+
 export function useFeaturedVideos() {
   return useQuery({
     queryKey: ["videos", "featured"],
@@ -203,11 +210,10 @@ export function useRelatedVideos(
         .filter((v) => v.id !== videoId)
         .map((v) => {
           let score = 0;
-          if (v.categories && categories && categories.length > 0) {
-            const hasCommonCategory = v.categories.some((c) => categories.includes(c));
-            if (hasCommonCategory) score += 5;
-          } else if ((v as any).category && categories && categories.includes((v as any).category)) {
-            score += 5;
+          if (categories && categories.length > 0) {
+            const postCats = [...(v.categories || []), (v as any).category].filter(Boolean).map(normalizeCategory);
+            const targetCats = categories.map(normalizeCategory);
+            if (postCats.some((c) => targetCats.includes(c))) score += 5;
           }
           if (v.tags && tags && tags.length > 0) {
             v.tags.forEach((t) => {
@@ -419,6 +425,28 @@ export function usePaginationVideos(
       if (!res.ok) throw new Error("Failed to fetch videos");
       const data = await res.json();
       return data as PaginatedResponse;
+    },
+    initialData: () => {
+      if (
+        typeof window !== "undefined" &&
+        (window as any).__INITIAL_CATEGORY_DATA__
+      ) {
+        const init = (window as any).__INITIAL_CATEGORY_DATA__;
+        if (
+          page === 1 &&
+          (!filter.sortBy || filter.sortBy === "publishedAt") &&
+          filter.category &&
+          normalizeCategory(init.slug) === normalizeCategory(filter.category)
+        ) {
+          return {
+            videos: init.videos,
+            total: init.total,
+            page: 1,
+            totalPages: init.totalPages,
+          };
+        }
+      }
+      return undefined;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 60 * 24, // 24 hours

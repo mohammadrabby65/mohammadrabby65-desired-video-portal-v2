@@ -1,5 +1,3 @@
-import { Fragment } from "react";
-import { PromoWidget } from "../components/widgets/PromoWidget";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import {
@@ -385,11 +383,8 @@ export function Search() {
                     ? Array.from({ length: 20 }).map((_, i) => (
                         <SkeletonCard key={i} />
                       ))
-                    : videos.map((video, index) => (
-                        <Fragment key={video.id}>
-                          <VideoCard video={video} />
-                          {index === 4 && <PromoWidget />}
-                        </Fragment>
+                    : videos.map((video) => (
+                        <VideoCard key={video.id} video={video} />
                       ))}
                 </div>
                 {totalPages > 1 && (

@@ -4,13 +4,11 @@ import { Menu, Dices } from "lucide-react";
 import { LiveSearch } from "./LiveSearch";
 import { Sidebar } from "./Sidebar";
 import { ScriptManager } from "./ScriptManager";
-import { usePopunderRecovery } from "../../hooks/usePopunderRecovery";
 
 export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNavigatingRandom, setIsNavigatingRandom] = useState(false);
   const navigate = useNavigate();
-  usePopunderRecovery();
 
   const handleRandomVideo = async () => {
     if (isNavigatingRandom) return;

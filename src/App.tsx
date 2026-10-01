@@ -9,6 +9,7 @@ import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/admin/ProtectedRoute";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
 const Home = lazy(() =>
   import("./pages/Home").then((module) => ({ default: module.Home })),
@@ -159,52 +160,54 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <Suspense
-        fallback={
-          <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
-            <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        }
-      >
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
-            <Route path="page/:page" element={<Navigate to="/" replace />} />
-            <Route path="video/:slug" element={<Video />} />
-            <Route path="download/:slug" element={<Download />} />
-            <Route path="category/:slug" element={<Category />} />
-            <Route path="categories" element={<Categories />} />
-            <Route path="tag/:slug" element={<Tag />} />
-            <Route path="search" element={<Search />} />
-            <Route path="dmca" element={<DMCA />} />
-            <Route path="2257" element={<Compliance2257 />} />
-            <Route path="privacy-policy" element={<PrivacyPolicy />} />
-          </Route>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Suspense
+          fallback={
+            <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          }
+        >
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="page/:page" element={<Navigate to="/" replace />} />
+              <Route path="video/:slug" element={<Video />} />
+              <Route path="download/:slug" element={<Download />} />
+              <Route path="category/:slug" element={<Category />} />
+              <Route path="categories" element={<Categories />} />
+              <Route path="tag/:slug" element={<Tag />} />
+              <Route path="search" element={<Search />} />
+              <Route path="dmca" element={<DMCA />} />
+              <Route path="2257" element={<Compliance2257 />} />
+              <Route path="privacy-policy" element={<PrivacyPolicy />} />
+            </Route>
 
-          <Route path="/admin/login" element={<Login />} />
+            <Route path="/admin/login" element={<Login />} />
 
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="posts/new" element={<UploadPost />} />
-            <Route path="posts" element={<ManagePosts />} />
-            <Route path="posts/edit/:id" element={<UploadPost />} />
-            <Route path="categories" element={<AdminCategories />} />
-            <Route path="dead-urls" element={<DeadUrls />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="ads" element={<Promotions />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="profile" element={<Profile />} />
-          </Route>
-        </Routes>
-      </Suspense>
-    </AuthProvider>
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="posts/new" element={<UploadPost />} />
+              <Route path="posts" element={<ManagePosts />} />
+              <Route path="posts/edit/:id" element={<UploadPost />} />
+              <Route path="categories" element={<AdminCategories />} />
+              <Route path="dead-urls" element={<DeadUrls />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="ads" element={<Promotions />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="profile" element={<Profile />} />
+            </Route>
+          </Routes>
+        </Suspense>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

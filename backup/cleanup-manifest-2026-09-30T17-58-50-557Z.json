@@ -1,0 +1,559 @@
+{
+  "totalFiles": 92,
+  "timestamp": "2026-09-30T17:58:50.571Z",
+  "archiveDir": "/app/applet/backup/cleanup-archive-2026-09-30T17-58-50-557Z",
+  "files": [
+    {
+      "filePath": "bot.html",
+      "originalSize": 272,
+      "sha256": "6b43b396ba4708e5ffe9da06909bc2059e55b300f2434bc4181ca3a842d83bd6",
+      "deletionTimestamp": "2026-09-30T17:58:50.558Z"
+    },
+    {
+      "filePath": "category.html",
+      "originalSize": 2292,
+      "sha256": "007cfc47168baab0c2a6382a411f05c9aff9c5f2ae97502bbe1132e1da6ea8d4",
+      "deletionTimestamp": "2026-09-30T17:58:50.558Z"
+    },
+    {
+      "filePath": "count.cjs",
+      "originalSize": 821,
+      "sha256": "12f8b37659b2495fd86f7ba6279d92e24714c221bdbec92e8287dffd9410cfc7",
+      "deletionTimestamp": "2026-09-30T17:58:50.559Z"
+    },
+    {
+      "filePath": "curl_bot.html",
+      "originalSize": 2292,
+      "sha256": "007cfc47168baab0c2a6382a411f05c9aff9c5f2ae97502bbe1132e1da6ea8d4",
+      "deletionTimestamp": "2026-09-30T17:58:50.559Z"
+    },
+    {
+      "filePath": "curl_normal.html",
+      "originalSize": 2292,
+      "sha256": "007cfc47168baab0c2a6382a411f05c9aff9c5f2ae97502bbe1132e1da6ea8d4",
+      "deletionTimestamp": "2026-09-30T17:58:50.559Z"
+    },
+    {
+      "filePath": "debug.cjs",
+      "originalSize": 192,
+      "sha256": "7eeeaf78b6cbd76e407ba583abc6ebba55e33442f44f0ca67496c4ee7321a5b5",
+      "deletionTimestamp": "2026-09-30T17:58:50.559Z"
+    },
+    {
+      "filePath": "find_ads.cjs",
+      "originalSize": 1108,
+      "sha256": "df4fe64d94ab87546a1166ea0fa959dbf0d8e1348683128bfc95dc42086ec0d3",
+      "deletionTimestamp": "2026-09-30T17:58:50.559Z"
+    },
+    {
+      "filePath": "find_ads2.cjs",
+      "originalSize": 937,
+      "sha256": "9156bc8ef12bf4e6cd89860f2d004ec874d78fa7a6c113707a24c2e587824ce0",
+      "deletionTimestamp": "2026-09-30T17:58:50.560Z"
+    },
+    {
+      "filePath": "fix.cjs",
+      "originalSize": 370,
+      "sha256": "03176aeb785788e3669440916b416d4afc6f7012e21837ccb728b48f6179c3a6",
+      "deletionTimestamp": "2026-09-30T17:58:50.560Z"
+    },
+    {
+      "filePath": "fix2.cjs",
+      "originalSize": 494,
+      "sha256": "0560e9dd64d7b1206278051084af55f68ab823e0bdf56068c9941d65510981d2",
+      "deletionTimestamp": "2026-09-30T17:58:50.560Z"
+    },
+    {
+      "filePath": "fix_ad_bg.cjs",
+      "originalSize": 499,
+      "sha256": "377aa2b56f272e5cf5219cb495f74ae0a19c7976b0dfc174da2489e984965203",
+      "deletionTimestamp": "2026-09-30T17:58:50.560Z"
+    },
+    {
+      "filePath": "fix_all.cjs",
+      "originalSize": 541,
+      "sha256": "41d80c71249a5c2402998f8f62f4f8fd1512fd403071afe24f5da06b96e47b6d",
+      "deletionTimestamp": "2026-09-30T17:58:50.560Z"
+    },
+    {
+      "filePath": "fix_css.cjs",
+      "originalSize": 301,
+      "sha256": "ca9a7307bf7be79bcb5f416e61882cd732e3354a340cbe0c54b334ff4e9a1e01",
+      "deletionTimestamp": "2026-09-30T17:58:50.561Z"
+    },
+    {
+      "filePath": "fix_css2.cjs",
+      "originalSize": 313,
+      "sha256": "d3ae1484cf2277ea11a10b689213cba1e83d20193e00dc1d2a08b6cb1bcc6050",
+      "deletionTimestamp": "2026-09-30T17:58:50.561Z"
+    },
+    {
+      "filePath": "fix_end.cjs",
+      "originalSize": 450,
+      "sha256": "942d329beb734a898b2d005f6a57234ce9e662260babcffc49d2b3fbe2a0943a",
+      "deletionTimestamp": "2026-09-30T17:58:50.561Z"
+    },
+    {
+      "filePath": "fix_end2.cjs",
+      "originalSize": 247,
+      "sha256": "3898ec4a86e9c24c5923862bf0e88b9114ada128433a5f693e098ae25a87a499",
+      "deletionTimestamp": "2026-09-30T17:58:50.561Z"
+    },
+    {
+      "filePath": "fix_home.cjs",
+      "originalSize": 195,
+      "sha256": "2d3344035cb4815725a5072fca6e865b6ab83a8a438f46d9e8804947f6f4174a",
+      "deletionTimestamp": "2026-09-30T17:58:50.561Z"
+    },
+    {
+      "filePath": "fix_home_lint.cjs",
+      "originalSize": 260,
+      "sha256": "332ba8c0e7dd3beeff73e059ac13308710caf0812bab85dec411ea4b7e277e97",
+      "deletionTimestamp": "2026-09-30T17:58:50.561Z"
+    },
+    {
+      "filePath": "fix_home_random.cjs",
+      "originalSize": 679,
+      "sha256": "00892396abedb3b0782fcc18d24d611c844e1ee22fcae69efac0a794b2a7e17b",
+      "deletionTimestamp": "2026-09-30T17:58:50.561Z"
+    },
+    {
+      "filePath": "fix_imports.cjs",
+      "originalSize": 1367,
+      "sha256": "a4c9916717b8a3351e4b9d21313f71dc51b94a31009081514a713c12e2928487",
+      "deletionTimestamp": "2026-09-30T17:58:50.561Z"
+    },
+    {
+      "filePath": "fix_imports2.cjs",
+      "originalSize": 451,
+      "sha256": "6d368f3512d02611be60295a66ee30f6dacea0eacb284a2ee0b7cd35931fd758",
+      "deletionTimestamp": "2026-09-30T17:58:50.561Z"
+    },
+    {
+      "filePath": "fix_layout.cjs",
+      "originalSize": 881,
+      "sha256": "850836cae96a4e4dd29de09a6c2ba7b824ece73ce86850ebea279829de5fd445",
+      "deletionTimestamp": "2026-09-30T17:58:50.562Z"
+    },
+    {
+      "filePath": "fix_log.cjs",
+      "originalSize": 290,
+      "sha256": "941e01cad8f1b39a3af50cb361fc45b7b03f8d6228bfc8a91d80efb0ed3a4a63",
+      "deletionTimestamp": "2026-09-30T17:58:50.562Z"
+    },
+    {
+      "filePath": "fix_multiple_ids.cjs",
+      "originalSize": 387,
+      "sha256": "db862c2304579e543f6124c87ae786ae09978ba1cee07d31fec0d1f4a0d22248",
+      "deletionTimestamp": "2026-09-30T17:58:50.562Z"
+    },
+    {
+      "filePath": "fix_newlines.cjs",
+      "originalSize": 731,
+      "sha256": "6bd5ac09759ebe4efd0a9fffaeeda759c5c57e4fc89116875e961f970b5891b7",
+      "deletionTimestamp": "2026-09-30T17:58:50.562Z"
+    },
+    {
+      "filePath": "fix_search.cjs",
+      "originalSize": 315,
+      "sha256": "f9bea1352f643ebea8227ddce7558922ba1176ab27cdf4819f8867917fbdcc6c",
+      "deletionTimestamp": "2026-09-30T17:58:50.562Z"
+    },
+    {
+      "filePath": "fix_seo.cjs",
+      "originalSize": 1496,
+      "sha256": "aec60d4bed74c94cd372588791d58f0797b8f136ddcc4fee6567331541f5fc54",
+      "deletionTimestamp": "2026-09-30T17:58:50.562Z"
+    },
+    {
+      "filePath": "fix_server.cjs",
+      "originalSize": 176,
+      "sha256": "516654cb38a84e02046c762424675e2a16f7bbe81d9d3ae1f20381466f836eae",
+      "deletionTimestamp": "2026-09-30T17:58:50.562Z"
+    },
+    {
+      "filePath": "fix_server_seo.cjs",
+      "originalSize": 1423,
+      "sha256": "00f6e7ac1db0595fe2d2f505ffba4d2c76619d37ac6cd617ac416e8d340e8866",
+      "deletionTimestamp": "2026-09-30T17:58:50.563Z"
+    },
+    {
+      "filePath": "fix_syntax.cjs",
+      "originalSize": 2459,
+      "sha256": "8265d6550c0964d8a0b36a2de419b3850b3d38c3a9251658fc85551077778919",
+      "deletionTimestamp": "2026-09-30T17:58:50.563Z"
+    },
+    {
+      "filePath": "fix_upload_post.cjs",
+      "originalSize": 2904,
+      "sha256": "ee23a72a4d59b0edcd0cf47cd7c6e2f00fd77df8b50060b21828db02e5386771",
+      "deletionTimestamp": "2026-09-30T17:58:50.563Z"
+    },
+    {
+      "filePath": "fix_upload_post_jsx.cjs",
+      "originalSize": 1914,
+      "sha256": "9ca0dc3f0300b3bc71c5c0b91bb5e0838a9d30ec9d9591915e648484fdc8d1ff",
+      "deletionTimestamp": "2026-09-30T17:58:50.563Z"
+    },
+    {
+      "filePath": "fix_video_tsx.cjs",
+      "originalSize": 1620,
+      "sha256": "6200ac85716a0431da96a72ff4cfe873aa44c9d8d961341ab883f810d598efad",
+      "deletionTimestamp": "2026-09-30T17:58:50.563Z"
+    },
+    {
+      "filePath": "fix_videocard.cjs",
+      "originalSize": 1899,
+      "sha256": "0168aad0eff0a86c8160441cac5a0782b7b850f338e03665b35765b414d761d1",
+      "deletionTimestamp": "2026-09-30T17:58:50.563Z"
+    },
+    {
+      "filePath": "fix_videoplayer.cjs",
+      "originalSize": 1065,
+      "sha256": "fa6ec3430dece3b8eb0519b658be21d96a911d1b4067a59bd02e56d121969778",
+      "deletionTimestamp": "2026-09-30T17:58:50.563Z"
+    },
+    {
+      "filePath": "force_patch.cjs",
+      "originalSize": 451,
+      "sha256": "6d368f3512d02611be60295a66ee30f6dacea0eacb284a2ee0b7cd35931fd758",
+      "deletionTimestamp": "2026-09-30T17:58:50.563Z"
+    },
+    {
+      "filePath": "local.html",
+      "originalSize": 2292,
+      "sha256": "007cfc47168baab0c2a6382a411f05c9aff9c5f2ae97502bbe1132e1da6ea8d4",
+      "deletionTimestamp": "2026-09-30T17:58:50.564Z"
+    },
+    {
+      "filePath": "normal.html",
+      "originalSize": 272,
+      "sha256": "6b43b396ba4708e5ffe9da06909bc2059e55b300f2434bc4181ca3a842d83bd6",
+      "deletionTimestamp": "2026-09-30T17:58:50.564Z"
+    },
+    {
+      "filePath": "patch2.cjs",
+      "originalSize": 459,
+      "sha256": "646bb93fcb6dbe199330e3805388fe4283d6860065f50365aa0669d7f24be705",
+      "deletionTimestamp": "2026-09-30T17:58:50.564Z"
+    },
+    {
+      "filePath": "patch_ads.cjs",
+      "originalSize": 2487,
+      "sha256": "4a6d103b113b7ca67c0a0aa757378bce8c319d3a69149b461e2a70d2ac109174",
+      "deletionTimestamp": "2026-09-30T17:58:50.564Z"
+    },
+    {
+      "filePath": "patch_app.cjs",
+      "originalSize": 211,
+      "sha256": "5205655209a287cdde092fb600c07cf8cdd905f331565073a0ee4a483cc7311c",
+      "deletionTimestamp": "2026-09-30T17:58:50.564Z"
+    },
+    {
+      "filePath": "patch_banner.cjs",
+      "originalSize": 2043,
+      "sha256": "5d7bfb9fba8da580e02cf8a2c61c067922fc94c3c58681d0465ece244335b2e1",
+      "deletionTimestamp": "2026-09-30T17:58:50.565Z"
+    },
+    {
+      "filePath": "patch_category.cjs",
+      "originalSize": 928,
+      "sha256": "8304e46e5b6ebb661fe72dd05a603627dfc6801fa3cf6263e9975303beedf9de",
+      "deletionTimestamp": "2026-09-30T17:58:50.565Z"
+    },
+    {
+      "filePath": "patch_deadurls.cjs",
+      "originalSize": 399,
+      "sha256": "64bb3067a810fb1c3ce34ed2de7a944dc24a4640fa0386f6eeea7b63b79867d1",
+      "deletionTimestamp": "2026-09-30T17:58:50.565Z"
+    },
+    {
+      "filePath": "patch_deadurls2.cjs",
+      "originalSize": 1551,
+      "sha256": "73c84a35c73036ad14d1447fdf1c2bf54c3c58e93c58ed15e491877a96991827",
+      "deletionTimestamp": "2026-09-30T17:58:50.565Z"
+    },
+    {
+      "filePath": "patch_err.cjs",
+      "originalSize": 210,
+      "sha256": "98d25dc9b48e29686cc9768c4e453f7b0e7207ff4811167887dee9c405589c2e",
+      "deletionTimestamp": "2026-09-30T17:58:50.565Z"
+    },
+    {
+      "filePath": "patch_gallery.cjs",
+      "originalSize": 1527,
+      "sha256": "b339ddef7b348b49a7295c5ba7e3192e2ab190f6e00fc76a727959d843b957cf",
+      "deletionTimestamp": "2026-09-30T17:58:50.565Z"
+    },
+    {
+      "filePath": "patch_gallery_horizontal.cjs",
+      "originalSize": 1616,
+      "sha256": "002d26179df771bfca9355f2f8fab74c87a07b20ef40b1678053bad4409d52a2",
+      "deletionTimestamp": "2026-09-30T17:58:50.566Z"
+    },
+    {
+      "filePath": "patch_history.cjs",
+      "originalSize": 2598,
+      "sha256": "92bcdc2d019c44f432490acfd6b867b2ad42ee0aed329edca2aaeb022d74007b",
+      "deletionTimestamp": "2026-09-30T17:58:50.566Z"
+    },
+    {
+      "filePath": "patch_home.js",
+      "originalSize": 918,
+      "sha256": "df0d2cd0180a3520fff944842a7c0c8832785e7bfc63c02a9a8d433a4ef10b23",
+      "deletionTimestamp": "2026-09-30T17:58:50.566Z"
+    },
+    {
+      "filePath": "patch_home_random.cjs",
+      "originalSize": 600,
+      "sha256": "c41acc3df846bd5046abc1d9969366237b3ef060ae8f2b5cbddc0b4394879e0d",
+      "deletionTimestamp": "2026-09-30T17:58:50.566Z"
+    },
+    {
+      "filePath": "patch_layout.cjs",
+      "originalSize": 3221,
+      "sha256": "521359ec15e84c583e5ad74b91e77185e3b85993ac502fe3a7fefccb79bd78ab",
+      "deletionTimestamp": "2026-09-30T17:58:50.566Z"
+    },
+    {
+      "filePath": "patch_loading.cjs",
+      "originalSize": 2810,
+      "sha256": "909227bd06323ae0ed447320473b18e5157ff3ccbbeb7924b7378a4004c9ce92",
+      "deletionTimestamp": "2026-09-30T17:58:50.566Z"
+    },
+    {
+      "filePath": "patch_log.cjs",
+      "originalSize": 184,
+      "sha256": "656d12e3c1b06ee9fdf657145873c2d5dd54e81093baefdeef16c5d2b15cf9ef",
+      "deletionTimestamp": "2026-09-30T17:58:50.566Z"
+    },
+    {
+      "filePath": "patch_player.cjs",
+      "originalSize": 2527,
+      "sha256": "85d965752cd71dbadad36c54ceb47ef86b37e2c8cf30808eefc1f5ab973860c8",
+      "deletionTimestamp": "2026-09-30T17:58:50.566Z"
+    },
+    {
+      "filePath": "patch_preview.cjs",
+      "originalSize": 4590,
+      "sha256": "606bb08bcf8d162dd09474c815bdd5a2452dc55ec4e2169672e2a014721efc11",
+      "deletionTimestamp": "2026-09-30T17:58:50.566Z"
+    },
+    {
+      "filePath": "patch_preview2.cjs",
+      "originalSize": 4011,
+      "sha256": "dd5087ea1261823b1e4d1468807ba1914f2a8b6af145ee156a2e4ba9bab43ecf",
+      "deletionTimestamp": "2026-09-30T17:58:50.567Z"
+    },
+    {
+      "filePath": "patch_preview3.cjs",
+      "originalSize": 4006,
+      "sha256": "b7cdee04831e6a331b0916204807ec137cfc3f200543d0d43e99346b4f8091b5",
+      "deletionTimestamp": "2026-09-30T17:58:50.567Z"
+    },
+    {
+      "filePath": "patch_preview_final.cjs",
+      "originalSize": 3723,
+      "sha256": "ef8d62afe2a892f487581d129e61c6345013d5fd6632016824681eebeff7762d",
+      "deletionTimestamp": "2026-09-30T17:58:50.567Z"
+    },
+    {
+      "filePath": "patch_related.cjs",
+      "originalSize": 478,
+      "sha256": "323ec404b65d1a46d11e1aad5154a9b1d8607497d7563240ec6fd4be95c1f3a3",
+      "deletionTimestamp": "2026-09-30T17:58:50.567Z"
+    },
+    {
+      "filePath": "patch_related2.cjs",
+      "originalSize": 452,
+      "sha256": "30536f325845b924a90b3d244134a1cbb36c193b0cad3fcaf67d0d5caa21e4d3",
+      "deletionTimestamp": "2026-09-30T17:58:50.567Z"
+    },
+    {
+      "filePath": "patch_rules.cjs",
+      "originalSize": 420,
+      "sha256": "7d9751e919e19ad4d4982659bfe55a3e2e0165cfe03ad4f1c57d68221bdf348c",
+      "deletionTimestamp": "2026-09-30T17:58:50.567Z"
+    },
+    {
+      "filePath": "patch_search.cjs",
+      "originalSize": 866,
+      "sha256": "3ec2c01c5c9559f60a91a77293e54d7caf241959342700c182bdba35e48a0496",
+      "deletionTimestamp": "2026-09-30T17:58:50.567Z"
+    },
+    {
+      "filePath": "patch_server.cjs",
+      "originalSize": 1049,
+      "sha256": "b97db9456758880d3496b656d84ee074f8b2035c9aa9f92004ad968dba83b90a",
+      "deletionTimestamp": "2026-09-30T17:58:50.567Z"
+    },
+    {
+      "filePath": "patch_tag.cjs",
+      "originalSize": 853,
+      "sha256": "0eab20cfcbe5bd25c6e75d3f0263122f07c5b7b72f9a71b8bb4cce4db75102a7",
+      "deletionTimestamp": "2026-09-30T17:58:50.567Z"
+    },
+    {
+      "filePath": "patch_validate.cjs",
+      "originalSize": 457,
+      "sha256": "31f867a0daec923b8ded0d55a4c7f9c0efd32075cfef1eae8e9b7b0a3aefb6e0",
+      "deletionTimestamp": "2026-09-30T17:58:50.568Z"
+    },
+    {
+      "filePath": "patch_video_mobile.cjs",
+      "originalSize": 1839,
+      "sha256": "2ad6472376b51cfa36dbf4468025a0f1c4b101004f259f7a0971a987b619fb7c",
+      "deletionTimestamp": "2026-09-30T17:58:50.568Z"
+    },
+    {
+      "filePath": "patch_video_tsx.cjs",
+      "originalSize": 351,
+      "sha256": "df2ef3afcf9cc4d312081a5ba886a43b42eafcfa04c94449e09676285301ccea",
+      "deletionTimestamp": "2026-09-30T17:58:50.568Z"
+    },
+    {
+      "filePath": "rewrite_desc.cjs",
+      "originalSize": 402,
+      "sha256": "1b09e89a63bb6832c903fbcdbd1662188802c3a0286919f6cac4d42feef34c6c",
+      "deletionTimestamp": "2026-09-30T17:58:50.568Z"
+    },
+    {
+      "filePath": "rewrite_home.cjs",
+      "originalSize": 12101,
+      "sha256": "94dabd9ad1b256a36366cff339d3f77d9d8f0c92866e78b7cf2b46bcad390ab3",
+      "deletionTimestamp": "2026-09-30T17:58:50.568Z"
+    },
+    {
+      "filePath": "rewrite_server.cjs",
+      "originalSize": 1959,
+      "sha256": "6b229701584928cf3cba4bfbb792da450fdd1200dbf85d361296e137dc185013",
+      "deletionTimestamp": "2026-09-30T17:58:50.568Z"
+    },
+    {
+      "filePath": "test-admin.cjs",
+      "originalSize": 303,
+      "sha256": "c09bc659e13d168b2132c6102c4fdb136fbe170d40cdc9331a6ff83328a4fa95",
+      "deletionTimestamp": "2026-09-30T17:58:50.568Z"
+    },
+    {
+      "filePath": "test-admin2.cjs",
+      "originalSize": 462,
+      "sha256": "bd86df836339914ddaec0dfa889cd2ba6c6c6a386c589df5d279070d652fa2c2",
+      "deletionTimestamp": "2026-09-30T17:58:50.569Z"
+    },
+    {
+      "filePath": "test-admin3.cjs",
+      "originalSize": 556,
+      "sha256": "58599f58c844ff674676bec5a105e88593af4b537b2d1cfca4ba7fb38c455cef",
+      "deletionTimestamp": "2026-09-30T17:58:50.569Z"
+    },
+    {
+      "filePath": "test-anon.cjs",
+      "originalSize": 934,
+      "sha256": "2340582f2cba405037c97ec593a73b01f65b001bb71a0871d9293db35e80605b",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-api.js",
+      "originalSize": 97,
+      "sha256": "6db89cb747ba5a35a87ea98ba55a6c215474ff34687001324ae10d46a940e7b1",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-categories.js",
+      "originalSize": 138,
+      "sha256": "2a2647a0056a8ae4717555a0cf1cfe51511693c7d46be499b76041b4adfca817",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-db.cjs",
+      "originalSize": 3901,
+      "sha256": "c36f6cff27b8bac06906ac7fab8359123e2d61b5b2b4df8254a54c2922d947c2",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-export2.cjs",
+      "originalSize": 3894,
+      "sha256": "3118fefae79245f66f19626d6e7168c8ef9c0c3983cf8eff26bd81559de84b60",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-frontend.cjs",
+      "originalSize": 211,
+      "sha256": "0d5ff753729d92afb7b05400d3584b669e343483374c3c92addbe9610583849d",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-rq.cjs",
+      "originalSize": 288,
+      "sha256": "49469f8fad25e6a0646838e05328e708f123b0728c9c95bf748cc4e77ef62290",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-rq.mjs",
+      "originalSize": 615,
+      "sha256": "6ae70e689a5c786e1532344dd73783563cf92eb03c0a1728c1e4328df66b4eb8",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-sitemap.ts",
+      "originalSize": 1066,
+      "sha256": "9eae680fe4dca6aaabbb340111ba4ec73eb414b43c35c8e3ee6f28c065293204",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-snapshot.cjs",
+      "originalSize": 1144,
+      "sha256": "bfb392edda41d54a4c439e5d546bbd75160d239c7769d7d542877baa4bc46806",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-snapshot.js",
+      "originalSize": 1074,
+      "sha256": "dc03d80163144feb62ee678af74d4f31dec23425b0e549339d808b3d5307e8d4",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test-update.js",
+      "originalSize": 172,
+      "sha256": "1ea39f9e091844770999fd0b92fac113b0a3d1ad3211c7b18ed622ec4c159b63",
+      "deletionTimestamp": "2026-09-30T17:58:50.570Z"
+    },
+    {
+      "filePath": "test.html",
+      "originalSize": 370,
+      "sha256": "909404daed3aa23d81ac55d602da47c628c79bb77b6d05f4eef47263962de90b",
+      "deletionTimestamp": "2026-09-30T17:58:50.571Z"
+    },
+    {
+      "filePath": "test.sh",
+      "originalSize": 278,
+      "sha256": "495f247f08ab6c3e64c49b8dbcae05dfbc84969c7402451cdfd01523a01bc2c2",
+      "deletionTimestamp": "2026-09-30T17:58:50.571Z"
+    },
+    {
+      "filePath": "test_db.ts",
+      "originalSize": 549,
+      "sha256": "3db06ac4baa5b501002820131764f991bf7142a0ddc88e5f04b89491d140fdb2",
+      "deletionTimestamp": "2026-09-30T17:58:50.571Z"
+    },
+    {
+      "filePath": "the_fix.cjs",
+      "originalSize": 520,
+      "sha256": "2c5b6430527822d928a30dd4d0dad1fd6705beebd200bd7d887563bac9ecb304",
+      "deletionTimestamp": "2026-09-30T17:58:50.571Z"
+    },
+    {
+      "filePath": "update.cjs",
+      "originalSize": 9724,
+      "sha256": "3de9420af24caf97508c243f0cade2d8c4efcc8b66845859865d49aebcb3ac0c",
+      "deletionTimestamp": "2026-09-30T17:58:50.571Z"
+    },
+    {
+      "filePath": "video.html",
+      "originalSize": 2731,
+      "sha256": "bd83c79b7ae5d4c00b3a206901e8a3ed829f6f351cebbdc17c57c943c75951d4",
+      "deletionTimestamp": "2026-09-30T17:58:50.571Z"
+    }
+  ]
+}
