@@ -20,6 +20,7 @@ interface SEOProps {
   nextUrl?: string;
   jsonLd?: any;
   breadcrumbs?: BreadcrumbItem[];
+  ogType?: string;
   video?: {
     name: string;
     description: string;
@@ -42,6 +43,7 @@ export function SEO({
   nextUrl,
   jsonLd,
   breadcrumbs,
+  ogType = "website",
   video,
 }: SEOProps) {
   const isInitialSSR =
@@ -57,8 +59,15 @@ export function SEO({
     "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online";
   const fullTitle = exactTitle ? title : `${title} | ${siteTitle}`;
   let currentPath = "";
+  let currentHost = "www.desiredhub.xyz";
   if (typeof window !== "undefined") {
     currentPath = window.location.pathname;
+    currentHost = window.location.hostname;
+    // Fallback for development environments
+    if (currentHost === "localhost" || currentHost.includes("127.0.0.1") || currentHost.includes("run.app")) {
+      currentHost = "www.desiredhub.xyz";
+    }
+    
     if (currentPath === "/search") {
       const searchParams = new URLSearchParams(window.location.search);
       const q = searchParams.get("q");
@@ -69,7 +78,8 @@ export function SEO({
       }
     }
   }
-  const currentUrl = url || `${SITE_URL}${currentPath}`;
+  const baseUrl = `https://${currentHost}`;
+  const currentUrl = url || `${baseUrl}${currentPath}`;
   const ogImage = image || "https://i.ibb.co.com/fV4JS3LH/20260701-143429.png";
 
   return (
@@ -104,16 +114,23 @@ export function SEO({
               "@type": "ListItem",
               position: idx + 1,
               name: b.name,
-              item: b.item.startsWith("http") ? b.item : `${SITE_URL}${b.item}`,
+              item: b.item.startsWith("http") ? b.item : `https://${currentHost}${b.item}`,
             })),
           })}
         </script>
       )}
 
+      {/* Multilingual Hreflang Tags */}
+      <link data-rh="true" rel="alternate" hrefLang="en" href={`https://www.desiredhub.xyz${currentPath}`} />
+      <link data-rh="true" rel="alternate" hrefLang="bn" href={`https://bd.desiredhub.xyz${currentPath}`} />
+      <link data-rh="true" rel="alternate" hrefLang="hi" href={`https://hi.desiredhub.xyz${currentPath}`} />
+      <link data-rh="true" rel="alternate" hrefLang="ar" href={`https://ar.desiredhub.xyz${currentPath}`} />
+      <link data-rh="true" rel="alternate" hrefLang="x-default" href={`https://www.desiredhub.xyz${currentPath}`} />
+
       {/* Open Graph / Facebook */}
       <meta property="og:site_name" content="DesiredHub" />
       <meta property="og:locale" content="en_US" />
-      <meta property="og:type" content="website" />
+      <meta property="og:type" content={ogType} />
       <meta property="og:url" content={currentUrl} />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />

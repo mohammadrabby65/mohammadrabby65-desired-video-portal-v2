@@ -1,74 +1,34 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { DocumentSnapshot } from "firebase/firestore";
+import { deleteDoc, doc, DocumentSnapshot } from "firebase/firestore";
+import { db } from "../../../lib/firebase";
 import { useAdminPosts } from "../../../hooks/useAdmin";
 import { useQueryClient } from "@tanstack/react-query";
-import { Edit, Trash2, Search, Plus, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Edit, Trash2, Search, Plus } from "lucide-react";
 import { formatTimeAgo, formatViews } from "../../../lib/utils";
-import { useAuth } from "../../../contexts/AuthContext";
 
 export function ManagePosts() {
   const [pageParam, setPageParam] = useState<DocumentSnapshot | null>(null);
   const [history, setHistory] = useState<DocumentSnapshot[]>([]);
   const { data, isLoading } = useAdminPosts(10, pageParam);
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
-
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    setIsDeletingId(id);
-
-    try {
-      if (!user) {
-        const msg = "Unauthorized: You must be signed in as an administrator to delete posts.";
-        setErrorMessage(msg);
-        alert(msg);
-        setIsDeletingId(null);
-        return;
-      }
-
-      const idToken = await user.getIdToken();
-      const res = await fetch(`/api/admin/posts/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${idToken}`
+    if (confirm("Are you sure you want to delete this post?")) {
+      try {
+        await deleteDoc(doc(db, "posts", id));
+        
+        // Trigger snapshot generation to ensure UI updates immediately
+        try {
+          await fetch("/api/admin/snapshot/generate", { method: "POST" });
+        } catch (err) {
+          console.error("Failed to update snapshot", err);
         }
-      });
 
-      const body = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        let msg = "Failed to delete post.";
-        if (res.status === 401) {
-          msg = "Unauthorized: Invalid or expired admin credentials. Please re-login.";
-        } else if (res.status === 403) {
-          msg = "Permission denied: Your account is not authorized to delete posts.";
-        } else if (res.status === 404) {
-          msg = `Not found: Video document with ID "${id}" does not exist in Firestore or the production snapshot.`;
-        } else {
-          msg = `Server error (${res.status}): ${body.message || body.error || "An internal error occurred."}`;
-        }
-        setErrorMessage(msg);
-        alert(msg);
-        setIsDeletingId(null);
-        return;
+        queryClient.invalidateQueries({ queryKey: ["admin", "posts"] });
+      } catch (e) {
+        console.error("Error deleting", e);
       }
-
-      setSuccessMessage(`Post "${id}" was deleted successfully.`);
-      queryClient.invalidateQueries({ queryKey: ["admin", "posts"] });
-    } catch (e: any) {
-      const msg = `Client / Network error: ${e.message || "Failed to communicate with deletion API."}`;
-      console.error("Error deleting post:", e);
-      setErrorMessage(msg);
-      alert(msg);
-    } finally {
-      setIsDeletingId(null);
     }
   };
 
@@ -114,32 +74,6 @@ export function ManagePosts() {
           </Link>
         </div>
       </div>
-
-      {errorMessage && (
-        <div className="flex items-center gap-3 p-4 bg-red-950/50 border border-red-800/80 rounded-xl text-red-300 text-sm">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
-          <div className="flex-1">{errorMessage}</div>
-          <button
-            onClick={() => setErrorMessage(null)}
-            className="text-red-400 hover:text-red-200 text-xs font-semibold px-2 py-1 rounded"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="flex items-center gap-3 p-4 bg-green-950/50 border border-green-800/80 rounded-xl text-green-300 text-sm">
-          <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-green-400" />
-          <div className="flex-1">{successMessage}</div>
-          <button
-            onClick={() => setSuccessMessage(null)}
-            className="text-green-400 hover:text-green-200 text-xs font-semibold px-2 py-1 rounded"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
 
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">

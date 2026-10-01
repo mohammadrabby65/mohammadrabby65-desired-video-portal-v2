@@ -10,6 +10,7 @@ import {
   doc,
   getDoc,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import {
@@ -21,7 +22,6 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
 
 interface HistoryRecord {
   id: string;
@@ -38,7 +38,6 @@ interface HistoryRecord {
 }
 
 export function CheckHistoryTab() {
-  const { user } = useAuth();
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastDoc, setLastDoc] = useState<DocumentSnapshot | null>(null);
@@ -179,53 +178,22 @@ export function CheckHistoryTab() {
 
   const handleDeleteVideo = async (record: HistoryRecord) => {
     if (
-      !confirm(
+      confirm(
         "Are you sure you want to delete the original video post? This will NOT delete the history record.",
       )
     ) {
-      return;
-    }
-
-    try {
-      if (!user) {
-        alert("Unauthorized: You must be signed in as an administrator to delete posts.");
-        return;
+      try {
+        await deleteDoc(doc(db, "posts", record.postId));
+        setHistory((prev) =>
+          prev.map((r) =>
+            r.postId === record.postId ? { ...r, _deletedLocally: true } : r,
+          ),
+        );
+        alert("Video deleted successfully.");
+      } catch (err) {
+        console.error(err);
+        alert("Failed to delete video.");
       }
-
-      const idToken = await user.getIdToken();
-      const res = await fetch(`/api/admin/posts/${encodeURIComponent(record.postId)}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${idToken}`
-        }
-      });
-
-      const body = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        let msg = "Failed to delete video.";
-        if (res.status === 401) {
-          msg = "Unauthorized: Invalid or expired admin credentials. Please re-login.";
-        } else if (res.status === 403) {
-          msg = "Permission denied: Your account is not authorized to delete posts.";
-        } else if (res.status === 404) {
-          msg = `Not found: Video document with ID "${record.postId}" does not exist in Firestore or the production snapshot.`;
-        } else {
-          msg = `Server error (${res.status}): ${body.message || body.error || "An internal error occurred."}`;
-        }
-        alert(msg);
-        return;
-      }
-
-      setHistory((prev) =>
-        prev.map((r) =>
-          r.postId === record.postId ? { ...r, _deletedLocally: true } : r,
-        ),
-      );
-      alert("Video deleted successfully.");
-    } catch (err: any) {
-      console.error("Error deleting video:", err);
-      alert(`Client / Network error: ${err.message || "Failed to communicate with deletion API."}`);
     }
   };
 

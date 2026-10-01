@@ -1,4 +1,5 @@
-import React, { memo } from "react";
+import React, { memo, Fragment } from "react";
+import { PromoWidget } from "../widgets/PromoWidget";
 import { useRelatedVideos } from "../../hooks/useVideos";
 import { VideoCard } from "../ui/VideoCard";
 import { SkeletonCard } from "../ui/SkeletonCard";
@@ -32,8 +33,11 @@ export const RelatedVideos = memo(function RelatedVideos({
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 lg:gap-5 min-w-0 w-full">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-          : displayVideos.map((video) => (
-              <VideoCard key={video.id} video={video} enablePreview={true} />
+          : displayVideos.map((video, index) => (
+              <Fragment key={video.id}>
+                <VideoCard video={video} enablePreview={true} />
+                {index === 4 && <PromoWidget />}
+              </Fragment>
             ))}
 
         {isFetchingNextPage &&
