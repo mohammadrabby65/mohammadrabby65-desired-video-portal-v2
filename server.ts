@@ -180,6 +180,42 @@ async function generateSnapshot() {
   }
 }
 
+let adSettingsCache: {
+  popunderEnabled: boolean;
+  socialBarEnabled: boolean;
+  nativeBannerEnabled: boolean;
+  lastUpdated: number;
+} = {
+  popunderEnabled: true,
+  socialBarEnabled: true,
+  nativeBannerEnabled: false,
+  lastUpdated: 0,
+};
+
+async function getAdSettings() {
+  const now = Date.now();
+  if (adSettingsCache.lastUpdated > 0 && now - adSettingsCache.lastUpdated < 30 * 1000) {
+    return adSettingsCache;
+  }
+  try {
+    const snap = await getDoc(doc(db, "settings", "advertisements"));
+    if (snap.exists()) {
+      const data = snap.data();
+      adSettingsCache = {
+        popunderEnabled: Boolean(data?.popunderEnabled),
+        socialBarEnabled: Boolean(data?.socialBarEnabled),
+        nativeBannerEnabled: Boolean(data?.nativeBannerEnabled),
+        lastUpdated: now,
+      };
+    } else {
+      adSettingsCache.lastUpdated = now;
+    }
+  } catch (err) {
+    console.error("Error fetching ads settings in server:", err);
+  }
+  return adSettingsCache;
+}
+
 ensureSnapshot();
 
 setInterval(() => generateSnapshot().catch(console.error), 60 * 60 * 1000);
@@ -204,6 +240,21 @@ async function startServer() {
     next();
   });
 
+
+  app.get("/api/settings/ads", async (req, res) => {
+    try {
+      const settings = await getAdSettings();
+      res.setHeader("Cache-Control", "public, max-age=10, stale-while-revalidate=30");
+      return res.json({
+        popunderEnabled: settings.popunderEnabled,
+        socialBarEnabled: settings.socialBarEnabled,
+        nativeBannerEnabled: settings.nativeBannerEnabled,
+      });
+    } catch (err) {
+      console.error("Error in /api/settings/ads:", err);
+      return res.status(500).json({ error: "Failed to fetch ad settings" });
+    }
+  });
 
   app.get("/api/admin/snapshot/status", (req, res) => {
     try {
