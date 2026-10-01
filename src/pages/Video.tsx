@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import { useVideoBySlug, useAdjacentVideos } from "../hooks/useVideos";
 import { useVote } from "../hooks/useVote";
 import { VideoPlayer } from "../components/video/VideoPlayer";
-import { AdsterraBanner320x50 } from "../components/ads/AdsterraBanner320x50";
 import { VideoGallery } from "../components/video/VideoGallery";
 import { RelatedVideos } from "../components/video/RelatedVideos";
 import { SEO } from "../components/seo/SEO";
@@ -185,9 +184,6 @@ export function Video() {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 min-w-0 w-full">
           {/* Main Video Section */}
           <div className="flex-1 max-w-[1400px] min-w-0">
-            {/* Adsterra 320x50 Banner (Directly Above Video Player) */}
-            <AdsterraBanner320x50 key={video.id} />
-
             {/* Premium Player Container */}
             <div className="sm:rounded-2xl overflow-hidden bg-black sm:border sm:border-neutral-800/60 relative w-full shadow-xl">
               <div className="relative w-full aspect-video bg-black">

@@ -15,6 +15,62 @@ import { db } from "./src/lib/firebase";
 
 export const app = express();
 
+// Disable X-Powered-By header to prevent technology stack fingerprinting
+app.disable("x-powered-by");
+
+// Enforce Canonical Domain & 1-Hop Redirects (Apex -> WWW, HTTP -> HTTPS)
+app.use((req, res, next) => {
+  const host = (req.headers.host || "").toLowerCase();
+  const proto = (req.headers["x-forwarded-proto"] || "").toString().toLowerCase();
+
+  // Redirect naked apex domain or insecure HTTP directly to canonical HTTPS www domain in 1 single 301 hop
+  if (host === "desiredhub.xyz" || (host === "www.desiredhub.xyz" && proto === "http")) {
+    return res.redirect(301, `https://www.desiredhub.xyz${req.originalUrl}`);
+  }
+  next();
+});
+
+// Strict Defensive HTTP Security Headers
+app.use((req, res, next) => {
+  const host = (req.headers.host || "").toLowerCase();
+  const isProductionDomain = host === "desiredhub.xyz" || host === "www.desiredhub.xyz";
+
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+  // Only set X-Frame-Options: SAMEORIGIN on the production custom domain.
+  // In the AI Studio / Cloud Run preview environment, the app is embedded in an iframe.
+  if (isProductionDomain) {
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  }
+
+  // Narrow, legitimate Content Security Policy
+  // Allows legitimate resources: Google Tag Manager, Firebase App Check / reCAPTCHA, and Vite HMR in dev.
+  // Completely blocks untrusted third-party ad networks and popunders.
+  const frameAncestors = isProductionDomain
+    ? "'self'"
+    : "'self' https://*.google.com https://*.googleusercontent.com https://*.run.app";
+
+  const cspDirectives = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' blob: https:",
+    "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
+    "connect-src 'self' blob: ws: wss: https: https://*.googleapis.com https://*.firebaseio.com https://*.google-analytics.com https://www.googletagmanager.com https://www.google.com/recaptcha/",
+    "font-src 'self' data:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    `frame-ancestors ${frameAncestors}`
+  ];
+
+  res.setHeader("Content-Security-Policy", cspDirectives.join("; "));
+  next();
+});
+
 
 let publicDataSnapshot: {
   posts: any[];
@@ -968,8 +1024,23 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
+  function cleanPublicMetadataText(text: string): string {
+    if (!text) return "";
+    return text
+      .replace(/\b(viral\s+mms|leaked\s+mms|mms\s+leak|mms\s+video|sex\s+mms)\b/gi, "video")
+      .replace(/\b(mms)\b/gi, "clip")
+      .replace(/\b(secretly\s+recorded)\b/gi, "private")
+      .replace(/\b(leaked\s+video)\b/gi, "video")
+      .replace(/\b(leaked|leak|leaks)\b/gi, "exclusive")
+      .replace(/\b(stolen)\b/gi, "personal")
+      .replace(/\b(scandal)\b/gi, "episode")
+      .replace(/\s+/g, " ")
+      .replace(/\s+([,\.!\?:])/g, "$1")
+      .trim();
+  }
+
   function formatSeo(titleInput: string, descInput: string, currentUrl: string) {
-    let title = titleInput.trim();
+    let title = cleanPublicMetadataText(titleInput).trim();
     if (title.length > 69) {
       if (title.includes(" - DesiredHub")) {
         const prefix = title.replace(" - DesiredHub", "");
@@ -980,7 +1051,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
     }
 
-    let desc = descInput.replace(/\s+/g, " ").trim();
+    let desc = cleanPublicMetadataText(descInput).replace(/\s+/g, " ").trim();
     if (desc.length < 120) {
       desc += " Discover more exciting Indian sex videos and enjoy high quality streaming on DesiredHub.";
       if (desc.length > 160) {
@@ -1807,11 +1878,12 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         template = await vite.transformIndexHtml(req.originalUrl, template);
       }
       
-      const title = escapeHtml(`${video.title} - DesiredHub`);
+      const cleanTitle = cleanPublicMetadataText(video.title || "Video");
+      const title = escapeHtml(`${cleanTitle} - DesiredHub`);
       
-      let optimalDesc = video.metaDescription || "";
+      let optimalDesc = cleanPublicMetadataText(video.metaDescription || "");
       if (!optimalDesc) {
-        let text = (video.description || "").replace(/\s+/g, " ").trim();
+        let text = cleanPublicMetadataText(video.description || video.title || "").replace(/\s+/g, " ").trim();
         if (text.length > 155) {
           let cutoff = text.substring(0, 153).lastIndexOf(" ");
           if (cutoff === -1) cutoff = 152;
@@ -1838,8 +1910,8 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       const jsonLd: any = {
         "@context": "https://schema.org",
         "@type": "VideoObject",
-        name: video.title,
-        description: video.description || video.title,
+        name: cleanTitle,
+        description: description || cleanTitle,
         uploadDate: uploadDate,
         mainEntityOfPage: currentUrl
       };
