@@ -1,82 +1,84 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 
-const POPUNDER_SRC = "https://predestineheadypleasure.com/46/fb/02/46fb02b7663603a5ec0e75ce574d43f4.js";
-const SOCIAL_BAR_SRC = "https://predestineheadypleasure.com/a8/c5/ae/a8c5ae6b95183bffe51c005c71b9acfd.js";
-
 const POPUNDER_ID = "adsterra-popunder-script";
+const POPUNDER_SRC = "https://predestineheadypleasure.com/2e/24/de/2e24deaee3c8ed46777c8fd01a8bfbf8.js";
+
 const SOCIAL_BAR_ID = "adsterra-socialbar-script";
+const SOCIAL_BAR_SRC = "https://predestineheadypleasure.com/06/3d/17/063d1781b009b29552518c216e2b364c.js";
+
+function syncScript(id: string, src: string, enabled: boolean) {
+  if (typeof document === "undefined") return;
+
+  const existing = document.getElementById(id) as HTMLScriptElement | null;
+
+  if (enabled) {
+    if (!existing) {
+      const script = document.createElement("script");
+      script.id = id;
+      script.src = src;
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  } else {
+    if (existing) {
+      existing.remove();
+    }
+  }
+}
 
 /**
- * Centrally manages Adsterra official ad units (Popunder & Social Bar).
- * - Governed entirely by Firestore configuration (settings/advertisements)
- * - Guarantees strict singleton injection (at most one instance per script)
- * - Prevents duplicate script injection during React re-renders or route changes
- * - Removes scripts when disabled via emergency kill switch
+ * ScriptManager
+ * Centralized runtime implementation for Adsterra Popunder and Social Bar.
+ * Firestore toggles: settings/advertisements -> popunderEnabled, socialBarEnabled
+ * No-cloaking: identical behavior for all visitors.
  */
 export function ScriptManager() {
-  useEffect(() => {
-    let isMounted = true;
+  const location = useLocation();
+  const settingsRef = useRef({ popunderEnabled: false, socialBarEnabled: false });
 
-    // Listen to realtime changes from Firestore advertisements settings document
+  useEffect(() => {
     const docRef = doc(db, "settings", "advertisements");
     const unsubscribe = onSnapshot(
       docRef,
-      (docSnap) => {
-        if (!isMounted) return;
-
-        const data = docSnap.exists()
-          ? (docSnap.data() as { popunderEnabled?: boolean; socialBarEnabled?: boolean })
-          : { popunderEnabled: true, socialBarEnabled: true };
-
-        const isPopunderActive = Boolean(data.popunderEnabled);
-        const isSocialBarActive = Boolean(data.socialBarEnabled);
-
-        // 1. Manage Popunder Script
-        const existingPopunder =
-          document.getElementById(POPUNDER_ID) ||
-          document.querySelector(`script[src="${POPUNDER_SRC}"]`);
-
-        if (isPopunderActive) {
-          if (!existingPopunder) {
-            const script = document.createElement("script");
-            script.id = POPUNDER_ID;
-            script.src = POPUNDER_SRC;
-            script.async = true;
-            document.head.appendChild(script);
-          }
-        } else if (existingPopunder) {
-          existingPopunder.remove();
-        }
-
-        // 2. Manage Social Bar Script
-        const existingSocialBar =
-          document.getElementById(SOCIAL_BAR_ID) ||
-          document.querySelector(`script[src="${SOCIAL_BAR_SRC}"]`);
-
-        if (isSocialBarActive) {
-          if (!existingSocialBar) {
-            const script = document.createElement("script");
-            script.id = SOCIAL_BAR_ID;
-            script.src = SOCIAL_BAR_SRC;
-            script.async = true;
-            document.head.appendChild(script);
-          }
-        } else if (existingSocialBar) {
-          existingSocialBar.remove();
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          const popunder = Boolean(data?.popunderEnabled);
+          const socialBar = Boolean(data?.socialBarEnabled);
+          settingsRef.current = {
+            popunderEnabled: popunder,
+            socialBarEnabled: socialBar,
+          };
+          syncScript(POPUNDER_ID, POPUNDER_SRC, popunder);
+          syncScript(SOCIAL_BAR_ID, SOCIAL_BAR_SRC, socialBar);
+        } else {
+          settingsRef.current = {
+            popunderEnabled: false,
+            socialBarEnabled: false,
+          };
+          syncScript(POPUNDER_ID, POPUNDER_SRC, false);
+          syncScript(SOCIAL_BAR_ID, SOCIAL_BAR_SRC, false);
         }
       },
-      (error) => {
-        console.error("Ad configuration error:", error);
+      (err) => {
+        console.error("ScriptManager error listening to ad settings:", err);
       }
     );
 
     return () => {
-      isMounted = false;
       unsubscribe();
     };
   }, []);
+
+  // Ensure scripts stay properly synchronized on route changes without duplicate injections
+  useEffect(() => {
+    const { popunderEnabled, socialBarEnabled } = settingsRef.current;
+    syncScript(POPUNDER_ID, POPUNDER_SRC, popunderEnabled);
+    syncScript(SOCIAL_BAR_ID, SOCIAL_BAR_SRC, socialBarEnabled);
+  }, [location.pathname]);
 
   return null;
 }

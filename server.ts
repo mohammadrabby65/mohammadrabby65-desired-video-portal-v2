@@ -45,8 +45,9 @@ app.use((req, res, next) => {
     res.setHeader("X-Frame-Options", "SAMEORIGIN");
   }
 
-  // Strictly defined Content Security Policy
-  // Allows legitimate resources: Google Tag Manager, Firebase App Check / reCAPTCHA, Adsterra ad scripts, and Vite HMR in dev.
+  // Narrow, legitimate Content Security Policy
+  // Allows legitimate resources: Google Tag Manager, Firebase App Check / reCAPTCHA, and Vite HMR in dev.
+  // Completely blocks untrusted third-party ad networks and popunders.
   const frameAncestors = isProductionDomain
     ? "'self'"
     : "'self' https://*.google.com https://*.googleusercontent.com https://*.run.app";
@@ -57,8 +58,8 @@ app.use((req, res, next) => {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: https:",
-    "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://predestineheadypleasure.com",
-    "connect-src 'self' blob: ws: wss: https: https://*.googleapis.com https://*.firebaseio.com https://*.google-analytics.com https://www.googletagmanager.com https://www.google.com/recaptcha/ https://predestineheadypleasure.com",
+    "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
+    "connect-src 'self' blob: ws: wss: https: https://*.googleapis.com https://*.firebaseio.com https://*.google-analytics.com https://www.googletagmanager.com https://www.google.com/recaptcha/",
     "font-src 'self' data:",
     "object-src 'none'",
     "base-uri 'self'",
