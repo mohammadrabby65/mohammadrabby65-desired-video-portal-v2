@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import Hls from "hls.js";
 import {
   Play,
   Pause,
@@ -6,600 +7,573 @@ import {
   VolumeX,
   Maximize,
   Minimize,
-  Loader2
-} from 'lucide-react';
-import { Video } from '../../types';
+  Settings,
+  PictureInPicture,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 
 interface VideoPlayerProps {
-  video?: Video;
-  // Optional backward-compatibility props if invoked directly with individual fields
   videoId?: string;
-  videoUrl?: string;
+  videoUrl: string;
   thumbnailUrl?: string;
   previewStoryboardUrl?: string;
-  previewStoryboardData?: any;
-  onViewIncrement?: () => void;
+  previewStoryboardData?: {
+    interval: number;
+    rows: number;
+    cols: number;
+    width: number;
+    height: number;
+  };
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({
-  video,
-  videoId,
-  videoUrl,
-  thumbnailUrl,
-  onViewIncrement
-}) => {
-  // Normalize video prop
-  const currentVideo: Video = video || ({
-    id: videoId || '',
-    videoUrl: videoUrl || '',
-    thumbnailUrl: thumbnailUrl || '',
-    title: '',
-    slug: '',
-    description: '',
-    categories: [],
-    tags: [],
-    duration: '',
-    views: 0,
-    featured: false,
-    trending: false,
-    publishedAt: null
-  } as Video);
-
-  const containerRef = useRef<HTMLDivElement>(null);
+export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboardUrl, previewStoryboardData }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const previewVideoRef = useRef<HTMLVideoElement>(null);
-  const timelineRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
+  const accumulatedPlayTime = useRef(0);
+  const lastTimeRef = useRef(0);
+  const viewReported = useRef(false);
 
-  // Throttling and seeking architecture refs
-  const isSeekingPreviewRef = useRef(false);
-  const pendingPreviewSeekRef = useRef<number | null>(null);
-  const lastPreviewSeekTimeRef = useRef(0);
-  const isDraggingRef = useRef(false);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const previewHideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const trackedRef = useRef<string | null>(null);
+  useEffect(() => {
+    accumulatedPlayTime.current = 0;
+    lastTimeRef.current = 0;
+    viewReported.current = false;
+  }, [videoId]);
 
-  // State
-  const [hasStarted, setHasStarted] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [bufferedEnd, setBufferedEnd] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showSettings, setShowSettings] = useState(false);
 
-  // Floating preview state
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewTime, setPreviewTime] = useState(0);
-  const [previewPos, setPreviewPos] = useState(0); // Pixel position or percentage
-  const [previewClampedLeft, setPreviewClampedLeft] = useState(0);
+  const [showPoster, setShowPoster] = useState(true);
+  const [playError, setPlayError] = useState(false);
 
-  // View tracking: POST /api/video/:id/view deduplicated per video ID
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPos, setDragPos] = useState(0); // 0 to 1
+  const [hoverPos, setHoverPos] = useState(0); // 0 to 1
+  const [isHovering, setIsHovering] = useState(false);
+
+  const [hlsLevels, setHlsLevels] = useState<any[]>([]);
+  const [currentLevel, setCurrentLevel] = useState<number>(-1); // -1 is Auto
+
+  // Setup HLS or Native player
   useEffect(() => {
-    if (currentVideo.id && trackedRef.current !== currentVideo.id) {
-      trackedRef.current = currentVideo.id;
-      fetch(`/api/video/${currentVideo.id}/view`, { method: 'POST' })
-        .then(() => {
-          onViewIncrement?.();
-        })
-        .catch(() => {
-          // Silent failure if request fails
-        });
-    }
-  }, [currentVideo.id, onViewIncrement]);
+    if (!videoUrl || !videoRef.current) return;
 
-  // Video switching: Reset playback and preview state when video changes
-  useEffect(() => {
-    setHasStarted(false);
-    setIsPlaying(false);
-    setIsLoading(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setBufferedEnd(0);
-    setShowPreview(false);
+    const video = videoRef.current;
 
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.removeAttribute('src');
-      videoRef.current.load();
-    }
+    const isM3U8 = videoUrl.includes(".m3u8");
+    const isMP4 = videoUrl.includes(".mp4");
 
-    if (previewVideoRef.current) {
-      previewVideoRef.current.pause();
-      previewVideoRef.current.removeAttribute('src');
-      previewVideoRef.current.load();
-    }
+    console.log("Final URL passed to player:", videoUrl);
+    console.log("Format detected - isM3U8:", isM3U8, "isMP4:", isMP4);
 
-    isSeekingPreviewRef.current = false;
-    pendingPreviewSeekRef.current = null;
-    lastPreviewSeekTimeRef.current = 0;
-    isDraggingRef.current = false;
-  }, [currentVideo.videoUrl, currentVideo.id]);
-
-  // Fullscreen change synchronization
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, []);
-
-  // Controls auto-hide timer (2.5 seconds)
-  const resetControlsTimeout = useCallback(() => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
-    if (isPlaying) {
-      controlsTimeoutRef.current = setTimeout(() => {
-        if (!isDraggingRef.current) {
-          setShowControls(false);
+    const handleLoadedMetadata = () => {
+      setLoading(false);
+      const savedTime = localStorage.getItem(`vid_time_${videoUrl}`);
+      if (savedTime) {
+        const parsed = parseFloat(savedTime);
+        if (Number.isFinite(parsed) && parsed >= 0) {
+          video.currentTime = parsed;
         }
-      }, 2500);
-    }
-  }, [isPlaying]);
-
-  useEffect(() => {
-    if (!isPlaying) {
-      setShowControls(true);
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    } else {
-      resetControlsTimeout();
-    }
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
       }
     };
-  }, [isPlaying, resetControlsTimeout]);
 
-  // Time formatting helper: MM:SS or HH:MM:SS
-  const formatTime = (seconds: number): string => {
-    if (isNaN(seconds) || !isFinite(seconds) || seconds < 0) return '00:00';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    const pad = (n: number) => n.toString().padStart(2, '0');
+    const handleError = (e: Event) => {
+      console.error(
+        "Player Error Event:",
+        e,
+        video.error?.code,
+        video.error?.message,
+      );
+      setError("Error loading video source");
+    };
 
-    if (h > 0) {
-      return `${pad(h)}:${pad(m)}:${pad(s)}`;
-    }
-    return `${pad(m)}:${pad(s)}`;
-  };
+    if (isM3U8 && Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+      });
+      hlsRef.current = hls;
 
-  // Lazy playback start
-  const handleInitialPlay = () => {
-    if (!videoRef.current || !currentVideo.videoUrl) return;
+      hls.loadSource(videoUrl);
+      hls.attachMedia(video);
 
-    setHasStarted(true);
-    setIsLoading(true);
+      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+        setHlsLevels(data.levels);
+        setLoading(false);
+        // Load saved time
+        const savedTime = localStorage.getItem(`vid_time_${videoUrl}`);
+        if (savedTime) {
+          const parsed = parseFloat(savedTime);
+          if (Number.isFinite(parsed) && parsed >= 0) {
+            video.currentTime = parsed;
+          }
+        }
+      });
 
-    const mainVideo = videoRef.current;
-    mainVideo.src = currentVideo.videoUrl;
-    mainVideo.load();
-    mainVideo.play().catch(() => {
-      setIsPlaying(false);
-      setIsLoading(false);
-    });
+      hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+        setCurrentLevel(data.level);
+      });
 
-    if (previewVideoRef.current) {
-      const previewVideo = previewVideoRef.current;
-      previewVideo.src = currentVideo.videoUrl;
-      previewVideo.load();
-    }
-  };
-
-  // Play / Pause toggle
-  const togglePlay = () => {
-    if (!hasStarted) {
-      handleInitialPlay();
-      return;
-    }
-    if (!videoRef.current) return;
-
-    if (videoRef.current.paused) {
-      videoRef.current.play().catch(() => {});
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              console.error("HLS Fatal Error:", data);
+              setError("A fatal error occurred during playback");
+              break;
+          }
+        }
+      });
     } else {
-      videoRef.current.pause();
+      // Native HLS (Safari) or standard MP4
+      video.addEventListener("loadedmetadata", handleLoadedMetadata);
+      video.addEventListener("error", handleError);
+
+      video.src = videoUrl;
+      video.load();
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("error", handleError);
+    };
+  }, [videoUrl]);
+
+  // Save progress periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (videoRef.current && currentTime > 0) {
+        localStorage.setItem(`vid_time_${videoUrl}`, currentTime.toString());
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [currentTime, videoUrl]);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoRef.current.play();
+        setIsPlaying(true);
+      }
     }
   };
 
-  // Mute toggle
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    const nextMuted = !isMuted;
-    videoRef.current.muted = nextMuted;
-    setIsMuted(nextMuted);
-    if (!nextMuted && volume === 0) {
-      setVolume(0.5);
-      videoRef.current.volume = 0.5;
+  
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const current = videoRef.current.currentTime;
+      setCurrentTime(current);
+      setDuration(videoRef.current.duration);
+
+      if (videoId && !viewReported.current && !videoRef.current.paused) {
+        const diff = current - lastTimeRef.current;
+        if (diff > 0 && diff < 1.0) {
+          accumulatedPlayTime.current += diff;
+        }
+        if (accumulatedPlayTime.current >= 4) {
+          viewReported.current = true;
+          
+          const storageKey = `viewed_${videoId}`;
+          const lastViewedStr = localStorage.getItem(storageKey);
+          const now = Date.now();
+          let shouldReport = true;
+          if (lastViewedStr) {
+             const lastViewed = parseInt(lastViewedStr, 10);
+             if (!isNaN(lastViewed) && (now - lastViewed < 24 * 60 * 60 * 1000)) {
+                 shouldReport = false;
+             }
+          }
+          
+          if (shouldReport) {
+             fetch(`/api/video/${videoId}/view`, { method: "POST" })
+               .then(res => {
+                   if (res.ok) {
+                       localStorage.setItem(storageKey, now.toString());
+                   } else {
+                       viewReported.current = false;
+                   }
+               })
+               .catch(err => {
+                   console.error("View reporting failed", err);
+                   viewReported.current = false;
+               });
+          }
+        }
+      }
+      lastTimeRef.current = current;
     }
   };
 
-  // Volume slider change
+  // Dragging logic
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (progressRef.current && videoRef.current) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setIsDragging(true);
+      const rect = progressRef.current.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      setDragPos(pos);
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (progressRef.current) {
+      const rect = progressRef.current.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      if (isDragging) {
+        setDragPos(pos);
+      } else {
+        setHoverPos(pos);
+        setIsHovering(true);
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging && progressRef.current && videoRef.current) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+      setIsDragging(false);
+      const rect = progressRef.current.getBoundingClientRect();
+      const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const targetTime = pos * duration;
+      if (Number.isFinite(targetTime) && targetTime >= 0) {
+        videoRef.current.currentTime = targetTime;
+      }
+    }
+  };
+
+  const handlePointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) {
+      setIsHovering(false);
+    }
+  };
+
+  const getStoryboardStyles = () => {
+    if (!previewStoryboardData || !previewStoryboardUrl) return {};
+    const { interval, cols, rows, width, height } = previewStoryboardData;
+    const targetTime = (isDragging ? dragPos : hoverPos) * duration;
+    
+    // Clamp frame index
+    const totalFrames = cols * rows;
+    let frameIndex = Math.floor(targetTime / interval);
+    frameIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1));
+    
+    const r = Math.floor(frameIndex / cols);
+    const c = frameIndex % cols;
+    
+    return {
+      backgroundImage: `url(${previewStoryboardUrl})`,
+      backgroundPosition: `-${c * width}px -${r * height}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+      backgroundSize: `${cols * width}px ${rows * height}px`
+    };
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only used as fallback now if needed, but Pointer events cover click
+  };
+
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return "0:00";
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  };
+
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setVolume(val);
     if (videoRef.current) {
       videoRef.current.volume = val;
-      if (val === 0) {
-        setIsMuted(true);
-        videoRef.current.muted = true;
-      } else if (isMuted) {
-        setIsMuted(false);
-        videoRef.current.muted = false;
-      }
+      setIsMuted(val === 0);
     }
   };
 
-  // Fullscreen toggle
+  const toggleMute = () => {
+    if (videoRef.current) {
+      const newMuted = !isMuted;
+      videoRef.current.muted = newMuted;
+      setIsMuted(newMuted);
+      if (newMuted) setVolume(0);
+      else setVolume(1);
+    }
+  };
+
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {});
+      containerRef.current.requestFullscreen().catch((err) => {
+        console.error("Error attempting to enable fullscreen:", err);
+      });
+      setIsFullscreen(true);
     } else {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen();
+      setIsFullscreen(false);
     }
   };
 
-  // Update buffered progress
-  const updateBuffered = () => {
-    if (!videoRef.current) return;
-    const video = videoRef.current;
-    if (video.buffered.length > 0) {
-      const end = video.buffered.end(video.buffered.length - 1);
-      setBufferedEnd(end);
+  const togglePiP = async () => {
+    if (videoRef.current) {
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          await videoRef.current.requestPictureInPicture();
+        }
+      } catch (err) {
+        console.error("PiP error:", err);
+      }
     }
   };
 
-  // Throttled preview seek request implementation
-  const requestPreviewSeek = useCallback((targetTime: number) => {
-    const previewVideo = previewVideoRef.current;
-    if (!previewVideo || !previewVideo.duration || !isFinite(previewVideo.duration)) return;
-
-    const clampedTime = Math.max(0, Math.min(targetTime, previewVideo.duration));
-    const now = performance.now();
-
-    // If currently seeking, record as pending target
-    if (isSeekingPreviewRef.current) {
-      pendingPreviewSeekRef.current = clampedTime;
-      return;
+  const changeQuality = (level: number) => {
+    if (hlsRef.current) {
+      hlsRef.current.currentLevel = level;
+      setCurrentLevel(level);
+      setShowSettings(false);
     }
+  };
 
-    // Minimum seek interval approximately 60ms
-    const elapsed = now - lastPreviewSeekTimeRef.current;
-    if (elapsed < 60) {
-      pendingPreviewSeekRef.current = clampedTime;
-      return;
+  const changeSpeed = (rate: number) => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
+      setPlaybackRate(rate);
+      setShowSettings(false);
     }
+  };
 
-    try {
-      isSeekingPreviewRef.current = true;
-      lastPreviewSeekTimeRef.current = now;
-      previewVideo.currentTime = clampedTime;
-    } catch {
-      isSeekingPreviewRef.current = false;
+  let controlsTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseMove = () => {
+    setShowControls(true);
+    if (controlsTimeout.current) clearTimeout(controlsTimeout.current);
+    if (isPlaying) {
+      controlsTimeout.current = setTimeout(() => setShowControls(false), 3000);
     }
+  };
+
+  const handleMouseLeave = () => {
+    if (isPlaying) setShowControls(false);
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  const handlePreviewSeeked = useCallback(() => {
-    isSeekingPreviewRef.current = false;
-
-    if (pendingPreviewSeekRef.current !== null) {
-      const nextTime = pendingPreviewSeekRef.current;
-      pendingPreviewSeekRef.current = null;
-      requestPreviewSeek(nextTime);
-    }
-  }, [requestPreviewSeek]);
-
-  // Timeline scrubbing & calculation
-  const calculateTimelinePosition = (clientX: number) => {
-    if (!timelineRef.current || !containerRef.current || !duration) return null;
-
-    const timelineRect = timelineRef.current.getBoundingClientRect();
-    const containerRect = containerRef.current.getBoundingClientRect();
-
-    const rawPos = (clientX - timelineRect.left) / timelineRect.width;
-    const clampedPos = Math.max(0, Math.min(1, rawPos));
-    const targetTime = clampedPos * duration;
-
-    // Calculate clamped left position for the floating preview card
-    const pixelInTimeline = clampedPos * timelineRect.width;
-    const previewWidth = 160; // Approximate card width
-    const halfWidth = previewWidth / 2;
-
-    const timelineLeftOffset = timelineRect.left - containerRect.left;
-    const centerPixel = timelineLeftOffset + pixelInTimeline;
-    const clampedCenter = Math.max(halfWidth + 8, Math.min(containerRect.width - halfWidth - 8, centerPixel));
-
-    return {
-      pos: clampedPos,
-      time: targetTime,
-      previewLeft: clampedCenter
-    };
-  };
-
-  const handleTimelineHover = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!hasStarted) return;
-    const data = calculateTimelinePosition(e.clientX);
-    if (!data) return;
-
-    if (previewHideTimeoutRef.current) {
-      clearTimeout(previewHideTimeoutRef.current);
-    }
-
-    setShowPreview(true);
-    setPreviewTime(data.time);
-    setPreviewPos(data.pos * 100);
-    setPreviewClampedLeft(data.previewLeft);
-    requestPreviewSeek(data.time);
-  };
-
-  const handleTimelineLeave = () => {
-    if (!isDraggingRef.current) {
-      setShowPreview(false);
-    }
-  };
-
-  const handleSeek = (clientX: number) => {
-    const data = calculateTimelinePosition(clientX);
-    if (!data || !videoRef.current) return;
-
-    videoRef.current.currentTime = data.time;
-    setCurrentTime(data.time);
-    setPreviewTime(data.time);
-    setPreviewPos(data.pos * 100);
-    setPreviewClampedLeft(data.previewLeft);
-    requestPreviewSeek(data.time);
-  };
-
-  const handleTimelineMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!hasStarted) return;
-    isDraggingRef.current = true;
-    handleSeek(e.clientX);
-    setShowPreview(true);
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (isDraggingRef.current) {
-        handleSeek(moveEvent.clientX);
-        resetControlsTimeout();
-      }
-    };
-
-    const handleMouseUp = () => {
-      isDraggingRef.current = false;
-      setShowPreview(false);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-  };
-
-  // Mobile Touch scrubbing
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!hasStarted) return;
-    isDraggingRef.current = true;
-    resetControlsTimeout();
-    if (previewHideTimeoutRef.current) {
-      clearTimeout(previewHideTimeoutRef.current);
-    }
-
-    const touch = e.touches[0];
-    handleSeek(touch.clientX);
-    setShowPreview(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current) return;
-    resetControlsTimeout();
-    const touch = e.touches[0];
-    handleSeek(touch.clientX);
-  };
-
-  const handleTouchEnd = () => {
-    isDraggingRef.current = false;
-    // Delayed preview hide behavior for mobile
-    previewHideTimeoutRef.current = setTimeout(() => {
-      setShowPreview(false);
-    }, 1200);
-  };
-
-  const playedPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const bufferedPercent = duration > 0 ? (bufferedEnd / duration) * 100 : 0;
+  if (error) {
+    return (
+      <div className="w-full aspect-video bg-neutral-900 rounded-xl flex flex-col items-center justify-center text-red-500 border border-neutral-800">
+        <AlertCircle className="w-10 h-10 mb-2" />
+        <p className="font-medium">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div
       ref={containerRef}
-      onMouseMove={resetControlsTimeout}
-      onClick={resetControlsTimeout}
-      className="relative w-full aspect-video bg-black rounded-xl sm:rounded-2xl overflow-hidden select-none group text-white"
+      className="video-player-container relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-neutral-800 group"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Hidden secondary video element used strictly for independent timeline previews */}
-      <video
-        ref={previewVideoRef}
-        preload="metadata"
-        muted
-        playsInline
-        onSeeked={handlePreviewSeeked}
-        className="hidden"
-      />
-
-      {/* Main Video Element */}
-      <video
-        ref={videoRef}
-        preload="none"
-        playsInline
-        onClick={togglePlay}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onWaiting={() => setIsLoading(true)}
-        onPlaying={() => setIsLoading(false)}
-        onTimeUpdate={() => {
-          if (videoRef.current) {
-            setCurrentTime(videoRef.current.currentTime);
-          }
-        }}
-        onLoadedMetadata={() => {
-          if (videoRef.current) {
-            setDuration(videoRef.current.duration);
-            setIsLoading(false);
-          }
-        }}
-        onProgress={updateBuffered}
-        onEnded={() => setIsPlaying(false)}
-        onError={() => {
-          setIsLoading(false);
-          setIsPlaying(false);
-        }}
-        className="w-full h-full object-contain bg-black cursor-pointer"
-      />
-
-      {/* Initial state: Poster / Thumbnail overlay & Centered circular play button */}
-      {!hasStarted && (
-        <div
-          onClick={handleInitialPlay}
-          className="absolute inset-0 z-20 flex items-center justify-center cursor-pointer bg-black/30 backdrop-blur-[1px] transition-opacity duration-300"
-        >
-          {currentVideo.thumbnailUrl && (
-            <img
-              src={currentVideo.thumbnailUrl}
-              alt={currentVideo.title || 'Video Thumbnail'}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          )}
-          {/* Subtle dark overlay */}
-          <div className="absolute inset-0 bg-black/40" />
-
-          {/* Centered circular play button */}
-          <button
-            type="button"
-            aria-label="Play video"
-            className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-600/90 hover:bg-red-600 text-white flex items-center justify-center shadow-2xl hover:scale-105 transition-all duration-200 cursor-pointer"
-          >
-            <Play className="w-8 h-8 fill-white ml-1 text-white" />
-          </button>
-        </div>
-      )}
-
-      {/* Loading Spinner */}
-      {hasStarted && isLoading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none bg-black/20">
-          <Loader2 className="w-12 h-12 text-red-500 animate-spin" />
-        </div>
-      )}
-
-      {/* Floating Timeline Preview Card */}
-      {hasStarted && showPreview && duration > 0 && (
-        <div
-          className="absolute bottom-14 z-30 pointer-events-none -translate-x-1/2 flex flex-col items-center transition-all duration-75"
-          style={{ left: `${previewClampedLeft}px` }}
-        >
-          <div className="w-36 sm:w-44 aspect-video bg-neutral-900 border border-white/20 rounded-lg overflow-hidden shadow-2xl relative">
-            <video
-              ref={(el) => {
-                // Keep the preview canvas synchronized with previewVideoRef frames
-                if (el && previewVideoRef.current && el.src !== previewVideoRef.current.src) {
-                  el.src = previewVideoRef.current.src;
-                }
-                if (el && previewVideoRef.current && Math.abs(el.currentTime - previewTime) > 0.3) {
-                  try {
-                    el.currentTime = previewTime;
-                  } catch {}
-                }
-              }}
-              preload="metadata"
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            />
-            {/* Timestamp Badge */}
-            <div className="absolute bottom-1 right-1 bg-black/80 text-[10px] text-white px-1.5 py-0.5 rounded font-mono font-medium">
-              {formatTime(previewTime)}
+      {loading && !playError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10 backdrop-blur-sm transition-opacity duration-300" aria-label="Loading video">
+          <div className="relative flex items-center justify-center w-20 h-20 mb-6">
+            {/* Expanding Pulse Rings */}
+            <div className="absolute inset-0 rounded-full border border-primary/60 animate-desired-ring-1"></div>
+            <div className="absolute inset-0 rounded-full border border-primary/40 animate-desired-ring-2"></div>
+            <div className="absolute inset-0 rounded-full border border-primary/20 animate-desired-ring-3"></div>
+            
+            {/* Rotating Progress Ring */}
+            <div className="absolute -inset-2 rounded-full border border-transparent border-t-primary/80 border-l-primary/30 animate-desired-spin"></div>
+            
+            {/* Center Play Emblem */}
+            <div className="relative w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(229,9,20,0.6)] animate-desired-glow">
+              <Play className="w-6 h-6 text-white fill-white ml-1" />
+            </div>
+          </div>
+          
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-white/90 text-[11px] sm:text-xs font-bold tracking-[0.2em] uppercase">
+              Loading Video
+            </span>
+            <div className="flex gap-1 text-primary text-sm sm:text-base leading-none">
+              <span className="animate-desired-dot-1">•</span>
+              <span className="animate-desired-dot-2">•</span>
+              <span className="animate-desired-dot-3">•</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Compact Controls Overlay */}
-      {hasStarted && (
-        <div
-          className={`absolute inset-x-0 bottom-0 z-20 transition-opacity duration-300 pointer-events-auto ${
-            showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        >
-          {/* Controls background gradient */}
-          <div className="bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-8 pb-3 px-3 sm:px-4">
-            {/* Slim Timeline */}
-            <div
-              ref={timelineRef}
-              onMouseMove={handleTimelineHover}
-              onMouseLeave={handleTimelineLeave}
-              onMouseDown={handleTimelineMouseDown}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              className="group/timeline relative w-full h-1 hover:h-2.5 bg-white/20 rounded-full cursor-pointer transition-all duration-150 mb-3 flex items-center"
-            >
-              {/* Buffered Bar */}
-              <div
-                className="absolute left-0 top-0 bottom-0 bg-white/40 rounded-full pointer-events-none"
-                style={{ width: `${Math.min(100, Math.max(0, bufferedPercent))}%` }}
-              />
+      <video
+        ref={videoRef}
+        className="w-full h-full"
+        onTimeUpdate={handleTimeUpdate}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setShowPoster(true);
+        }}
+        onWaiting={() => setLoading(true)}
+        onPlaying={() => setLoading(false)}
+        onClick={togglePlay}
+        controlsList="nodownload"
+        disablePictureInPicture={false}
+      />
 
-              {/* Red Played Progress Bar */}
+      {showPoster && (
+        <div
+          className="absolute inset-0 z-30 cursor-pointer group/poster overflow-hidden bg-neutral-900"
+          onClick={async () => {
+            if (videoRef.current) {
+              try {
+                setPlayError(false);
+                const playPromise = videoRef.current.play();
+                if (playPromise !== undefined) {
+                  await playPromise;
+                }
+                setShowPoster(false);
+                setIsPlaying(true);
+              } catch (err) {
+                console.error("Playback failed:", err);
+                setPlayError(true);
+              }
+            }
+          }}
+        >
+          {thumbnailUrl && (
+            <img
+              src={thumbnailUrl}
+              alt="Video poster"
+              className="absolute inset-0 w-full h-full object-cover   ease-out group-hover/poster:scale-105"
+              referrerPolicy="no-referrer"
+            />
+          )}
+
+          <div className="absolute inset-0 flex flex-col items-center justify-center scale-95 group-hover/poster:scale-100  ">
+            <div className="w-24 h-24 bg-primary/90 text-white rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(229,9,20,0.4)]   group-hover/poster:bg-primary group-hover/poster:shadow-[0_0_60px_rgba(229,9,20,0.6)] backdrop-blur-md border border-white/20">
+              <Play className="w-12 h-12 ml-2" fill="currentColor" />
+            </div>
+            {playError && (
+              <div className="mt-6 px-6 py-2.5 bg-black/60 backdrop-blur-md text-white rounded-full font-medium border border-red-500/50  tracking-wide shadow-lg">
+                Tap to Play Again
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Controls Overlay */}
+      {!showPoster && (
+        <div
+          className={`absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/90 via-transparent to-transparent   ${showControls ? "opacity-100" : "opacity-0 cursor-none"}`}
+        >
+          <div className="p-4 sm:p-6 flex flex-col gap-3 w-full">
+            {/* Progress Bar */}
+            <div
+              ref={progressRef}
+              className="w-full h-1.5 sm:h-2 bg-neutral-600/40 rounded-full cursor-pointer group/progress relative overflow-visible hover:scale-y-125 touch-none"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerLeave}
+              onPointerCancel={handlePointerUp}
+            >
+              {/* Seek Preview */}
+              {(isDragging || isHovering) && (
+                <div
+                  className="absolute bottom-full mb-3 -translate-x-1/2 flex flex-col items-center pointer-events-none z-30"
+                  style={{
+                    left: `clamp(${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px, ${(isDragging ? dragPos : hoverPos) * 100}%, calc(100% - ${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px))`
+                  }}
+                >
+                  {previewStoryboardData && previewStoryboardUrl ? (
+                    <div className="rounded-lg overflow-hidden border border-white/20 shadow-2xl bg-black">
+                      <div style={getStoryboardStyles()} />
+                    </div>
+                  ) : null}
+                  <div className={`bg-black/80 backdrop-blur text-white text-xs font-medium px-2 py-1 rounded shadow-lg ${previewStoryboardData ? 'mt-1' : ''}`}>
+                    {formatTime((isDragging ? dragPos : hoverPos) * duration)}
+                  </div>
+                </div>
+              )}
+
+              <div className="absolute inset-0 bg-white/20 rounded-full hover:bg-white/30 " />
               <div
-                className="absolute left-0 top-0 bottom-0 bg-red-600 rounded-full pointer-events-none"
-                style={{ width: `${Math.min(100, Math.max(0, playedPercent))}%` }}
+                className="absolute top-0 left-0 h-full bg-primary rounded-full group-hover/progress:bg-red-500 "
+                style={{
+                  width: `${duration > 0 ? (isDragging ? dragPos * 100 : (currentTime / duration) * 100) : 0}%`,
+                }}
               >
-                {/* Circular Scrubber */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3.5 h-3.5 bg-red-600 rounded-full shadow-md scale-0 group-hover/timeline:scale-100 transition-transform duration-100" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] opacity-0 group-hover/progress:opacity-100 scale-50 group-hover/progress:scale-100" />
               </div>
             </div>
 
-            {/* Bottom Bar: Play/Pause, Volume, Time, Fullscreen */}
-            <div className="flex items-center justify-between">
-              {/* Left Group */}
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                {/* Play / Pause button */}
+            <div className="flex items-center justify-between mt-1 gap-2 flex-wrap">
+              <div className="flex items-center gap-4 sm:gap-6 flex-wrap sm:flex-nowrap">
                 <button
-                  type="button"
                   onClick={togglePlay}
-                  aria-label={isPlaying ? 'Pause' : 'Play'}
-                  className="p-1.5 hover:text-red-500 transition-colors focus:outline-none"
+                  className="text-white hover:text-primary   focus:outline-none active:scale-90 hover:scale-110"
                 >
                   {isPlaying ? (
-                    <Pause className="w-5 h-5 fill-current" />
+                    <Pause
+                      className="w-6 h-6 sm:w-7 sm:h-7"
+                      fill="currentColor"
+                    />
                   ) : (
-                    <Play className="w-5 h-5 fill-current" />
+                    <Play
+                      className="w-6 h-6 sm:w-7 sm:h-7"
+                      fill="currentColor"
+                    />
                   )}
                 </button>
 
-                {/* Volume & Mute */}
-                <div className="flex items-center group/volume space-x-1.5">
+                <div className="flex items-center gap-3 group/volume">
                   <button
-                    type="button"
                     onClick={toggleMute}
-                    aria-label={isMuted ? 'Unmute' : 'Mute'}
-                    className="p-1.5 hover:text-red-500 transition-colors focus:outline-none"
+                    className="text-white hover:text-primary   focus:outline-none active:scale-90 hover:scale-110"
                   >
                     {isMuted || volume === 0 ? (
-                      <VolumeX className="w-5 h-5" />
+                      <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" />
                     ) : (
-                      <Volume2 className="w-5 h-5" />
+                      <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />
                     )}
                   </button>
-
                   <input
                     type="range"
                     min="0"
@@ -607,33 +581,85 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     step="0.05"
                     value={isMuted ? 0 : volume}
                     onChange={handleVolumeChange}
-                    aria-label="Volume slider"
-                    className="w-14 sm:w-20 h-1 bg-white/30 accent-red-600 rounded-lg appearance-none cursor-pointer focus:outline-none"
+                    className="w-0 group-hover/volume:w-20 sm:group-hover/volume:w-24   opacity-0 group-hover/volume:opacity-100 accent-primary h-1.5 cursor-pointer rounded-full bg-white/20"
                   />
                 </div>
 
-                {/* Current Time / Duration */}
-                <div className="text-xs sm:text-sm font-mono text-neutral-300 select-none pl-1">
-                  <span>{formatTime(currentTime)}</span>
-                  <span className="mx-1 text-neutral-500">/</span>
-                  <span>{formatTime(duration)}</span>
+                <div className="text-white/90 text-xs sm:text-sm font-medium font-mono whitespace-nowrap tracking-wider">
+                  {formatTime(currentTime)}{" "}
+                  <span className="text-white/50 mx-1">/</span>{" "}
+                  {formatTime(duration)}
                 </div>
               </div>
 
-              {/* Right Group: Fullscreen */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-4 sm:gap-5 relative">
                 <button
-                  type="button"
+                  onClick={togglePiP}
+                  className="text-white hover:text-primary   focus:outline-none active:scale-90 hover:scale-110"
+                >
+                  <PictureInPicture className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className={`text-white hover:text-primary   focus:outline-none active:scale-90 ${showSettings ? "rotate-90" : "hover:rotate-45"}`}
+                >
+                  <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+
+                <button
                   onClick={toggleFullscreen}
-                  aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-                  className="p-1.5 hover:text-red-500 transition-colors focus:outline-none"
+                  className="text-white hover:text-primary   focus:outline-none active:scale-90 hover:scale-110"
                 >
                   {isFullscreen ? (
-                    <Minimize className="w-5 h-5" />
+                    <Minimize className="w-5 h-5 sm:w-6 sm:h-6" />
                   ) : (
-                    <Maximize className="w-5 h-5" />
+                    <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
                   )}
                 </button>
+
+                {/* Settings Menu */}
+                {showSettings && (
+                  <div className="absolute bottom-full right-0 mb-5 bg-neutral-900/90 backdrop-blur-xl border border-neutral-700/50 rounded-2xl shadow-2xl p-3 min-w-[200px] text-sm z-20 origin-bottom-right  ">
+                    <div className="mb-3">
+                      <div className="text-neutral-400 text-[10px] font-bold px-3 mb-2 uppercase tracking-widest">
+                        Playback Speed
+                      </div>
+                      {[0.5, 1, 1.5, 2].map((rate) => (
+                        <button
+                          key={rate}
+                          onClick={() => changeSpeed(rate)}
+                          className={`w-full text-left px-4 py-2 rounded-xl   font-medium ${playbackRate === rate ? "bg-primary/20 text-primary" : "text-neutral-200 hover:bg-neutral-800/80 hover:text-white"}`}
+                        >
+                          {rate === 1 ? "Normal" : `${rate}x`}
+                        </button>
+                      ))}
+                    </div>
+
+                    {hlsLevels.length > 0 && (
+                      <div className="pt-3 border-t border-neutral-800/60">
+                        <div className="text-neutral-400 text-[10px] font-bold px-3 mb-2 uppercase tracking-widest">
+                          Video Quality
+                        </div>
+                        <button
+                          onClick={() => changeQuality(-1)}
+                          className={`w-full text-left px-4 py-2 rounded-xl   font-medium ${currentLevel === -1 ? "bg-primary/20 text-primary" : "text-neutral-200 hover:bg-neutral-800/80 hover:text-white"}`}
+                        >
+                          Auto
+                        </button>
+                        {hlsLevels.map((level, index) => (
+                          <button
+                            key={index}
+                            onClick={() => changeQuality(index)}
+                            className={`w-full text-left px-4 py-2 rounded-xl   font-medium ${currentLevel === index ? "bg-primary/20 text-primary" : "text-neutral-200 hover:bg-neutral-800/80 hover:text-white"}`}
+                          >
+                            {level.height}p
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -641,6 +667,4 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       )}
     </div>
   );
-};
-
-export default VideoPlayer;
+}

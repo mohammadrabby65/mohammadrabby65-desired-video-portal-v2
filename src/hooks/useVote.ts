@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { doc, setDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { VideoPost } from '../types';
-import { safeLocalStorage } from '../lib/storage';
 
 export function useVote(video: VideoPost) {
   const [localVote, setLocalVote] = useState<'like' | 'dislike' | null>(null);
@@ -23,7 +22,7 @@ export function useVote(video: VideoPost) {
     }
     
     // Load local vote state
-    const savedVote = safeLocalStorage.getItem(`vote_${video.id}`);
+    const savedVote = localStorage.getItem(`vote_${video.id}`);
     if (savedVote === 'like' || savedVote === 'dislike') {
       setLocalVote(savedVote);
     }
@@ -44,7 +43,7 @@ export function useVote(video: VideoPost) {
       if (type === 'like') newLikeCount--;
       if (type === 'dislike') newDislikeCount--;
       setLocalVote(null);
-      safeLocalStorage.removeItem(`vote_${video.id}`);
+      localStorage.removeItem(`vote_${video.id}`);
     } else {
       // Changing vote or new vote
       updates[`${type}Count`] = increment(1);
@@ -58,7 +57,7 @@ export function useVote(video: VideoPost) {
       }
       
       setLocalVote(type);
-      safeLocalStorage.setItem(`vote_${video.id}`, type);
+      localStorage.setItem(`vote_${video.id}`, type);
     }
 
     // Optimistic update
@@ -72,7 +71,7 @@ export function useVote(video: VideoPost) {
       // Revert optimism if failed (optional, but good practice)
       setLikeCount(video.likeCount || 0);
       setDislikeCount(video.dislikeCount || 0);
-      setLocalVote(safeLocalStorage.getItem(`vote_${video.id}`) as any || null);
+      setLocalVote(localStorage.getItem(`vote_${video.id}`) as any || null);
     }
   };
 

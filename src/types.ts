@@ -31,8 +31,6 @@ export interface VideoPost {
   previewStatus?: "Pending" | "Processing" | "Ready" | "Failed";
 }
 
-export type Video = VideoPost;
-
 export interface Category {
   id: string;
   name: string;

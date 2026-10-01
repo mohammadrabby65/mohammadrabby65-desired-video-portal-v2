@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, deleteDoc, getCountFromServer, increment, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, increment, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
 import fs from "fs";
 
@@ -15,62 +15,6 @@ import { db } from "./src/lib/firebase";
 
 export const app = express();
 
-// Disable X-Powered-By header to prevent technology stack fingerprinting
-app.disable("x-powered-by");
-
-// Enforce Canonical Domain & 1-Hop Redirects (Apex -> WWW, HTTP -> HTTPS)
-app.use((req, res, next) => {
-  const host = (req.headers.host || "").toLowerCase();
-  const proto = (req.headers["x-forwarded-proto"] || "").toString().toLowerCase();
-
-  // Redirect naked apex domain or insecure HTTP directly to canonical HTTPS www domain in 1 single 301 hop
-  if (host === "desiredhub.xyz" || (host === "www.desiredhub.xyz" && proto === "http")) {
-    return res.redirect(301, `https://www.desiredhub.xyz${req.originalUrl}`);
-  }
-  next();
-});
-
-// Strict Defensive HTTP Security Headers
-app.use((req, res, next) => {
-  const host = (req.headers.host || "").toLowerCase();
-  const isProductionDomain = host === "desiredhub.xyz" || host === "www.desiredhub.xyz";
-
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-
-  // Only set X-Frame-Options: SAMEORIGIN on the production custom domain.
-  // In the AI Studio / Cloud Run preview environment, the app is embedded in an iframe.
-  if (isProductionDomain) {
-    res.setHeader("X-Frame-Options", "SAMEORIGIN");
-  }
-
-  // Narrow, legitimate Content Security Policy
-  // Allows legitimate resources: Google Tag Manager, Firebase App Check / reCAPTCHA, and Vite HMR in dev.
-  // Completely blocks untrusted third-party ad networks and popunders.
-  const frameAncestors = isProductionDomain
-    ? "'self'"
-    : "'self' https://*.google.com https://*.googleusercontent.com https://*.run.app";
-
-  const cspDirectives = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://predestineheadypleasure.com",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https:",
-    "media-src 'self' blob: https:",
-    "frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
-    "connect-src 'self' blob: ws: wss: https: https://*.googleapis.com https://*.firebaseio.com https://*.google-analytics.com https://www.googletagmanager.com https://www.google.com/recaptcha/",
-    "font-src 'self' data:",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    `frame-ancestors ${frameAncestors}`
-  ];
-
-  res.setHeader("Content-Security-Policy", cspDirectives.join("; "));
-  next();
-});
-
 
 let publicDataSnapshot: {
   posts: any[];
@@ -81,23 +25,6 @@ let publicDataSnapshot: {
   categories: [],
   lastUpdated: 0
 };
-
-try {
-  const localSnapshotPath = path.resolve(process.cwd(), "data-snapshot.json");
-  if (fs.existsSync(localSnapshotPath)) {
-    const raw = JSON.parse(fs.readFileSync(localSnapshotPath, "utf-8"));
-    if (raw && Array.isArray(raw.posts) && raw.posts.length > 0) {
-      publicDataSnapshot = {
-        posts: raw.posts,
-        categories: raw.categories || [],
-        lastUpdated: raw.lastUpdated || Date.now()
-      };
-      console.log(`Loaded initial snapshot from data-snapshot.json: ${publicDataSnapshot.posts.length} posts, ${publicDataSnapshot.categories.length} categories`);
-    }
-  }
-} catch (e) {
-  // Ignore local snapshot load errors
-}
 
 function escapeXml(unsafe: string) {
   return unsafe.replace(/[<>&'"]/g, (c) => {
@@ -110,13 +37,6 @@ function escapeXml(unsafe: string) {
       default: return c;
     }
   });
-}
-
-function normalizeCategory(value: any): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-");
 }
 
 
@@ -167,53 +87,12 @@ async function generateSnapshot() {
       categories,
       lastUpdated: Date.now()
     };
-    try {
-      fs.writeFileSync(path.resolve(process.cwd(), "data-snapshot.json"), JSON.stringify(publicDataSnapshot));
-    } catch (e) {
-      // Ignore write errors in read-only environments
-    }
     
     console.log(`Snapshot generated. Posts: ${posts.length}, Categories: ${categories.length}`);
   } catch (err) {
     console.error("Error generating snapshot:", err);
     throw err;
   }
-}
-
-let adSettingsCache: {
-  popunderEnabled: boolean;
-  socialBarEnabled: boolean;
-  nativeBannerEnabled: boolean;
-  lastUpdated: number;
-} = {
-  popunderEnabled: true,
-  socialBarEnabled: true,
-  nativeBannerEnabled: false,
-  lastUpdated: 0,
-};
-
-async function getAdSettings() {
-  const now = Date.now();
-  if (adSettingsCache.lastUpdated > 0 && now - adSettingsCache.lastUpdated < 30 * 1000) {
-    return adSettingsCache;
-  }
-  try {
-    const snap = await getDoc(doc(db, "settings", "advertisements"));
-    if (snap.exists()) {
-      const data = snap.data();
-      adSettingsCache = {
-        popunderEnabled: Boolean(data?.popunderEnabled),
-        socialBarEnabled: Boolean(data?.socialBarEnabled),
-        nativeBannerEnabled: Boolean(data?.nativeBannerEnabled),
-        lastUpdated: now,
-      };
-    } else {
-      adSettingsCache.lastUpdated = now;
-    }
-  } catch (err) {
-    console.error("Error fetching ads settings in server:", err);
-  }
-  return adSettingsCache;
 }
 
 ensureSnapshot();
@@ -225,36 +104,6 @@ async function startServer() {
   
   app.use(express.json());
 
-  // Normalize Vercel serverless request URL from headers
-  app.use((req, res, next) => {
-    const matched = (req.headers['x-matched-path'] || req.headers['x-forwarded-uri'] || req.headers['x-invoke-path']) as string;
-    if (matched && typeof matched === 'string') {
-      if (req.url === '/api/server' || req.url.startsWith('/api/server?')) {
-        const qIdx = req.url.indexOf('?');
-        const queryString = qIdx !== -1 ? req.url.slice(qIdx) : '';
-        req.url = matched + (matched.includes('?') ? '' : queryString);
-      }
-    } else if (req.url === '/api/server' || req.url === '/api/server/') {
-      req.url = '/';
-    }
-    next();
-  });
-
-
-  app.get("/api/settings/ads", async (req, res) => {
-    try {
-      const settings = await getAdSettings();
-      res.setHeader("Cache-Control", "public, max-age=10, stale-while-revalidate=30");
-      return res.json({
-        popunderEnabled: settings.popunderEnabled,
-        socialBarEnabled: settings.socialBarEnabled,
-        nativeBannerEnabled: settings.nativeBannerEnabled,
-      });
-    } catch (err) {
-      console.error("Error in /api/settings/ads:", err);
-      return res.status(500).json({ error: "Failed to fetch ad settings" });
-    }
-  });
 
   app.get("/api/admin/snapshot/status", (req, res) => {
     try {
@@ -284,151 +133,6 @@ async function startServer() {
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message || 'Failed to generate snapshot' });
     }
-  });
-
-  async function verifyAdminAuth(req: express.Request): Promise<{ authorized: boolean; error?: string; status?: number; idToken?: string }> {
-    const authHeader = req.headers.authorization;
-    const adminKeyHeader = req.headers["x-admin-key"];
-
-    // 1. Check internal server secret key (for server/CLI scripts)
-    if (adminKeyHeader && adminKeyHeader === SECRET_KEY) {
-      return { authorized: true };
-    }
-    if (authHeader && authHeader === `Bearer ${SECRET_KEY}`) {
-      return { authorized: true };
-    }
-
-    // 2. Check Firebase ID Token (for browser admin sessions)
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.slice(7).trim();
-      if (!token) {
-        return { authorized: false, error: "Empty authorization token", status: 401 };
-      }
-
-      try {
-        const apiKey = "AIzaSyDbWSqCXSftREI7Kby3kHvL2vbYwHVKBp4";
-        const lookupRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken: token })
-        });
-
-        if (!lookupRes.ok) {
-          return { authorized: false, error: "Unauthorized: Invalid or expired admin token", status: 401 };
-        }
-
-        const lookupData = await lookupRes.json();
-        if (lookupData.users && lookupData.users.length > 0) {
-          return { authorized: true, idToken: token };
-        }
-        return { authorized: false, error: "Unauthorized: User not found", status: 401 };
-      } catch (e: any) {
-        return { authorized: false, error: "Authentication verification failed: " + (e.message || String(e)), status: 500 };
-      }
-    }
-
-    return { authorized: false, error: "Unauthorized: Missing authorization credentials", status: 401 };
-  }
-
-  // Unified Admin Video Deletion Endpoint
-  app.delete("/api/admin/posts/:id", async (req, res) => {
-    const { id } = req.params;
-    if (!id || typeof id !== "string" || id.trim() === "") {
-      return res.status(400).json({ success: false, error: "BAD_REQUEST", message: "Missing or invalid post ID" });
-    }
-
-    const authResult = await verifyAdminAuth(req);
-    if (!authResult.authorized) {
-      return res.status(authResult.status || 401).json({
-        success: false,
-        error: "UNAUTHORIZED",
-        message: authResult.error || "Unauthorized request"
-      });
-    }
-
-    const targetId = id.trim();
-    let firestoreDeleted = false;
-    let firestoreAlreadyAbsent = false;
-
-    // 1. Attempt Firestore document deletion
-    try {
-      const projectId = "gen-lang-client-0637384010";
-      const databaseId = "ai-studio-4bafc186-e88d-4ed0-9fe5-bcbfd53ab7e2";
-      const headers: Record<string, string> = {};
-      if (authResult.idToken) {
-        headers["Authorization"] = `Bearer ${authResult.idToken}`;
-      }
-
-      const fsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/posts/${targetId}`;
-      const fsRes = await fetch(fsUrl, {
-        method: "DELETE",
-        headers
-      });
-
-      if (fsRes.ok || fsRes.status === 204) {
-        firestoreDeleted = true;
-      } else if (fsRes.status === 404) {
-        firestoreAlreadyAbsent = true;
-      } else {
-        // Fallback check if doc exists or deleteDoc via client SDK
-        try {
-          const docSnap = await getDoc(doc(db, "posts", targetId));
-          if (!docSnap.exists()) {
-            firestoreAlreadyAbsent = true;
-          } else {
-            await deleteDoc(doc(db, "posts", targetId));
-            firestoreDeleted = true;
-          }
-        } catch (sdkErr: any) {
-          console.warn(`Firestore SDK delete attempt for ${targetId}:`, sdkErr.message);
-        }
-      }
-    } catch (fsErr: any) {
-      console.warn(`Firestore deletion error for ${targetId}:`, fsErr.message);
-    }
-
-    // 2. Remove from in-memory publicDataSnapshot.posts and persist to data-snapshot.json
-    let snapshotRemoved = false;
-    const initialCount = publicDataSnapshot.posts.length;
-    const filteredPosts = publicDataSnapshot.posts.filter((post: any) => post.id !== targetId);
-
-    if (filteredPosts.length < initialCount) {
-      snapshotRemoved = true;
-      publicDataSnapshot.posts = filteredPosts;
-      publicDataSnapshot.lastUpdated = Date.now();
-
-      try {
-        const localSnapshotPath = path.resolve(process.cwd(), "data-snapshot.json");
-        fs.writeFileSync(localSnapshotPath, JSON.stringify(publicDataSnapshot, null, 2), "utf-8");
-      } catch (writeErr) {
-        console.error("Failed to persist updated snapshot to disk:", writeErr);
-      }
-    }
-
-    // 3. Evaluate results: if not found in Firestore AND not found in snapshot -> 404
-    if (!firestoreDeleted && firestoreAlreadyAbsent && !snapshotRemoved) {
-      return res.status(404).json({
-        success: false,
-        error: "NOT_FOUND",
-        message: `Video with ID ${targetId} was not found in Firestore or snapshot`
-      });
-    }
-
-    return res.json({
-      success: true,
-      id: targetId,
-      firestore: {
-        deleted: firestoreDeleted,
-        alreadyAbsent: firestoreAlreadyAbsent
-      },
-      snapshot: {
-        removed: snapshotRemoved,
-        remainingPosts: publicDataSnapshot.posts.length
-      },
-      message: snapshotRemoved || firestoreDeleted
-        ? "Video successfully removed"
-        : "Video already absent"
-    });
   });
 
 
@@ -694,11 +398,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
            });
         }
       } else if (category && category !== 'All') {
-        const targetNorm = normalizeCategory(category);
-        filtered = filtered.filter(v => {
-          const list = [...(v.categories || []), v.category].filter(Boolean);
-          return list.some((c: any) => normalizeCategory(c) === targetNorm);
-        });
+         filtered = filtered.filter(v => v.categories && v.categories.includes(category));
       } else if (tag) {
          filtered = filtered.filter(v => v.tags && v.tags.includes(tag));
       }
@@ -959,104 +659,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     return duration;
   }
 
-  function getAdjacentVideos(pubAtMs: number) {
-    let prev: any = null;
-    let next: any = null;
-    const active = publicDataSnapshot.posts.filter((v: any) => v.isActive !== false && v.slug && v._publishedAtMs);
-    const older = active.filter((v: any) => v._publishedAtMs < pubAtMs);
-    if (older.length > 0) prev = older[0];
-    const newer = active.filter((v: any) => v._publishedAtMs > pubAtMs);
-    if (newer.length > 0) next = newer[newer.length - 1];
-    return { prev, next };
-  }
-
-  function getRelatedVideos(videoId: string, categories: string[] = [], tags: string[] = [], currentTitle: string = "", limitCount: number = 6) {
-    const titleKeywords = currentTitle 
-      ? currentTitle.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3)
-      : [];
-
-    let scoredVideos = publicDataSnapshot.posts
-      .filter((v: any) => v.id !== videoId && v.isActive !== false && v.slug)
-      .map((v: any) => {
-        let score = 0;
-        if (categories.length > 0) {
-          const postCats = [...(v.categories || []), v.category].filter(Boolean).map(normalizeCategory);
-          const targetCats = categories.map(normalizeCategory);
-          if (postCats.some((c: string) => targetCats.includes(c))) score += 5;
-        }
-        if (v.tags && tags.length > 0) {
-          v.tags.forEach((t: string) => {
-            if (tags.includes(t)) score += 3;
-          });
-        }
-        if (v.title && titleKeywords.length > 0) {
-          const vTitle = v.title.toLowerCase();
-          titleKeywords.forEach((kw: string) => {
-            if (vTitle.includes(kw)) score += 2;
-          });
-        }
-        const publishedAtMs = v._publishedAtMs || (v.publishedAt?.seconds ? v.publishedAt.seconds * 1000 : 0);
-        const ageDays = (Date.now() - publishedAtMs) / (1000 * 60 * 60 * 24);
-        if (ageDays >= 0 && ageDays < 30) score += 1;
-        return { video: v, score };
-      });
-
-    scoredVideos.sort((a: any, b: any) => {
-      if (b.score !== a.score) return b.score - a.score;
-      const aPub = a.video._publishedAtMs || (a.video.publishedAt?.seconds || 0) * 1000;
-      const bPub = b.video._publishedAtMs || (b.video.publishedAt?.seconds || 0) * 1000;
-      return bPub - aPub;
-    });
-
-    return scoredVideos.slice(0, limitCount).map((s: any) => s.video);
-  }
-
-  function renderVideoCardHtml(post: any) {
-    const categoryName = (post.categories && post.categories[0]) || post.category;
-    const categorySlug = categoryName ? categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "") : null;
-    
-    let postIsoDate = "";
-    let formattedDate = "";
-    if (post.publishedAt) {
-      if (typeof post.publishedAt.toDate === "function") {
-        postIsoDate = post.publishedAt.toDate().toISOString();
-      } else if (post.publishedAt.seconds) {
-        postIsoDate = new Date(post.publishedAt.seconds * 1000).toISOString();
-      } else {
-        postIsoDate = new Date(post.publishedAt).toISOString();
-      }
-      try {
-        formattedDate = new Date(postIsoDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-      } catch (e) {}
-    }
-
-    const thumbUrl = post.thumbnailUrl ? escapeHtml(post.thumbnailUrl) : "";
-    const titleText = escapeHtml(post.title || "Video");
-
-    return `
-      <article style="background: #171717; border: 1px solid #262626; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
-        ${thumbUrl ? `
-          <figure style="margin: 0; aspect-ratio: 16/9; background: #0f0f0f; overflow: hidden; position: relative;">
-            <a href="/video/${post.slug}" style="display: block; width: 100%; height: 100%;">
-              <img src="${thumbUrl}" alt="${titleText}" width="320" height="180" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;" />
-            </a>
-            ${post.duration ? `<span style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.85); color: #ffffff; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${escapeHtml(post.duration)}</span>` : ''}
-          </figure>
-        ` : ''}
-        <div style="padding: 12px 14px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-          <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 500; line-height: 1.4;">
-            <a href="/video/${post.slug}" style="color: #ffffff; text-decoration: none;">${titleText}</a>
-          </h3>
-          <div style="font-size: 12px; color: #737373; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-            ${categoryName && categorySlug ? `<a href="/category/${categorySlug}" style="color: #ef4444; text-decoration: none; font-weight: 500;">${escapeHtml(categoryName)}</a>` : ''}
-            ${post.views ? `<span>&bull; ${post.views} views</span>` : ''}
-            ${formattedDate ? `<span>&bull; <time datetime="${postIsoDate}">${formattedDate}</time></span>` : ''}
-            ${post.quality ? `<span style="background: #262626; color: #a3a3a3; padding: 1px 4px; border-radius: 4px; font-size: 11px;">${escapeHtml(post.quality)}</span>` : ''}
-          </div>
-        </div>
-      </article>
-    `.trim();
-  }
 
   app.get("/api/video/:slug", async (req, res) => {
     try {
@@ -1075,23 +677,8 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
-  function cleanPublicMetadataText(text: string): string {
-    if (!text) return "";
-    return text
-      .replace(/\b(viral\s+mms|leaked\s+mms|mms\s+leak|mms\s+video|sex\s+mms)\b/gi, "video")
-      .replace(/\b(mms)\b/gi, "clip")
-      .replace(/\b(secretly\s+recorded)\b/gi, "private")
-      .replace(/\b(leaked\s+video)\b/gi, "video")
-      .replace(/\b(leaked|leak|leaks)\b/gi, "exclusive")
-      .replace(/\b(stolen)\b/gi, "personal")
-      .replace(/\b(scandal)\b/gi, "episode")
-      .replace(/\s+/g, " ")
-      .replace(/\s+([,\.!\?:])/g, "$1")
-      .trim();
-  }
-
   function formatSeo(titleInput: string, descInput: string, currentUrl: string) {
-    let title = cleanPublicMetadataText(titleInput).trim();
+    let title = titleInput.trim();
     if (title.length > 69) {
       if (title.includes(" - DesiredHub")) {
         const prefix = title.replace(" - DesiredHub", "");
@@ -1102,7 +689,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
     }
 
-    let desc = cleanPublicMetadataText(descInput).replace(/\s+/g, " ").trim();
+    let desc = descInput.replace(/\s+/g, " ").trim();
     if (desc.length < 120) {
       desc += " Discover more exciting Indian sex videos and enjoy high quality streaming on DesiredHub.";
       if (desc.length > 160) {
@@ -1122,31 +709,14 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     };
   }
 
-  function getTemplate() {
-    if (process.env.NODE_ENV !== "production") {
-      return fs.readFileSync(
-        path.resolve(process.cwd(), "index.html"),
-        "utf-8"
-      );
-    }
-
-    const appHtmlPath = path.resolve(process.cwd(), "dist/app.html");
-
-    if (fs.existsSync(appHtmlPath)) {
-      return fs.readFileSync(appHtmlPath, "utf-8");
-    }
-
-    return fs.readFileSync(
-      path.resolve(process.cwd(), "dist/index.html"),
-      "utf-8"
-    );
-  }
-
   async function renderSeoPage(req: any, res: any, next: any, rawTitle: string, rawDesc: string, canonicalUrl: string, extraTags: string = "", extraHtmlReplace?: (html: string) => string) {
     try {
-      let template = getTemplate();
+      let template = "";
       if (process.env.NODE_ENV !== "production") {
+        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
+      } else {
+        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
 
       const seo = formatSeo(rawTitle, rawDesc, canonicalUrl);
@@ -1233,290 +803,12 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     }
   });
 
-  app.get(["/", "/api/server"], async (req, res, next) => {
-    try {
-      await ensureSnapshot();
-      const activePosts = publicDataSnapshot.posts.filter((p: any) => p.isActive !== false && p.slug);
-      const activeCats = publicDataSnapshot.categories.filter((c: any) => c.isActive !== false && c.slug);
-      
-      // Featured and Trending collections if existing flags exist
-      const featuredVideos = activePosts.filter((p: any) => p.featured).slice(0, 6);
-      const trendingVideos = activePosts.filter((p: any) => p.trending && !featuredVideos.some((f: any) => f.slug === p.slug)).slice(0, 6);
-
-      // Latest 36 videos
-      const latestVideos = activePosts.slice(0, 36);
-      
-      // Popular 12 videos (excluding ones already in latest to maximize unique crawlable internal links)
-      const popularVideos = [...activePosts]
-        .sort((a, b) => (b.views || 0) - (a.views || 0))
-        .filter((p: any) => !latestVideos.some((lv: any) => lv.slug === p.slug))
-        .slice(0, 12);
-
-      // Discovery routes
-      const discoveryLinksHtml = `
-        <nav aria-label="Quick Discovery" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1.5rem;">
-          <a href="/categories" style="color: #ffffff; background: #262626; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;">All Categories</a>
-          <a href="/category/trending" style="color: #ef4444; background: #1c1917; border: 1px solid #78350f; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;">Trending Videos</a>
-          <a href="/category/popular" style="color: #f59e0b; background: #1c1917; border: 1px solid #78350f; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;">Popular Videos</a>
-          <a href="/category/latest" style="color: #38bdf8; background: #082f49; border: 1px solid #0369a1; padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;">Latest Releases</a>
-        </nav>
-      `.trim();
-
-      // Categories pills with counts
-      const categoryLinksHtml = activeCats.map((cat: any) => {
-        const targetNorm = normalizeCategory(cat.slug);
-        const catCount = activePosts.filter((p: any) => {
-          const list = [...(p.categories || []), p.category].filter(Boolean);
-          return list.some((c: any) => normalizeCategory(c) === targetNorm);
-        }).length;
-        return `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/category/${cat.slug}" style="color: #d4d4d4; text-decoration: none; background: #1f1f1f; padding: 6px 14px; border-radius: 9999px; font-size: 13px; display: inline-block; border: 1px solid #2e2e2e;">${escapeHtml(cat.name)} (${catCount})</a></li>`;
-      }).join("") + `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/categories" style="color: #ef4444; text-decoration: none; background: #1f1f1f; padding: 6px 14px; border-radius: 9999px; font-size: 13px; display: inline-block; border: 1px solid #ef4444;">Browse All Categories &rarr;</a></li>`;
-
-      // Popular tags in memory
-      const tagCounts: Record<string, number> = {};
-      activePosts.forEach((p: any) => {
-        if (Array.isArray(p.tags)) {
-          p.tags.forEach((t: string) => {
-            const clean = t.trim();
-            if (clean) tagCounts[clean] = (tagCounts[clean] || 0) + 1;
-          });
-        }
-      });
-      const topTags = Object.entries(tagCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 16)
-        .map(([name, count]) => ({
-          name,
-          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
-          count
-        }));
-
-      const tagsLinksHtml = topTags.map(t => 
-        `<li style="display: inline-block; margin: 0 6px 6px 0;"><a href="/tag/${t.slug}" style="color: #a3a3a3; text-decoration: none; background: #141414; padding: 4px 10px; border-radius: 4px; font-size: 12px; display: inline-block; border: 1px solid #262626;">#${escapeHtml(t.name)} (${t.count})</a></li>`
-      ).join("");
-
-      const latestVideosHtml = latestVideos.map(renderVideoCardHtml).join("");
-      const popularVideosHtml = popularVideos.map(renderVideoCardHtml).join("");
-      const featuredVideosHtml = featuredVideos.map(renderVideoCardHtml).join("");
-      const trendingVideosHtml = trendingVideos.map(renderVideoCardHtml).join("");
-
-      const rootContent = `
-        <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          <header style="margin-bottom: 2rem;">
-            <h1 style="color: #ffffff; font-size: 1.75rem; font-weight: 700; line-height: 1.2; margin: 0 0 1rem 0;">DesiredHub - Free Desi Porn &amp; Hot Indian Sex Videos Online</h1>
-            ${discoveryLinksHtml}
-            <nav aria-label="Categories" style="margin-bottom: 1.5rem;">
-              <h2 style="font-size: 0.9rem; font-weight: 600; color: #737373; text-transform: uppercase; margin: 0 0 0.5rem 0; letter-spacing: 0.05em;">Categories</h2>
-              <ul style="list-style: none; padding: 0; margin: 0;">
-                ${categoryLinksHtml}
-              </ul>
-            </nav>
-            ${topTags.length > 0 ? `
-              <nav aria-label="Popular Tags" style="margin-bottom: 1.5rem;">
-                <h2 style="font-size: 0.9rem; font-weight: 600; color: #737373; text-transform: uppercase; margin: 0 0 0.5rem 0; letter-spacing: 0.05em;">Popular Tags</h2>
-                <ul style="list-style: none; padding: 0; margin: 0;">
-                  ${tagsLinksHtml}
-                </ul>
-              </nav>
-            ` : ''}
-          </header>
-          <main>
-            ${featuredVideos.length > 0 ? `
-              <section style="margin-bottom: 2.5rem;">
-                <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Featured Videos</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                  ${featuredVideosHtml}
-                </div>
-              </section>
-            ` : ''}
-            ${trendingVideos.length > 0 ? `
-              <section style="margin-bottom: 2.5rem;">
-                <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Trending Videos</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                  ${trendingVideosHtml}
-                </div>
-              </section>
-            ` : ''}
-            <section style="margin-bottom: 2.5rem;">
-              <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Latest Videos</h2>
-              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                ${latestVideosHtml}
-              </div>
-            </section>
-            ${popularVideos.length > 0 ? `
-              <section style="margin-bottom: 2.5rem;">
-                <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Popular Videos</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-                  ${popularVideosHtml}
-                </div>
-              </section>
-            ` : ''}
-          </main>
-        </div>
-      `.trim();
-
-      const allHomepageVideos = [...featuredVideos, ...trendingVideos, ...latestVideos, ...popularVideos];
-      // Deduplicate for schema
-      const uniqueHomepageVideos = allHomepageVideos.filter((v, i, a) => a.findIndex(t => t.slug === v.slug) === i);
-
-      const webSiteJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "DesiredHub",
-        "url": SITE_URL,
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": `${SITE_URL}/search?q={search_term_string}`,
-          "query-input": "required name=search_term_string"
-        }
-      };
-
-      const orgJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "DesiredHub",
-        "url": SITE_URL,
-        "logo": {
-          "@type": "ImageObject",
-          "url": `${SITE_URL}/favicon-32x32.png`
-        }
-      };
-
-      const itemListJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        "name": "Latest Indian Adult Videos",
-        "numberOfItems": uniqueHomepageVideos.length,
-        "itemListElement": uniqueHomepageVideos.map((post: any, idx: number) => ({
-          "@type": "ListItem",
-          "position": idx + 1,
-          "name": post.title,
-          "url": `${SITE_URL}/video/${post.slug}`
-        }))
-      };
-
-      const extraTags = `<script data-rh="true" type="application/ld+json">${JSON.stringify([webSiteJsonLd, orgJsonLd, itemListJsonLd])}</script>`;
-
-      renderSeoPage(
-        req, 
-        res, 
-        next, 
-        "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online", 
-        "Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality.", 
-        `${SITE_URL}/`,
-        extraTags,
-        (html) => html.replace('<div id="root"></div>', `<div id="root">${rootContent}</div>`)
-      );
-    } catch (e) {
-      console.error("Home SEO error:", e);
-      next();
-    }
+  app.get("/", (req, res, next) => {
+    renderSeoPage(req, res, next, "DesiredHub - Free Desi Porn & Hot Indian Sex Videos Online", "Watch free desi porn and hot Indian sex videos online at DesiredHub. Enjoy horny bhabhis, gorgeous desi girls, and raw adult entertainment in high quality.", `${SITE_URL}/`);
   });
 
-  app.get("/categories", async (req, res, next) => {
-    try {
-      await ensureSnapshot();
-      const activePosts = publicDataSnapshot.posts.filter((p: any) => p.isActive !== false && p.slug);
-      const activeCats = publicDataSnapshot.categories.filter((c: any) => c.isActive !== false && c.slug);
-      
-      const catCardsHtml = activeCats.map((cat: any) => {
-        const targetNorm = normalizeCategory(cat.slug);
-        const catVideos = activePosts.filter((p: any) => {
-          const list = [...(p.categories || []), p.category].filter(Boolean);
-          return list.some((c: any) => normalizeCategory(c) === targetNorm);
-        });
-        const top3 = catVideos.slice(0, 3);
-        return `
-          <article style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
-                <h2 style="font-size: 1.15rem; font-weight: 600; margin: 0;">
-                  <a href="/category/${cat.slug}" style="color: #ffffff; text-decoration: none;">${escapeHtml(cat.name)}</a>
-                </h2>
-                <span style="font-size: 13px; color: #ef4444; font-weight: 600;">${catVideos.length} videos</span>
-              </div>
-              ${cat.seoDescription ? `<p style="font-size: 13px; color: #a3a3a3; margin: 0 0 12px 0; line-height: 1.4;">${escapeHtml(cat.seoDescription)}</p>` : ''}
-            </div>
-            ${top3.length > 0 ? `
-              <div style="border-top: 1px solid #262626; padding-top: 10px; margin-top: 10px;">
-                <span style="font-size: 11px; text-transform: uppercase; color: #737373; font-weight: 600; letter-spacing: 0.05em; display: block; margin-bottom: 6px;">Featured in this category:</span>
-                <ul style="list-style: none; padding: 0; margin: 0;">
-                  ${top3.map((v: any) => `
-                    <li style="margin: 4px 0;">
-                      <a href="/video/${v.slug}" style="color: #d4d4d4; text-decoration: none; font-size: 13px; display: block; line-height: 1.3;">&bull; ${escapeHtml(v.title)}</a>
-                    </li>
-                  `).join("")}
-                </ul>
-              </div>
-            ` : ''}
-          </article>
-        `.trim();
-      }).join("");
-
-      const categoriesRootHtml = `
-        <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          <nav aria-label="Breadcrumb" style="margin-bottom: 1rem; font-size: 0.875rem; color: #737373;">
-            <a href="/" style="color: #a3a3a3; text-decoration: none;">Home</a>
-            <span> / Categories</span>
-          </nav>
-          <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem 0;">All Categories</h1>
-          <p style="color: #a3a3a3; font-size: 0.95rem; margin: 0 0 1.5rem 0;">Browse our complete collection of ${activeCats.length} adult video categories.</p>
-          <section>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-              ${catCardsHtml}
-            </div>
-          </section>
-        </div>
-      `.trim();
-
-      const breadcrumbsJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Home",
-            "item": SITE_URL
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Categories",
-            "item": `${SITE_URL}/categories`
-          }
-        ]
-      };
-
-      const itemListJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        "name": "Adult Video Categories",
-        "numberOfItems": activeCats.length,
-        "itemListElement": activeCats.map((cat: any, idx: number) => ({
-          "@type": "ListItem",
-          "position": idx + 1,
-          "name": cat.name,
-          "url": `${SITE_URL}/category/${cat.slug}`
-        }))
-      };
-
-      const extraTags = `<script data-rh="true" type="application/ld+json">${JSON.stringify([breadcrumbsJsonLd, itemListJsonLd])}</script>`;
-
-      renderSeoPage(
-        req, 
-        res, 
-        next, 
-        "All Categories - DesiredHub", 
-        "Browse all video categories on DesiredHub. Find your favorite desi porn, horny bhabhis, Indian sex videos, and adult content streamed in high quality.", 
-        `${SITE_URL}/categories`,
-        extraTags,
-        (html) => html.replace('<div id="root"></div>', `<div id="root">${categoriesRootHtml}</div>`)
-      );
-    } catch (e) {
-      console.error("Categories SEO error:", e);
-      next();
-    }
+  app.get("/categories", (req, res, next) => {
+    renderSeoPage(req, res, next, "All Categories - DesiredHub", "Browse all video categories on DesiredHub. Find your favorite desi porn, horny bhabhis, Indian sex videos, and adult content streamed in high quality.", `${SITE_URL}/categories`);
   });
 
   app.get("/dmca", (req, res, next) => {
@@ -1531,89 +823,10 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     renderSeoPage(req, res, next, "Privacy Policy - DesiredHub", "Read the privacy policy for DesiredHub to understand how we collect, use, and protect your personal information while browsing adult content.", `${SITE_URL}/privacy-policy`);
   });
 
-  app.get("/tag/:slug", async (req, res, next) => {
-    try {
-      await ensureSnapshot();
-      const slug = req.params.slug;
-      const tagTitle = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      const tagSlugNormalized = slug.toLowerCase().replace(/-/g, ' ');
-
-      const tagVideos = publicDataSnapshot.posts.filter((v: any) => {
-        if (v.isActive === false || !v.slug) return false;
-        return v.tags && v.tags.some((t: string) => 
-          t.toLowerCase() === tagSlugNormalized || 
-          t.toLowerCase().replace(/[^a-z0-9]+/g, '-') === slug
-        );
-      });
-
-      // Render up to 100 tag videos so all matching videos are crawlable through normal HTML links
-      const displayVideos = tagVideos.slice(0, 100);
-      const tagVideosHtml = displayVideos.map(renderVideoCardHtml).join("");
-
-      const tagRootHtml = `
-        <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          <nav aria-label="Breadcrumb" style="margin-bottom: 1rem; font-size: 0.875rem; color: #737373;">
-            <a href="/" style="color: #a3a3a3; text-decoration: none;">Home</a>
-            <span> / #${escapeHtml(tagTitle)}</span>
-          </nav>
-          <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem 0;">#${escapeHtml(tagTitle)} Videos</h1>
-          <p style="color: #a3a3a3; margin: 0 0 1.5rem 0; font-size: 0.95rem;">${tagVideos.length} videos tagged with #${escapeHtml(tagTitle)}</p>
-          <section>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-              ${tagVideosHtml}
-            </div>
-          </section>
-        </div>
-      `.trim();
-
-      const breadcrumbsJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Home",
-            "item": SITE_URL
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": `#${tagTitle}`,
-            "item": `${SITE_URL}/tag/${slug}`
-          }
-        ]
-      };
-
-      const itemListJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        "name": `#${tagTitle} Videos`,
-        "numberOfItems": displayVideos.length,
-        "itemListElement": displayVideos.map((post: any, idx: number) => ({
-          "@type": "ListItem",
-          "position": idx + 1,
-          "name": post.title,
-          "url": `${SITE_URL}/video/${post.slug}`
-        }))
-      };
-
-      const extraTags = `<script data-rh="true" type="application/ld+json">${JSON.stringify([breadcrumbsJsonLd, itemListJsonLd])}</script>`;
-
-      renderSeoPage(
-        req, 
-        res, 
-        next, 
-        `${tagTitle} Videos - DesiredHub`, 
-        `Explore free desi porn and hot Indian sex videos tagged with ${tagTitle} on DesiredHub. Enjoy high quality streaming adult entertainment.`, 
-        `${SITE_URL}/tag/${slug}`,
-        extraTags,
-        (html) => html.replace('<div id="root"></div>', `<div id="root">${tagRootHtml}</div>`)
-      );
-    } catch (e) {
-      console.error("Tag SEO error:", e);
-      next();
-    }
+  app.get("/tag/:slug", (req, res, next) => {
+    const slug = req.params.slug;
+    const tagTitle = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    renderSeoPage(req, res, next, `${tagTitle} Videos - DesiredHub`, `Explore free desi porn and hot Indian sex videos tagged with ${tagTitle} on DesiredHub. Enjoy high quality streaming adult entertainment.`, `${SITE_URL}/tag/${slug}`);
   });
 
   app.get("/search", (req, res, next) => {
@@ -1626,25 +839,25 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
   app.get("/category/:slug", async (req, res, next) => {
     try {
       await ensureSnapshot();
-      let template = getTemplate();
+      let template = "";
       if (process.env.NODE_ENV !== "production") {
+        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
+      } else {
+        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
       
       const slug = req.params.slug;
-      const targetNorm = normalizeCategory(slug);
       
       const defaultCats = ["trending", "latest", "popular"];
       let categoryName = "";
       let categoryDesc = "";
       
-      if (defaultCats.includes(targetNorm)) {
+      if (defaultCats.includes(slug.toLowerCase())) {
         categoryName = slug.charAt(0).toUpperCase() + slug.slice(1) + " Videos";
         categoryDesc = `Watch the best ${categoryName.toLowerCase()} on DesiredHub.`;
       } else {
-        const cat = publicDataSnapshot.categories.find((c: any) => 
-          normalizeCategory(c.slug) === targetNorm || normalizeCategory(c.name) === targetNorm
-        );
+        const cat = publicDataSnapshot.categories.find((c: any) => c.slug === slug);
         if (cat) {
           categoryName = cat.name;
           categoryDesc = cat.seoDescription || `Watch the best ${categoryName} videos on DesiredHub.`;
@@ -1658,60 +871,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       const description = escapeHtml(categoryDesc);
       const currentUrl = escapeHtml(`${SITE_URL}/category/${slug}`);
       
-      let categoryVideos: any[] = [];
-      if (slug === "trending") {
-        categoryVideos = publicDataSnapshot.posts.filter((v: any) => v.isActive !== false && v.slug && v.trending);
-        if (categoryVideos.length < 20) {
-          categoryVideos = [...publicDataSnapshot.posts.filter((v: any) => v.isActive !== false && v.slug)].sort((a, b) => (b.views || 0) - (a.views || 0));
-        }
-      } else if (slug === "popular") {
-        categoryVideos = [...publicDataSnapshot.posts.filter((v: any) => v.isActive !== false && v.slug)].sort((a, b) => (b.views || 0) - (a.views || 0));
-      } else if (slug === "latest") {
-        categoryVideos = publicDataSnapshot.posts.filter((v: any) => v.isActive !== false && v.slug);
-      } else {
-        categoryVideos = publicDataSnapshot.posts.filter((v: any) => {
-          if (v.isActive === false || !v.slug) return false;
-          const list = [...(v.categories || []), v.category].filter(Boolean);
-          return list.some((c: any) => normalizeCategory(c) === targetNorm);
-        });
-      }
-
-      // Render up to 100 category videos so older videos are directly reachable through internal HTML links
-      const displayVideos = categoryVideos.slice(0, 100);
-
-      const safeCategoryVideos = displayVideos.slice(0, 20).map((v: any) => ({
-        id: v.id,
-        title: v.title,
-        slug: v.slug,
-        description: v.description || "",
-        thumbnailUrl: v.thumbnailUrl || "",
-        videoUrl: v.videoUrl || "",
-        duration: v.duration || "",
-        quality: v.quality || "HD",
-        views: v.views || 0,
-        likeCount: v.likeCount || 0,
-        dislikeCount: v.dislikeCount || 0,
-        categories: v.categories || (v.category ? [v.category] : []),
-        tags: v.tags || [],
-        publishedAt: v.publishedAt || null,
-        _publishedAtMs: v._publishedAtMs || 0,
-        featured: !!v.featured,
-        trending: !!v.trending,
-        badges: v.badges || []
-      }));
-
-      const initialCategoryData = {
-        slug,
-        name: categoryName,
-        description: categoryDesc,
-        videos: safeCategoryVideos,
-        total: categoryVideos.length,
-        page: 1,
-        totalPages: Math.ceil(categoryVideos.length / 20) || 1
-      };
-
-      const initialDataScript = `<script>window.__INITIAL_CATEGORY_DATA__ = ${JSON.stringify(initialCategoryData).replace(/</g, '\\u003c')};</script>`;
-
       const breadcrumbsJsonLd = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
@@ -1725,12 +884,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Categories",
-            "item": `${SITE_URL}/categories`
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
             "name": categoryName,
             "item": currentUrl
           }
@@ -1745,20 +898,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         "url": currentUrl
       };
 
-      const itemListJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        "name": `${categoryName} Videos`,
-        "numberOfItems": displayVideos.length,
-        "itemListElement": displayVideos.map((post: any, idx: number) => ({
-          "@type": "ListItem",
-          "position": idx + 1,
-          "name": post.title,
-          "url": `${SITE_URL}/video/${post.slug}`
-        }))
-      };
-
-      const jsonLdScript = `<script type="application/ld+json">${JSON.stringify([breadcrumbsJsonLd, collectionJsonLd, itemListJsonLd])}</script>`;
+      const jsonLdScript = `<script type="application/ld+json">${JSON.stringify([breadcrumbsJsonLd, collectionJsonLd])}</script>`;
       
       const seoTags = `
         <title data-rh="true">${title}</title>
@@ -1771,34 +911,9 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <meta data-rh="true" name="twitter:title" content="${title}" />
         <meta data-rh="true" name="twitter:description" content="${description}" />
         ${jsonLdScript}
-        ${initialDataScript}
       `;
-
-      const categoryVideosHtml = displayVideos.map(renderVideoCardHtml).join("");
-
-      const categoryRootHtml = `
-        <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          <nav aria-label="Breadcrumb" style="margin-bottom: 1rem; font-size: 0.875rem; color: #737373;">
-            <a href="/" style="color: #a3a3a3; text-decoration: none;">Home</a>
-            <span> / </span>
-            <a href="/categories" style="color: #a3a3a3; text-decoration: none;">Categories</a>
-            <span> / ${escapeHtml(categoryName)}</span>
-          </nav>
-          <div style="margin-bottom: 1.5rem;">
-            <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem 0;">${escapeHtml(categoryName)}</h1>
-            <p style="color: #a3a3a3; margin: 0 0 0.75rem 0; font-size: 0.95rem;">${escapeHtml(categoryDesc)} (${categoryVideos.length} videos available)</p>
-            <a href="/categories" style="color: #ef4444; font-size: 0.875rem; text-decoration: none;">&larr; Browse All Categories</a>
-          </div>
-          <section>
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-              ${categoryVideosHtml}
-            </div>
-          </section>
-        </div>
-      `.trim();
-
-      let html = template.replace("<title>DesiredHub</title>", seoTags);
-      html = html.replace('<div id="root"></div>', `<div id="root">${categoryRootHtml}</div>`);
+      
+            const html = template.replace("<title>DesiredHub</title>", seoTags);
       res.status(200).set({ 
         'Content-Type': 'text/html',
         'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400'
@@ -1924,20 +1039,23 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         return;
       }
       
-      let template = getTemplate();
+      let template = "";
       if (process.env.NODE_ENV !== "production") {
+        template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
+      } else {
+        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
       }
       
-      const cleanTitle = cleanPublicMetadataText(video.title || "Video");
-      const title = escapeHtml(`${cleanTitle} - DesiredHub`);
+      const title = escapeHtml(`${video.title} - DesiredHub`);
       
-      let optimalDesc = cleanPublicMetadataText(video.metaDescription || "");
+      let optimalDesc = video.metaDescription || "";
       if (!optimalDesc) {
-        let text = cleanPublicMetadataText(video.description || video.title || "").replace(/\s+/g, " ").trim();
+        let text = (video.description || "").replace(/\s+/g, " ").trim();
         if (text.length > 155) {
+          // Find the last space before or at index 152 to avoid breaking words
           let cutoff = text.substring(0, 153).lastIndexOf(" ");
-          if (cutoff === -1) cutoff = 152;
+          if (cutoff === -1) cutoff = 152; // Fallback if there are no spaces
           optimalDesc = text.substring(0, cutoff).trim() + "...";
         } else {
           optimalDesc = text;
@@ -1958,33 +1076,15 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         }
       }
       
-      const jsonLd: any = {
+      const jsonLd = {
         "@context": "https://schema.org",
         "@type": "VideoObject",
-        name: cleanTitle,
-        description: description || cleanTitle,
+        name: video.title,
+        description: video.description,
+        thumbnailUrl: [video.thumbnailUrl],
         uploadDate: uploadDate,
-        mainEntityOfPage: currentUrl
-      };
-
-      if (video.thumbnailUrl) {
-        jsonLd.thumbnailUrl = [video.thumbnailUrl];
-      }
-      if (video.duration) {
-        const isoDur = formatIsoDuration(video.duration);
-        if (isoDur) jsonLd.duration = isoDur;
-      }
-      if (video.videoUrl) {
-        jsonLd.contentUrl = video.videoUrl;
-      }
-      jsonLd.publisher = {
-        "@type": "Organization",
-        name: "DesiredHub",
-        url: SITE_URL,
-        logo: {
-          "@type": "ImageObject",
-          url: `${SITE_URL}/favicon-32x32.png`
-        }
+        ...(video.duration && { duration: formatIsoDuration(video.duration) }),
+        contentUrl: video.videoUrl,
       };
 
       const categoryName = (video.categories && video.categories[0]) || video.category;
@@ -2015,26 +1115,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         ]
       };
 
-      // Sanitize video object for public script payload - DO NOT expose admin/private fields
-      const safeVideoData = {
-        id: docId,
-        title: video.title,
-        slug: video.slug,
-        description: video.description || "",
-        thumbnailUrl: video.thumbnailUrl || "",
-        videoUrl: video.videoUrl || "",
-        duration: video.duration || "",
-        quality: video.quality || "HD",
-        views: video.views || 0,
-        categories: video.categories || (video.category ? [video.category] : []),
-        tags: video.tags || [],
-        publishedAt: video.publishedAt || null,
-        _publishedAtMs: video._publishedAtMs || 0,
-        featured: !!video.featured,
-        trending: !!video.trending,
-        badges: video.badges || []
-      };
-
       const seoTags = `
         <title data-rh="true">${title}</title>
         <meta data-rh="true" name="description" content="${description}" />
@@ -2055,96 +1135,14 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         <meta data-rh="true" name="twitter:image" content="${image}" />
         <script data-rh="true" type="application/ld+json">${JSON.stringify(jsonLd)}</script>
         <script data-rh="true" type="application/ld+json">${JSON.stringify(breadcrumbsJsonLd)}</script>
-        <script>window.__INITIAL_VIDEO_DATA__ = ${JSON.stringify(safeVideoData).replace(/</g, '\\u003c')};</script>
+        <script>window.__INITIAL_VIDEO_DATA__ = ${JSON.stringify({ id: docId, ...video }).replace(/</g, '\\u003c')};</script>
       `;
 
+            
       let html = template.replace("<title>DesiredHub</title>", seoTags);
       
-      const pubAtMs = video._publishedAtMs || (video.publishedAt?.seconds ? video.publishedAt.seconds * 1000 : 0);
-      const { prev, next: nextVideo } = getAdjacentVideos(pubAtMs);
-
-      const videoCategories = video.categories || (video.category ? [video.category] : []);
-      const videoTags = video.tags || [];
-      const relatedVideos = getRelatedVideos(video.id, videoCategories, videoTags, video.title, 8);
-
-      const adjacentHtml = (prev || nextVideo) ? `
-        <nav aria-label="Adjacent videos" style="margin: 1.5rem 0; padding: 1rem; background: #171717; border: 1px solid #262626; border-radius: 8px;">
-          <h2 style="font-size: 0.95rem; font-weight: 600; color: #a3a3a3; margin: 0 0 0.75rem 0; text-transform: uppercase; letter-spacing: 0.05em;">Adjacent Videos</h2>
-          <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between;">
-            ${prev ? `<div style="flex: 1; min-width: 200px;"><span style="font-size: 0.8rem; color: #737373;">&larr; Previous Video</span><br/><a href="/video/${prev.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 0.95rem;">${escapeHtml(prev.title)}</a></div>` : ''}
-            ${nextVideo ? `<div style="flex: 1; min-width: 200px; text-align: right;"><span style="font-size: 0.8rem; color: #737373;">Next Video &rarr;</span><br/><a href="/video/${nextVideo.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 0.95rem;">${escapeHtml(nextVideo.title)}</a></div>` : ''}
-          </div>
-        </nav>
-      `.trim() : '';
-
-      const tagsHtml = (videoTags && videoTags.length > 0) ? `
-        <nav aria-label="Tags" style="margin: 1.25rem 0;">
-          <h3 style="font-size: 0.85rem; font-weight: 600; color: #737373; text-transform: uppercase; margin: 0 0 0.5rem 0; letter-spacing: 0.05em;">Tags</h3>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-            ${videoTags.map((tag: string) => {
-              const tSlug = tag.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-              return `<a href="/tag/${tSlug}" style="color: #d4d4d4; background: #1c1c1c; border: 1px solid #2e2e2e; padding: 4px 10px; border-radius: 4px; font-size: 13px; text-decoration: none;">#${escapeHtml(tag)}</a>`;
-            }).join("")}
-          </div>
-        </nav>
-      `.trim() : '';
-
-      const relatedHtml = relatedVideos.length > 0 ? `
-        <section aria-label="Related videos" style="margin-top: 2rem;">
-          <h2 style="font-size: 1.25rem; font-weight: 600; color: #ffffff; margin: 0 0 1rem 0;">Related Videos</h2>
-          <ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0;">
-            ${relatedVideos.map((rel: any) => 
-              `<li style="background: #171717; border: 1px solid #262626; border-radius: 8px; padding: 12px 14px;">
-                <a href="/video/${rel.slug}" style="color: #ffffff; text-decoration: none; font-weight: 500; font-size: 14px; display: block; line-height: 1.4;">${escapeHtml(rel.title)}</a>
-                <div style="font-size: 12px; color: #737373; margin-top: 6px; display: flex; gap: 8px; align-items: center;">
-                  ${rel.duration ? `<span>${escapeHtml(rel.duration)}</span>` : ''}
-                  ${rel.views ? `<span>&bull; ${rel.views} views</span>` : ''}
-                  ${rel.quality ? `<span style="background: #262626; color: #a3a3a3; padding: 1px 4px; border-radius: 4px; font-size: 11px;">${escapeHtml(rel.quality)}</span>` : ''}
-                </div>
-              </li>`
-            ).join("")}
-          </ul>
-        </section>
-      `.trim() : '';
-
-      const breadcrumbsHtml = `
-        <nav aria-label="Breadcrumb" style="margin-bottom: 1rem; font-size: 0.875rem; color: #737373;">
-          <a href="/" style="color: #a3a3a3; text-decoration: none;">Home</a>
-          ${categoryName && categorySlug ? ` / <a href="/category/${categorySlug}" style="color: #a3a3a3; text-decoration: none;">${escapeHtml(categoryName)}</a>` : ''}
-          <span> / ${escapeHtml(video.title)}</span>
-        </nav>
-      `.trim();
-
-      const formattedDate = uploadDate ? new Date(uploadDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
-
-      const videoMetaHtml = `
-        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 1rem; font-size: 0.875rem; color: #a3a3a3;">
-          ${categoryName && categorySlug ? `<span>Category: <a href="/category/${categorySlug}" style="color: #ef4444; text-decoration: none; font-weight: 500;">${escapeHtml(categoryName)}</a></span>` : ''}
-          ${formattedDate ? `<span>&bull; Published: <time datetime="${uploadDate}">${formattedDate}</time></span>` : ''}
-          ${video.duration ? `<span>&bull; Duration: ${escapeHtml(video.duration)}</span>` : ''}
-          ${video.views ? `<span>&bull; ${video.views} views</span>` : ''}
-          ${video.quality ? `<span style="background: #262626; color: #d4d4d4; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">${escapeHtml(video.quality)}</span>` : ''}
-        </div>
-      `.trim();
-
-      const videoRootHtml = `
-        <div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem 1.5rem; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-          ${breadcrumbsHtml}
-          <h1 style="color: #ffffff; font-size: 2rem; font-weight: 700; line-height: 1.2; margin: 0 0 1rem 0;">${escapeHtml(video.title)}</h1>
-          ${videoMetaHtml}
-          ${image ? `
-            <div style="margin-bottom: 1.5rem; max-width: 640px; aspect-ratio: 16/9; background: #171717; border-radius: 8px; overflow: hidden;">
-              <img src="${image}" alt="${title}" width="640" height="360" style="width: 100%; height: 100%; object-fit: cover;" />
-            </div>
-          ` : ''}
-          ${video.description ? `<p style="color: #a3a3a3; font-size: 0.95rem; line-height: 1.6; margin: 0 0 1.5rem 0; max-width: 800px;">${escapeHtml(video.description)}</p>` : ''}
-          ${tagsHtml}
-          ${adjacentHtml}
-          ${relatedHtml}
-        </div>
-      `.trim();
-
-      html = html.replace('<div id="root"></div>', `<div id="root">${videoRootHtml}</div>`);
+      // Inject H1 for SEO
+      html = html.replace('<div id="root"></div>', `<div id="root"><div style="background-color: #0a0a0a; min-height: 100vh; padding: 2rem;"><h1 style="color: #ffffff; font-family: sans-serif; font-size: 2.25rem; font-weight: 700; line-height: 1.2;">${escapeHtml(video.title)}</h1></div></div>`);
   
       res.status(200).set({ 
         'Content-Type': 'text/html',
@@ -2162,11 +1160,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(
-        fs.existsSync(path.join(distPath, "app.html"))
-          ? path.join(distPath, "app.html")
-          : path.join(distPath, "index.html")
-      );
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 

@@ -1,80 +1,60 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 
-const POPUNDER_ID = "adsterra-popunder-script";
-const POPUNDER_SRC = "https://predestineheadypleasure.com/2e/24/de/2e24deaee3c8ed46777c8fd01a8bfbf8.js";
+const SOCIAL_BAR_SRC =
+  "https://pl30417136.effectivecpmnetwork.com/a8/c5/ae/a8c5ae6b95183bffe51c005c71b9acfd.js";
 
-const SOCIAL_BAR_ID = "adsterra-socialbar-script";
-const SOCIAL_BAR_SRC = "https://predestineheadypleasure.com/8b/2b/ef/8b2befdf84fc8def02f509b4771ad9a8.js";
-
-function syncScript(id: string, src: string, enabled: boolean) {
-  if (typeof document === "undefined") return;
-
-  const existing = document.getElementById(id) as HTMLScriptElement | null;
-
-  if (enabled) {
-    if (!existing) {
-      const script = document.createElement("script");
-      script.id = id;
-      script.src = src;
-      document.body.appendChild(script);
-    }
-  } else {
-    if (existing) {
-      existing.remove();
-    }
-  }
-}
-
-/**
- * ScriptManager
- * Centralized runtime implementation for Adsterra Popunder and Social Bar.
- * Fetches runtime ad settings from /api/settings/ads (with server-side cache).
- * Survives client navigation without duplicate injection.
- */
 export function ScriptManager() {
-  const location = useLocation();
-  const settingsRef = useRef({ popunderEnabled: false, socialBarEnabled: false });
+  const injected = useRef(false);
 
   useEffect(() => {
+    if (injected.current) return;
+
     let isMounted = true;
 
-    const fetchAdSettings = async () => {
+    const loadAds = async () => {
       try {
-        const res = await fetch("/api/settings/ads");
-        if (res.ok && isMounted) {
-          const data = await res.json();
-          const popunder = Boolean(data?.popunderEnabled);
-          const socialBar = Boolean(data?.socialBarEnabled);
-          settingsRef.current = {
-            popunderEnabled: popunder,
-            socialBarEnabled: socialBar,
-          };
-          syncScript(POPUNDER_ID, POPUNDER_SRC, popunder);
-          syncScript(SOCIAL_BAR_ID, SOCIAL_BAR_SRC, socialBar);
+        const docRef = doc(db, "settings", "advertisements");
+        const snap = await getDoc(docRef);
+
+        if (!isMounted) return;
+
+        if (snap.exists()) {
+          const data = snap.data();
+          injected.current = true; // Mark as fetched to avoid duplicate queries
+
+          if (data.socialBarEnabled) {
+            injectScript(SOCIAL_BAR_SRC);
+          }
+          // Note: Popunder script removed permanently as it contains remote backunder history hijacking
+        } else {
+          injected.current = true;
         }
-      } catch (err) {
-        console.error("ScriptManager error loading ad settings:", err);
+      } catch (e) {
+        // Silently ignore errors as per requirements
       }
     };
 
-    fetchAdSettings();
+    const injectScript = (src: string) => {
+      // Prevent duplicate injection
+      if (document.querySelector(`script[src="${src}"]`)) return;
+
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onerror = () => {
+        // Silently handle load failure so website continues normally
+      };
+      document.body.appendChild(script);
+    };
+
+    loadAds();
 
     return () => {
       isMounted = false;
     };
   }, []);
-
-  // Ensure scripts survive normal React navigation without duplicate injections
-  useEffect(() => {
-    const { popunderEnabled, socialBarEnabled } = settingsRef.current;
-    if (popunderEnabled) {
-      syncScript(POPUNDER_ID, POPUNDER_SRC, true);
-    }
-    if (socialBarEnabled) {
-      syncScript(SOCIAL_BAR_ID, SOCIAL_BAR_SRC, true);
-    }
-  }, [location.pathname]);
 
   return null;
 }
