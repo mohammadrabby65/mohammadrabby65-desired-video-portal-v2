@@ -785,7 +785,13 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
       } else {
-        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
+        const appHtmlPath = path.resolve(process.cwd(), "dist/app.html");
+        const indexHtmlPath = path.resolve(process.cwd(), "dist/index.html");
+        if (fs.existsSync(appHtmlPath)) {
+          template = fs.readFileSync(appHtmlPath, "utf-8");
+        } else {
+          template = fs.readFileSync(indexHtmlPath, "utf-8");
+        }
       }
 
       const seo = formatSeo(rawTitle, rawDesc, canonicalUrl);
@@ -913,7 +919,13 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
       } else {
-        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
+        const appHtmlPath = path.resolve(process.cwd(), "dist/app.html");
+        const indexHtmlPath = path.resolve(process.cwd(), "dist/index.html");
+        if (fs.existsSync(appHtmlPath)) {
+          template = fs.readFileSync(appHtmlPath, "utf-8");
+        } else {
+          template = fs.readFileSync(indexHtmlPath, "utf-8");
+        }
       }
       
       const slug = req.params.slug;
@@ -1113,7 +1125,13 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         template = fs.readFileSync(path.resolve(process.cwd(), "index.html"), "utf-8");
         template = await vite.transformIndexHtml(req.originalUrl, template);
       } else {
-        template = fs.readFileSync(path.resolve(process.cwd(), "dist/index.html"), "utf-8");
+        const appHtmlPath = path.resolve(process.cwd(), "dist/app.html");
+        const indexHtmlPath = path.resolve(process.cwd(), "dist/index.html");
+        if (fs.existsSync(appHtmlPath)) {
+          template = fs.readFileSync(appHtmlPath, "utf-8");
+        } else {
+          template = fs.readFileSync(indexHtmlPath, "utf-8");
+        }
       }
       
       const title = escapeHtml(`${video.title} - DesiredHub`);
@@ -1229,7 +1247,13 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const appHtmlPath = path.join(distPath, 'app.html');
+      const indexHtmlPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(appHtmlPath)) {
+        res.sendFile(appHtmlPath);
+      } else {
+        res.sendFile(indexHtmlPath);
+      }
     });
   }
 
