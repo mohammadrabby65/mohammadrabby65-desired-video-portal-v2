@@ -194,6 +194,75 @@ async function startServer() {
     }
   });
 
+  // Direct streaming proxy with range request support
+  app.get("/api/stream/proxy", async (req, res) => {
+    const rawUrl = req.query.url as string;
+    if (!rawUrl) return res.status(400).send("Missing url parameter");
+
+    let targetUrl: string;
+    try {
+      targetUrl = rawUrl.startsWith("http") ? rawUrl : Buffer.from(rawUrl, "base64").toString("utf-8");
+      const parsed = new URL(targetUrl);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return res.status(400).send("Invalid protocol");
+      }
+    } catch {
+      return res.status(400).send("Invalid URL");
+    }
+
+    try {
+      const headers: Record<string, string> = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+      };
+      if (req.headers.range) {
+        headers["Range"] = req.headers.range;
+      }
+
+      const response = await fetch(targetUrl, {
+        headers,
+        redirect: 'follow',
+      });
+
+      if (!response.ok && response.status !== 206) {
+        return res.status(response.status).send(`Upstream returned ${response.status}`);
+      }
+
+      res.status(response.status);
+      const headersToForward = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'last-modified', 'etag'];
+      for (const h of headersToForward) {
+        const val = response.headers.get(h);
+        if (val) res.setHeader(h, val);
+      }
+      res.setHeader("Cache-Control", "public, max-age=3600");
+
+      if (response.body) {
+        const reader = response.body.getReader();
+        const pump = async () => {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              if (res.writableEnded || res.closed) break;
+              res.write(value);
+            }
+          } catch (streamErr) {
+            // Client disconnect or stream ended
+          } finally {
+            res.end();
+          }
+        };
+        pump();
+      } else {
+        res.end();
+      }
+    } catch (err: any) {
+      if (!res.headersSent) {
+        res.status(502).send(`Proxy streaming error: ${err.message}`);
+      }
+    }
+  });
+
   // Proxy the video playback
   app.get("/api/stream/play", async (req, res) => {
     const { t, e, s } = req.query;

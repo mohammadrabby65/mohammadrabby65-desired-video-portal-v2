@@ -16,6 +16,7 @@ import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { SEO } from "../components/seo/SEO";
 import { Pagination } from "../components/ui/Pagination";
+import { safeLocalStorage } from "../lib/storage";
 
 export function Search() {
   const navigate = useNavigate();
@@ -50,7 +51,7 @@ export function Search() {
   // Load recent searches
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("recentSearches");
+      const stored = safeLocalStorage.getItem("recentSearches");
       if (stored) setRecentSearches(JSON.parse(stored));
     } catch (e) {
       // ignore
@@ -67,7 +68,7 @@ export function Search() {
         ),
       ].slice(0, 8);
       setRecentSearches(updated);
-      localStorage.setItem("recentSearches", JSON.stringify(updated));
+      safeLocalStorage.setItem("recentSearches", JSON.stringify(updated));
     } catch (e) {
       // ignore
     }
@@ -75,7 +76,7 @@ export function Search() {
 
   const clearRecentSearches = () => {
     setRecentSearches([]);
-    localStorage.removeItem("recentSearches");
+    safeLocalStorage.removeItem("recentSearches");
   };
 
   const removeRecentSearch = (e: React.MouseEvent, termToRemove: string) => {
@@ -83,7 +84,7 @@ export function Search() {
     try {
       const updated = recentSearches.filter((t) => t !== termToRemove);
       setRecentSearches(updated);
-      localStorage.setItem("recentSearches", JSON.stringify(updated));
+      safeLocalStorage.setItem("recentSearches", JSON.stringify(updated));
     } catch (e) {
       // ignore
     }

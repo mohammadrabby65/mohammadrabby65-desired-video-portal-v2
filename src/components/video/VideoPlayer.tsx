@@ -5,12 +5,14 @@ import {
   Pause,
   Volume2,
   VolumeX,
+  Volume1,
   Maximize,
   Minimize,
   Settings,
   PictureInPicture,
   Loader2,
   AlertCircle,
+  RotateCcw,
 } from "lucide-react";
 
 interface VideoPlayerProps {
@@ -35,12 +37,15 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
   const accumulatedPlayTime = useRef(0);
   const lastTimeRef = useRef(0);
   const viewReported = useRef(false);
+  const triedProxyRef = useRef(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     accumulatedPlayTime.current = 0;
     lastTimeRef.current = 0;
     viewReported.current = false;
-  }, [videoId]);
+    triedProxyRef.current = false;
+  }, [videoId, videoUrl, retryKey]);
 
 
   const [loading, setLoading] = useState(true);
@@ -72,15 +77,14 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     if (!videoUrl || !videoRef.current) return;
 
     const video = videoRef.current;
+    setError("");
+    setLoading(true);
 
     const isM3U8 = videoUrl.includes(".m3u8");
-    const isMP4 = videoUrl.includes(".mp4");
-
-    console.log("Final URL passed to player:", videoUrl);
-    console.log("Format detected - isM3U8:", isM3U8, "isMP4:", isMP4);
 
     const handleLoadedMetadata = () => {
       setLoading(false);
+      setError("");
       const savedTime = localStorage.getItem(`vid_time_${videoUrl}`);
       if (savedTime) {
         const parsed = parseFloat(savedTime);
@@ -90,14 +94,26 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
       }
     };
 
-    const handleError = (e: Event) => {
-      console.error(
-        "Player Error Event:",
-        e,
-        video.error?.code,
-        video.error?.message,
-      );
-      setError("Error loading video source");
+    const handleCanPlay = () => {
+      setLoading(false);
+      setError("");
+    };
+
+    const handleError = () => {
+      // If direct source failed and we haven't tried the proxy fallback yet
+      if (!triedProxyRef.current && videoUrl.startsWith("http")) {
+        triedProxyRef.current = true;
+        const proxyUrl = `/api/stream/proxy?url=${encodeURIComponent(videoUrl)}`;
+        video.src = proxyUrl;
+        video.load();
+        if (isPlaying) {
+          video.play().catch(() => {});
+        }
+        return;
+      }
+
+      setLoading(false);
+      setError("Unable to stream video from host source");
     };
 
     if (isM3U8 && Hls.isSupported()) {
@@ -113,6 +129,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
       hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
         setHlsLevels(data.levels);
         setLoading(false);
+        setError("");
         // Load saved time
         const savedTime = localStorage.getItem(`vid_time_${videoUrl}`);
         if (savedTime) {
@@ -131,15 +148,22 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
+              if (!triedProxyRef.current && videoUrl.startsWith("http")) {
+                triedProxyRef.current = true;
+                const proxyUrl = `/api/stream/proxy?url=${encodeURIComponent(videoUrl)}`;
+                hls.loadSource(proxyUrl);
+                hls.startLoad();
+              } else {
+                hls.startLoad();
+              }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               hls.recoverMediaError();
               break;
             default:
               hls.destroy();
-              console.error("HLS Fatal Error:", data);
-              setError("A fatal error occurred during playback");
+              setError("A fatal playback error occurred");
+              setLoading(false);
               break;
           }
         }
@@ -147,6 +171,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     } else {
       // Native HLS (Safari) or standard MP4
       video.addEventListener("loadedmetadata", handleLoadedMetadata);
+      video.addEventListener("canplay", handleCanPlay);
       video.addEventListener("error", handleError);
 
       video.src = videoUrl;
@@ -159,9 +184,10 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
         hlsRef.current = null;
       }
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("canplay", handleCanPlay);
       video.removeEventListener("error", handleError);
     };
-  }, [videoUrl]);
+  }, [videoUrl, retryKey]);
 
   // Save progress periodically
   useEffect(() => {
@@ -173,14 +199,35 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     return () => clearInterval(interval);
   }, [currentTime, videoUrl]);
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
         setIsPlaying(false);
       } else {
-        videoRef.current.play();
-        setIsPlaying(true);
+        try {
+          const playPromise = videoRef.current.play();
+          if (playPromise !== undefined) {
+            await playPromise;
+          }
+          setIsPlaying(true);
+        } catch (err) {
+          // If direct play failed, attempt proxy fallback
+          if (!triedProxyRef.current && videoUrl.startsWith("http")) {
+            try {
+              triedProxyRef.current = true;
+              const proxyUrl = `/api/stream/proxy?url=${encodeURIComponent(videoUrl)}`;
+              videoRef.current.src = proxyUrl;
+              videoRef.current.load();
+              await videoRef.current.play();
+              setIsPlaying(true);
+              return;
+            } catch (proxyErr) {
+              console.warn("Proxy fallback play failed:", proxyErr);
+            }
+          }
+          setPlayError(true);
+        }
       }
     }
   };
@@ -392,14 +439,13 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  if (error) {
-    return (
-      <div className="w-full aspect-video bg-neutral-900 rounded-xl flex flex-col items-center justify-center text-red-500 border border-neutral-800">
-        <AlertCircle className="w-10 h-10 mb-2" />
-        <p className="font-medium">{error}</p>
-      </div>
-    );
-  }
+  const handleRetry = () => {
+    setError("");
+    setLoading(true);
+    setPlayError(false);
+    triedProxyRef.current = false;
+    setRetryKey((prev) => prev + 1);
+  };
 
   return (
     <div
@@ -409,6 +455,26 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
       onMouseLeave={handleMouseLeave}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {error && (
+        <div className="absolute inset-0 z-40 bg-neutral-950/95 flex flex-col items-center justify-center p-6 text-center backdrop-blur-md">
+          <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-3 text-red-500">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <h3 className="text-white font-semibold text-base mb-1">
+            Playback Notice
+          </h3>
+          <p className="text-neutral-400 text-xs sm:text-sm max-w-md mb-5">
+            {error}
+          </p>
+          <button
+            onClick={handleRetry}
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-red-700 text-white rounded-full text-xs sm:text-sm font-semibold transition-all shadow-lg shadow-red-600/20 hover:scale-105 active:scale-95"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>Retry Playback</span>
+          </button>
+        </div>
+      )}
       {loading && !playError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10 backdrop-blur-sm transition-opacity duration-300" aria-label="Loading video">
           <div className="relative flex items-center justify-center w-20 h-20 mb-6">
@@ -461,8 +527,13 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
           className="absolute inset-0 z-30 cursor-pointer group/poster overflow-hidden bg-neutral-900"
           onClick={async () => {
             if (videoRef.current) {
+              setPlayError(false);
+              setError("");
               try {
-                setPlayError(false);
+                if (!videoRef.current.src) {
+                  videoRef.current.src = videoUrl;
+                  videoRef.current.load();
+                }
                 const playPromise = videoRef.current.play();
                 if (playPromise !== undefined) {
                   await playPromise;
@@ -470,7 +541,23 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
                 setShowPoster(false);
                 setIsPlaying(true);
               } catch (err) {
-                console.error("Playback failed:", err);
+                // If direct play failed, attempt proxy fallback
+                if (!triedProxyRef.current && videoUrl.startsWith("http")) {
+                  try {
+                    triedProxyRef.current = true;
+                    const proxyUrl = `/api/stream/proxy?url=${encodeURIComponent(videoUrl)}`;
+                    if (videoRef.current) {
+                      videoRef.current.src = proxyUrl;
+                      videoRef.current.load();
+                      await videoRef.current.play();
+                      setShowPoster(false);
+                      setIsPlaying(true);
+                      return;
+                    }
+                  } catch (proxyErr) {
+                    console.warn("Proxy fallback playback failed:", proxyErr);
+                  }
+                }
                 setPlayError(true);
               }
             }
