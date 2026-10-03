@@ -192,7 +192,11 @@ export function Video() {
             <div className="sm:rounded-2xl overflow-hidden bg-black sm:border sm:border-neutral-800/60 relative w-full shadow-xl">
               <div className="relative w-full aspect-video bg-black">
                 <VideoPlayer
-                  video={video}
+                  videoId={video.id}
+                  videoUrl={video.videoUrl}
+                  thumbnailUrl={video.thumbnailUrl}
+                  previewStoryboardUrl={video.previewStoryboardUrl}
+                  previewStoryboardData={video.previewStoryboardData}
                 />
               </div>
             </div>
