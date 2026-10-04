@@ -100,18 +100,6 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     };
 
     const handleError = () => {
-      // If direct source failed and we haven't tried the proxy fallback yet
-      if (!triedProxyRef.current && videoUrl.startsWith("http")) {
-        triedProxyRef.current = true;
-        const proxyUrl = `/api/stream/proxy?url=${encodeURIComponent(videoUrl)}`;
-        video.src = proxyUrl;
-        video.load();
-        if (isPlaying) {
-          video.play().catch(() => {});
-        }
-        return;
-      }
-
       setLoading(false);
       setError("Unable to stream video from host source");
     };
@@ -148,14 +136,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              if (!triedProxyRef.current && videoUrl.startsWith("http")) {
-                triedProxyRef.current = true;
-                const proxyUrl = `/api/stream/proxy?url=${encodeURIComponent(videoUrl)}`;
-                hls.loadSource(proxyUrl);
-                hls.startLoad();
-              } else {
-                hls.startLoad();
-              }
+              hls.startLoad();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               hls.recoverMediaError();
@@ -212,20 +193,6 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
           }
           setIsPlaying(true);
         } catch (err) {
-          // If direct play failed, attempt proxy fallback
-          if (!triedProxyRef.current && videoUrl.startsWith("http")) {
-            try {
-              triedProxyRef.current = true;
-              const proxyUrl = `/api/stream/proxy?url=${encodeURIComponent(videoUrl)}`;
-              videoRef.current.src = proxyUrl;
-              videoRef.current.load();
-              await videoRef.current.play();
-              setIsPlaying(true);
-              return;
-            } catch (proxyErr) {
-              console.warn("Proxy fallback play failed:", proxyErr);
-            }
-          }
           setPlayError(true);
         }
       }
@@ -541,23 +508,6 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
                 setShowPoster(false);
                 setIsPlaying(true);
               } catch (err) {
-                // If direct play failed, attempt proxy fallback
-                if (!triedProxyRef.current && videoUrl.startsWith("http")) {
-                  try {
-                    triedProxyRef.current = true;
-                    const proxyUrl = `/api/stream/proxy?url=${encodeURIComponent(videoUrl)}`;
-                    if (videoRef.current) {
-                      videoRef.current.src = proxyUrl;
-                      videoRef.current.load();
-                      await videoRef.current.play();
-                      setShowPoster(false);
-                      setIsPlaying(true);
-                      return;
-                    }
-                  } catch (proxyErr) {
-                    console.warn("Proxy fallback playback failed:", proxyErr);
-                  }
-                }
                 setPlayError(true);
               }
             }

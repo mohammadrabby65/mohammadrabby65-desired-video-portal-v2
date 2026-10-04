@@ -449,9 +449,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       await ensureSnapshot();
 
       let filtered = publicDataSnapshot.posts;
-      fs.writeFileSync("/tmp/debug1.json", JSON.stringify({filtered: filtered.length}));
-
-      fs.writeFileSync("/tmp/debug2.json", JSON.stringify({filtered: filtered.length}));
       if (searchQuery) {
         const queryStr = (searchQuery as string).trim().toLowerCase();
         if (queryStr) {
