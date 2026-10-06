@@ -884,7 +884,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
   });
 
   app.get("/dmca", (req, res, next) => {
-    renderSeoPage(req, res, next, "DMCA Policy - DesiredHub", "Read the DMCA copyright infringement policy for DesiredHub. Learn how to submit a takedown notice for unauthorized adult content securely.", `${SITE_URL}/dmca`);
+    renderSeoPage(req, res, next, "DMCA / Copyright Policy | DesiredHub", "Learn how to submit DMCA copyright infringement notices, counter-notifications, and content-related copyright requests to DesiredHub.", `${SITE_URL}/dmca`);
   });
 
   app.get("/2257", (req, res, next) => {

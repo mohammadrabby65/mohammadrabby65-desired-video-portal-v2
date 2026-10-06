@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { Menu, Dices } from "lucide-react";
+import { Menu, Dices, ShieldAlert, Mail, Send, ChevronRight } from "lucide-react";
 import { LiveSearch } from "./LiveSearch";
 import { Sidebar } from "./Sidebar";
 import { ScriptManager } from "./ScriptManager";
@@ -82,6 +82,57 @@ export function Layout() {
         <Outlet />
       </main>
 
+      {/* Dedicated DMCA / Abuse / Report Support Card */}
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 my-8 sm:my-12">
+        <div className="max-w-4xl mx-auto bg-gradient-to-r from-neutral-900 via-neutral-900/90 to-neutral-900 border border-amber-500/30 hover:border-amber-500/50 rounded-2xl p-6 sm:p-8 shadow-2xl transition-all relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/10 transition-all" />
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2 max-w-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    DMCA / Abuse / Report
+                  </h3>
+                  <a
+                    href="mailto:dmca@vezlo.xyz?subject=DMCA%20Copyright%20Infringement%20Notice"
+                    className="inline-flex items-center gap-1.5 text-amber-400 font-mono text-xs sm:text-sm font-semibold hover:underline mt-0.5"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>dmca@vezlo.xyz</span>
+                  </a>
+                </div>
+              </div>
+
+              <p className="text-neutral-300 text-xs sm:text-sm leading-relaxed pt-1">
+                Report copyright infringement, abusive content, or request removal of content from DesiredHub.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
+              <a
+                href="mailto:dmca@vezlo.xyz?subject=DMCA%20Copyright%20Infringement%20Notice"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 font-extrabold text-xs sm:text-sm transition-all shadow-lg hover:shadow-amber-500/20 w-full sm:w-auto"
+              >
+                <Send className="w-4 h-4" />
+                <span>Report / Contact DMCA</span>
+              </a>
+
+              <Link
+                to="/dmca"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-bold text-xs sm:text-sm transition-colors border border-neutral-700/60 w-full sm:w-auto"
+              >
+                <span>View Policy</span>
+                <ChevronRight className="w-4 h-4 text-neutral-400" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <footer className="border-t border-neutral-800 bg-neutral-950 py-8 mt-auto">
         <div className="container mx-auto px-4 text-center">
           <p className="text-neutral-500 text-sm mb-4">
@@ -92,8 +143,8 @@ export function Layout() {
               18 U.S.C. § 2257 Compliance
             </Link>
             <span className="text-neutral-700">|</span>
-            <Link to="/dmca" className="hover:text-white ">
-              DMCA Policy
+            <Link to="/dmca" className="hover:text-white transition-colors">
+              DMCA / Abuse / Report
             </Link>
             <span className="text-neutral-700">|</span>
             <Link to="/privacy-policy" className="hover:text-white ">
