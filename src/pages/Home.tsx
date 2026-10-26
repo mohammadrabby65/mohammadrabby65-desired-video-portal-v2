@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { usePaginationVideos, PaginationFilter } from "../hooks/useVideos";
+import { useState, useMemo } from "react";
+import { usePaginationVideos, useTrendingVideos, PaginationFilter } from "../hooks/useVideos";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { ChevronDown, Play, Flame, Clock, TrendingUp } from "lucide-react";
@@ -44,14 +44,11 @@ export function Home() {
       .slice(0, 20);
   }, [rawCategories]);
 
-  const [randomVideos, setRandomVideos] = useState<any[]>([]);
+  const { data: trendingData, isLoading: isTrendingLoading } = useTrendingVideos(4);
 
-  useEffect(() => {
-    if (videos.length > 0 && randomVideos.length === 0) {
-      const shuffled = [...videos].sort(() => 0.5 - Math.random());
-      setRandomVideos(shuffled.slice(0, 4));
-    }
-  }, [videos, randomVideos.length]);
+  const trendingPosts = useMemo(() => {
+    return (trendingData?.videos || []).filter((post) => post.trending === true);
+  }, [trendingData?.videos]);
 
   const heroVideo = videos.length > 0 ? videos[0] : null;
   const gridVideos = videos.length > 1 ? videos.slice(1) : [];
@@ -157,7 +154,7 @@ export function Home() {
             )}
 
             {/* Trending Quick Row */}
-            {!isLoading && randomVideos.length > 0 && page === 1 && (
+            {!isTrendingLoading && trendingPosts.length > 0 && page === 1 && (
               <section aria-label="Trending Videos" className="mb-8 sm:mb-10">
                 <div className="flex items-center justify-between mb-4 sm:mb-5">
                   <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2 tracking-tight">
@@ -166,7 +163,7 @@ export function Home() {
                   </h2>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-                  {randomVideos.map((video) => (
+                  {trendingPosts.map((video) => (
                     <VideoCard key={`trending-${video.id}`} video={video} enablePreview={true} />
                   ))}
                 </div>

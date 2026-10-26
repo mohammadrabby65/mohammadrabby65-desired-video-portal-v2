@@ -25,6 +25,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /deleted_posts/{document} {
+      allow get: if true;
+      allow list: if isAdmin() || (request.query.limit <= 1000);
+      allow write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if isAdmin();
     }

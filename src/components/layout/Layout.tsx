@@ -98,11 +98,11 @@ export function Layout() {
                     DMCA / Abuse / Report
                   </h3>
                   <a
-                    href="mailto:dmca@vezlo.xyz?subject=DMCA%20Copyright%20Infringement%20Notice"
+                    href="mailto:dmca@desiredhub.xyz?subject=DMCA%20Copyright%20Infringement%20Notice"
                     className="inline-flex items-center gap-1.5 text-amber-400 font-mono text-xs sm:text-sm font-semibold hover:underline mt-0.5"
                   >
                     <Mail className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                    <span>dmca@vezlo.xyz</span>
+                    <span>dmca@desiredhub.xyz</span>
                   </a>
                 </div>
               </div>
@@ -114,7 +114,7 @@ export function Layout() {
 
             <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
               <a
-                href="mailto:dmca@vezlo.xyz?subject=DMCA%20Copyright%20Infringement%20Notice"
+                href="mailto:dmca@desiredhub.xyz?subject=DMCA%20Copyright%20Infringement%20Notice"
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-neutral-950 font-extrabold text-xs sm:text-sm transition-all shadow-lg hover:shadow-amber-500/20 w-full sm:w-auto"
               >
                 <Send className="w-4 h-4" />

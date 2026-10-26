@@ -16,7 +16,7 @@ import {
 
 export function DMCA() {
   const [copied, setCopied] = useState(false);
-  const contactEmail = "dmca@vezlo.xyz";
+  const contactEmail = "dmca@desiredhub.xyz";
   const mailtoUrl = `mailto:${contactEmail}?subject=${encodeURIComponent("DMCA Copyright Infringement Notice")}`;
 
   const handleCopyEmail = () => {

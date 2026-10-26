@@ -1,11 +1,25 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import {execFileSync} from 'child_process';
+import fs from 'fs';
 import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: 'bundle-backend-server',
+        closeBundle() {
+          const buildScript = path.resolve(__dirname, 'scripts/build-server.cjs');
+          if (fs.existsSync(buildScript)) {
+            execFileSync(process.execPath, [buildScript], {stdio: 'inherit'});
+          }
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

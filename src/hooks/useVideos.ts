@@ -33,19 +33,26 @@ export function useFeaturedVideos() {
   return useQuery({
     queryKey: ["videos", "featured"],
     queryFn: async () => {
-      const q = query(
-        collection(db, "posts"),
-        where("featured", "==", true),
-        orderBy("publishedAt", "desc"),
-        limit(3),
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() }) as VideoPost,
-      );
+      const res = await fetch(`/api/videos?sortBy=featured&limitCount=3`);
+      if (!res.ok) throw new Error("Failed to fetch featured videos");
+      const data = await res.json();
+      return (data.videos || []) as VideoPost[];
     },
-    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
-    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
+  });
+}
+
+export function useTrendingVideos(limitCount = 4) {
+  return useQuery({
+    queryKey: ["videos", "trending", limitCount],
+    queryFn: async () => {
+      const res = await fetch(`/api/videos?trending=true&limitCount=${limitCount}`);
+      if (!res.ok) throw new Error("Failed to fetch trending videos");
+      return res.json() as Promise<PaginatedResponse>;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24,
   });
 }
 
@@ -263,20 +270,15 @@ export function useRelatedVideos(
 
 export function useLatestVideos(limitCount = 10) {
   return useQuery({
-    queryKey: ["videos", "latest"],
+    queryKey: ["videos", "latest", limitCount],
     queryFn: async () => {
-      const q = query(
-        collection(db, "posts"),
-        orderBy("publishedAt", "desc"),
-        limit(limitCount),
-      );
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() }) as VideoPost,
-      );
+      const res = await fetch(`/api/videos?sortBy=publishedAt&limitCount=${limitCount}`);
+      if (!res.ok) throw new Error("Failed to fetch latest videos");
+      const data = await res.json();
+      return (data.videos || []) as VideoPost[];
     },
-    staleTime: 1000 * 60 * 60 * 24, // 5 minutes
-    gcTime: 1000 * 60 * 60 * 24, // 30 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
 
@@ -340,6 +342,7 @@ export type PaginationFilter = {
   category?: string;
   tag?: string;
   searchQuery?: string;
+  trending?: boolean;
   sortBy?: "publishedAt" | "views" | "duration" | "featured" | "random";
 };
 
@@ -412,6 +415,7 @@ export function usePaginationVideos(
       if (filter.category) params.append("category", filter.category);
       if (filter.tag) params.append("tag", filter.tag);
       if (filter.searchQuery) params.append("q", filter.searchQuery);
+      if (filter.trending !== undefined) params.append("trending", filter.trending.toString());
       if (filter.sortBy) {
         params.append("sortBy", filter.sortBy);
         if (filter.sortBy === "random") {

@@ -2,11 +2,18 @@ import express from "express";
 import path from "path";
 import crypto from "crypto";
 import { initializeApp } from "firebase/app";
-import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, getCountFromServer, increment, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
+import { initializeFirestore, collection, getDocs, getDoc, query, limit, where, orderBy, doc, updateDoc, deleteDoc, setDoc, getCountFromServer, increment, Timestamp, startAfter, setLogLevel } from "firebase/firestore";
 import { SITE_URL } from "./src/config";
 import fs from "fs";
 
 setLogLevel("silent");
+
+if (
+  process.env.RENDER ||
+  (typeof __filename !== "undefined" && __filename.endsWith(".cjs"))
+) {
+  process.env.NODE_ENV = "production";
+}
 
 
 const SECRET_KEY = process.env.VITE_STREAM_SECRET || "local-dev-secret-key-12345";
@@ -26,6 +33,22 @@ let publicDataSnapshot: {
   lastUpdated: 0
 };
 
+const deletedPostIds = new Set<string>();
+
+async function loadTombstones(): Promise<Set<string>> {
+  try {
+    const delSnap = await getDocs(query(collection(db, 'deleted_posts'), limit(1000)));
+    for (const d of delSnap.docs) {
+      deletedPostIds.add(d.id);
+      const data = d.data();
+      if (data && data.id) deletedPostIds.add(data.id);
+    }
+  } catch (err) {
+    // If deleted_posts query fails, preserve existing in-memory deletedPostIds
+  }
+  return deletedPostIds;
+}
+
 function escapeXml(unsafe: string) {
   return unsafe.replace(/[<>&'"]/g, (c) => {
     switch (c) {
@@ -41,66 +64,245 @@ function escapeXml(unsafe: string) {
 
 
 
-let snapshotPromise: Promise<void> | null = null;
-
-async function ensureSnapshot() {
-  if (publicDataSnapshot.lastUpdated > 0 && publicDataSnapshot.posts.length > 0) return;
-  if (!snapshotPromise) {
-    snapshotPromise = generateSnapshot().finally(() => {
-      snapshotPromise = null;
-    });
-  }
-  await snapshotPromise;
-}
-
-async function generateSnapshot() {
-  console.log("Generating data snapshot...");
+function tryLoadDiskSnapshot(): boolean {
+  let dir = process.cwd();
   try {
-    const catSnap = await getDocs(query(collection(db, 'categories'), orderBy('name', 'asc'), limit(1000)));
-    const categories = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    if (typeof __dirname !== "undefined") {
+      dir = __dirname;
+    } else if (typeof import.meta !== "undefined" && import.meta.url) {
+      dir = path.dirname(new URL(import.meta.url).pathname);
+    }
+  } catch (e) {}
 
-    const postSnap = await getDocs(query(collection(db, 'posts'), limit(1000)));
-    const posts = postSnap.docs.map(doc => {
-      const data = doc.data();
-      let publishedAtMs = 0;
-      if (data.publishedAt) {
-        if (typeof data.publishedAt.toDate === 'function') {
-          publishedAtMs = data.publishedAt.toDate().getTime();
-        } else if (data.publishedAt.seconds) {
-          publishedAtMs = data.publishedAt.seconds * 1000;
-        } else {
-          publishedAtMs = new Date(data.publishedAt).getTime();
+  const candidatePaths = [
+    path.resolve(dir, "data-snapshot.json"),
+    path.resolve(dir, "dist/data-snapshot.json"),
+    path.resolve(dir, "../dist/data-snapshot.json"),
+    path.resolve(process.cwd(), "dist/data-snapshot.json"),
+    path.resolve(process.cwd(), "data-snapshot.json"),
+  ];
+
+  for (const p of candidatePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        const raw = fs.readFileSync(p, "utf-8");
+        const parsed = JSON.parse(raw);
+        if (
+          parsed &&
+          Array.isArray(parsed.posts) &&
+          parsed.posts.length > 0 &&
+          Array.isArray(parsed.categories) &&
+          parsed.categories.length > 0
+        ) {
+          const fileUpdated = parsed.lastUpdated || 0;
+          if (fileUpdated > publicDataSnapshot.lastUpdated || publicDataSnapshot.posts.length === 0) {
+            const posts = parsed.posts
+              .filter((post: any) => post && post.id && !deletedPostIds.has(post.id) && post.isDeleted !== true && post.status !== 'deleted')
+              .map((post: any) => {
+                if (typeof post._publishedAtMs === 'number' && !isNaN(post._publishedAtMs)) {
+                  return post;
+                }
+                let publishedAtMs = 0;
+                if (post.publishedAt) {
+                  if (typeof post.publishedAt.toDate === 'function') {
+                    publishedAtMs = post.publishedAt.toDate().getTime();
+                  } else if (post.publishedAt.seconds) {
+                    publishedAtMs = post.publishedAt.seconds * 1000;
+                  } else {
+                    publishedAtMs = new Date(post.publishedAt).getTime();
+                  }
+                }
+                return { ...post, _publishedAtMs: publishedAtMs || 0 };
+              });
+
+            publicDataSnapshot = {
+              posts,
+              categories: parsed.categories,
+              lastUpdated: fileUpdated || Date.now(),
+            };
+            console.log(`Loaded fallback snapshot from ${p}: ${posts.length} posts, ${parsed.categories.length} categories.`);
+            return true;
+          }
         }
       }
-      return { id: doc.id, ...data, _publishedAtMs: publishedAtMs };
-    });
-
-    posts.sort((a, b) => b._publishedAtMs - a._publishedAtMs);
-
-    if (posts.length === 0) {
-      console.warn("Validation failed: 0 posts fetched. Aborting update.");
-      return;
+    } catch (e) {
+      // Continue to next candidate path
     }
+  }
+  return false;
+}
 
-    publicDataSnapshot = {
-      posts,
-      categories,
-      lastUpdated: Date.now()
-    };
-    
-    console.log(`Snapshot generated. Posts: ${posts.length}, Categories: ${categories.length}`);
+// Initial cold-start disk snapshot load
+tryLoadDiskSnapshot();
+
+// Configurable snapshot TTL (default: 10 minutes)
+const SNAPSHOT_TTL_MS = parseInt(process.env.SNAPSHOT_TTL_MS || "", 10) || 10 * 60 * 1000;
+
+// Concurrency-safe single-flight refresh mechanism
+let refreshPromise: Promise<boolean> | null = null;
+
+function saveDiskSnapshotSafely(snapshot: { posts: any[]; categories: any[]; lastUpdated: number }) {
+  try {
+    const jsonStr = JSON.stringify(snapshot, null, 2);
+    const candidatePaths = [
+      path.resolve(process.cwd(), "data-snapshot.json"),
+      path.resolve(process.cwd(), "dist/data-snapshot.json")
+    ];
+    for (const p of candidatePaths) {
+      try {
+        const dir = path.dirname(p);
+        if (fs.existsSync(dir)) {
+          const tempPath = `${p}.tmp.${Date.now()}`;
+          fs.writeFileSync(tempPath, jsonStr, "utf8");
+          fs.renameSync(tempPath, p);
+        }
+      } catch (err: any) {
+        // Read-only filesystem in serverless environments (e.g. Vercel EROFS) is expected; memory is authoritative.
+      }
+    }
   } catch (err) {
-    console.error("Error generating snapshot:", err);
-    throw err;
+    // Non-fatal disk write error
   }
 }
 
+async function refreshSnapshot(force = false): Promise<boolean> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async (): Promise<boolean> => {
+    console.log("Generating data snapshot from Firestore...");
+    try {
+      await loadTombstones();
+
+      const catSnap = await getDocs(query(collection(db, 'categories'), orderBy('name', 'asc'), limit(1000)));
+      const categories = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const postSnap = await getDocs(query(collection(db, 'posts'), limit(1000)));
+      if (postSnap.empty && categories.length === 0) {
+        console.warn("Validation failed: Firestore returned 0 posts and 0 categories. Preserving previous snapshot.");
+        return false;
+      }
+
+      // Build unified posts preserving existing disk records and merging fresh Firestore records
+      const postMap = new Map<string, any>();
+
+      // 1. Seed with existing snapshot posts to preserve all existing records and metadata
+      for (const p of publicDataSnapshot.posts) {
+        if (p && p.id && !deletedPostIds.has(p.id) && p.isDeleted !== true && p.status !== 'deleted') {
+          postMap.set(p.id, p);
+        }
+      }
+
+      // 2. If in-memory was empty, also seed from disk snapshot
+      if (postMap.size === 0) {
+        try {
+          const diskSnapPath = path.resolve(process.cwd(), "data-snapshot.json");
+          if (fs.existsSync(diskSnapPath)) {
+            const parsed = JSON.parse(fs.readFileSync(diskSnapPath, "utf8"));
+            if (Array.isArray(parsed.posts)) {
+              for (const p of parsed.posts) {
+                if (p && p.id && !deletedPostIds.has(p.id) && p.isDeleted !== true && p.status !== 'deleted') {
+                  postMap.set(p.id, p);
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 3. Upsert fresh documents from Firestore
+      for (const doc of postSnap.docs) {
+        const data = doc.data();
+        if (deletedPostIds.has(doc.id) || data.isDeleted === true || data.status === 'deleted') {
+          postMap.delete(doc.id);
+          continue;
+        }
+
+        let publishedAtMs = 0;
+        if (data.publishedAt) {
+          if (typeof data.publishedAt.toDate === 'function') {
+            publishedAtMs = data.publishedAt.toDate().getTime();
+          } else if (data.publishedAt.seconds) {
+            publishedAtMs = data.publishedAt.seconds * 1000;
+          } else {
+            publishedAtMs = new Date(data.publishedAt).getTime();
+          }
+        }
+        postMap.set(doc.id, { id: doc.id, ...data, _publishedAtMs: publishedAtMs });
+      }
+
+      const posts = Array.from(postMap.values()).filter(p => p && p.id && !deletedPostIds.has(p.id) && p.isDeleted !== true && p.status !== 'deleted');
+      posts.sort((a, b) => (b._publishedAtMs || 0) - (a._publishedAtMs || 0));
+
+      if (posts.length === 0) {
+        console.warn("Validation failed: 0 combined posts. Preserving previous snapshot.");
+        return false;
+      }
+
+      // Use fresh categories if returned, otherwise preserve previous categories
+      const finalCategories = categories.length > 0 ? categories : publicDataSnapshot.categories;
+
+      // Atomically replace in-memory snapshot
+      publicDataSnapshot = {
+        posts,
+        categories: finalCategories,
+        lastUpdated: Date.now()
+      };
+
+      console.log(`Snapshot refreshed successfully. Posts: ${posts.length}, Categories: ${finalCategories.length}`);
+
+      // Persist to disk files when writable
+      saveDiskSnapshotSafely(publicDataSnapshot);
+
+      return true;
+    } catch (err) {
+      console.error("Error refreshing snapshot from Firestore, preserving previous snapshot:", err);
+      return false;
+    }
+  })().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
+}
+
+// Alias for backwards compatibility with any internal callers
+const generateSnapshot = refreshSnapshot;
+
+async function ensureSnapshot(): Promise<void> {
+  const isColdOrEmpty = publicDataSnapshot.posts.length === 0 || publicDataSnapshot.categories.length === 0;
+
+  if (isColdOrEmpty) {
+    tryLoadDiskSnapshot();
+  }
+
+  // If still completely empty (cold start without disk or disk was empty),
+  // we MUST await fresh fetch so the initial request has data.
+  if (publicDataSnapshot.posts.length === 0 || publicDataSnapshot.categories.length === 0) {
+    try {
+      await refreshSnapshot(true);
+    } catch (err) {
+      console.warn("ensureSnapshot: cold-start refresh failed:", err);
+    }
+    return;
+  }
+
+  // Stale-While-Revalidate:
+  // If data exists but age exceeds SNAPSHOT_TTL_MS, trigger non-blocking background refresh
+  const age = Date.now() - publicDataSnapshot.lastUpdated;
+  if (age > SNAPSHOT_TTL_MS && !refreshPromise) {
+    refreshSnapshot().catch(err => {
+      console.warn("ensureSnapshot: background SWR refresh failed:", err);
+    });
+  }
+}
+
+// Initial warm-up
 ensureSnapshot();
 
-setInterval(() => generateSnapshot().catch(console.error), 60 * 60 * 1000);
-
 async function startServer() {
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
   
   app.use(express.json());
 
@@ -128,10 +330,73 @@ async function startServer() {
 
   app.post("/api/admin/snapshot/generate", async (req, res) => {
     try {
-      await generateSnapshot();
-      res.json({ success: true, lastUpdated: publicDataSnapshot.lastUpdated });
+      const success = await refreshSnapshot(true);
+      if (!success && publicDataSnapshot.posts.length === 0) {
+        return res.status(500).json({ success: false, error: 'Failed to generate snapshot from Firestore' });
+      }
+      res.json({
+        success: true,
+        lastUpdated: publicDataSnapshot.lastUpdated,
+        postsCount: publicDataSnapshot.posts.length,
+        categoriesCount: publicDataSnapshot.categories.length
+      });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message || 'Failed to generate snapshot' });
+    }
+  });
+
+  app.delete("/api/admin/posts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (!id) {
+        return res.status(400).json({ error: "Missing post ID" });
+      }
+
+      console.log(`[Admin Delete API] Request received to delete post "${id}"`);
+
+      // 1. Delete from Firestore posts collection
+      try {
+        await deleteDoc(doc(db, "posts", id));
+      } catch (err: any) {
+        console.warn(`Firestore deleteDoc warning for post ${id}:`, err?.message || err);
+      }
+
+      // 2. Add tombstone to Firestore deleted_posts collection
+      try {
+        await setDoc(doc(db, "deleted_posts", id), {
+          id,
+          deletedAt: Timestamp.now(),
+          deletedBy: "admin"
+        });
+      } catch (err: any) {
+        console.warn(`Firestore setDoc tombstone warning for post ${id}:`, err?.message || err);
+      }
+
+      // 3. Mark in-memory tombstone set
+      deletedPostIds.add(id);
+
+      // 4. Immediately purge from in-memory snapshot
+      publicDataSnapshot = {
+        ...publicDataSnapshot,
+        posts: publicDataSnapshot.posts.filter(p => p && p.id !== id && !deletedPostIds.has(p.id)),
+        lastUpdated: Date.now()
+      };
+
+      // 5. Trigger snapshot refresh to persist clean snapshot to disk
+      await refreshSnapshot(true);
+
+      // 6. Respond with no-cache headers
+      res.status(200).set({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      }).json({
+        success: true,
+        id,
+        message: `Post "${id}" deleted successfully.`
+      });
+    } catch (err: any) {
+      console.error("Error deleting post:", err);
+      res.status(500).json({ error: err.message || "Failed to delete post" });
     }
   });
 
@@ -347,7 +612,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
       
       // Posts/Videos from snapshot
-      const activePosts = posts.filter((p: any) => p.isActive !== false && p.slug);
+      const activePosts = posts.filter((p: any) => p.isActive !== false && p.slug && !deletedPostIds.has(p.id) && p.isDeleted !== true && p.status !== 'deleted');
       for (const post of activePosts) {
         xml += `  <url>\n    <loc>${escapeXml(`${DYNAMIC_SITE_URL}/video/${post.slug}`)}</loc>\n`;
         let lastmod = "";
@@ -404,13 +669,19 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
 
   app.get("/api/videos", async (req, res) => {
     try {
-      const { category, tag, q: searchQuery, sortBy, limitCount = "20", lastId } = req.query;
+      const { category, tag, q: searchQuery, sortBy, limitCount = "20", lastId, trending } = req.query;
       const limitNum = Math.min(parseInt(limitCount as string, 10) || 20, 100);
+
+      const isTrendingQuery = trending === 'true' || (typeof category === 'string' && category.toLowerCase() === 'trending');
 
       if (publicDataSnapshot.posts.length === 0 && !searchQuery && !lastId) {
         let q = collection(db, 'posts');
         let constraints = [];
-        if (category) constraints.push(where('categories', 'array-contains', category as string));
+        if (isTrendingQuery) {
+          constraints.push(where('trending', '==', true));
+        } else if (category && category !== 'All' && !['latest', 'popular'].includes((category as string).toLowerCase())) {
+          constraints.push(where('categories', 'array-contains', category as string));
+        }
         if (tag) constraints.push(where('tags', 'array-contains', tag as string));
         constraints.push(orderBy('publishedAt', 'desc'));
         constraints.push(limit(limitNum + 1));
@@ -463,8 +734,14 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
              });
            });
         }
+      } else if (isTrendingQuery) {
+         filtered = filtered.filter(v => v.trending === true);
+      } else if (category && (category as string).toLowerCase() === 'latest') {
+         filtered = [...filtered].sort((a, b) => b._publishedAtMs - a._publishedAtMs);
+      } else if (category && (category as string).toLowerCase() === 'popular') {
+         filtered = [...filtered].sort((a, b) => (b.views || 0) - (a.views || 0));
       } else if (category && category !== 'All') {
-         filtered = filtered.filter(v => v.categories && v.categories.includes(category));
+         filtered = filtered.filter(v => postMatchesCategory(v.categories, category as string, publicDataSnapshot.categories));
       } else if (tag) {
          filtered = filtered.filter(v => v.tags && v.tags.includes(tag));
       }
@@ -506,7 +783,6 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
          filtered = [...filtered].sort((a, b) => b._publishedAtMs - a._publishedAtMs);
       }
 
-      fs.writeFileSync("/tmp/debug3.json", JSON.stringify({filtered: filtered.length}));
       let page = parseInt(req.query.page as string, 10);
       if (isNaN(page) || page < 1) page = 1;
       
@@ -521,14 +797,11 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       }
       
       const end = startIndex + limitNum;
-      console.log("filtered:", filtered.length, "start:", startIndex, "end:", end, "limit:", limitNum);
-      fs.writeFileSync("/tmp/debug.json", JSON.stringify({filtered: filtered.length, start: startIndex, end, limit: limitNum}));
-
       const paginatedDocs = filtered.slice(startIndex, end);
 
       res.status(200).set({
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=300'
       }).json({
         videos: paginatedDocs,
         total: filtered.length,
@@ -618,7 +891,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
 
       res.status(200).set({
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=300'
       }).json({ videos: paginatedDocs, nextCursor });
     } catch (err) {
       console.error("API /videos/related error:", err);
@@ -682,7 +955,7 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
 
       res.status(200).set({
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=600'
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=300'
       }).json({ prev, next });
     } catch (err) {
       console.error("API /videos/adjacent error:", err);
@@ -742,6 +1015,150 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       res.status(500).json({ error: "Internal error" });
     }
   });
+
+  function normalizeCat(s: any): string {
+    return String(s || "").trim().toLowerCase().replace(/\s+/g, "-");
+  }
+
+  function postMatchesCategory(postCats: any[], targetCat: string, allCategories: any[]): boolean {
+    if (!Array.isArray(postCats) || !targetCat) return false;
+    const targetNorm = normalizeCat(targetCat);
+    const targetLower = String(targetCat).trim().toLowerCase();
+    
+    const matchedDoc = (allCategories || []).find((c: any) => 
+      normalizeCat(c.slug) === targetNorm || normalizeCat(c.name) === targetNorm
+    );
+    const docSlugNorm = matchedDoc ? normalizeCat(matchedDoc.slug) : null;
+    const docNameNorm = matchedDoc ? normalizeCat(matchedDoc.name) : null;
+    const docNameLower = matchedDoc ? String(matchedDoc.name).trim().toLowerCase() : null;
+
+    return postCats.some((c: any) => {
+      if (!c) return false;
+      const cStr = String(c).trim();
+      const cNorm = normalizeCat(cStr);
+      const cLower = cStr.toLowerCase();
+      if (cNorm === targetNorm || cLower === targetLower) return true;
+      if (docSlugNorm && cNorm === docSlugNorm) return true;
+      if (docNameNorm && cNorm === docNameNorm) return true;
+      if (docNameLower && cLower === docNameLower) return true;
+      return false;
+    });
+  }
+
+  function safeJsonForScript(obj: any): string {
+    return JSON.stringify(obj)
+      .replace(/</g, '\\u003c')
+      .replace(/>/g, '\\u003e')
+      .replace(/&/g, '\\u0026')
+      .replace(/\u2028/g, '\\u2028')
+      .replace(/\u2029/g, '\\u2029');
+  }
+
+  function render404(res: any, pageTitle = "404 - Page Not Found | DesiredHub", heading = "Page Not Found", message = "The page you are looking for does not exist, has been removed, or the link is broken.") {
+    res.status(404).set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
+    }).send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${escapeHtml(pageTitle)}</title>
+    <meta name="robots" content="noindex, follow" />
+    <style>
+      :root {
+        --bg-color: #0a0a0a;
+        --text-primary: #ffffff;
+        --text-secondary: #a3a3a3;
+        --accent: #ef4444;
+        --accent-hover: #dc2626;
+        --card-bg: #171717;
+        --border: #262626;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        text-align: center;
+      }
+      .container {
+        max-width: 480px;
+        padding: 40px 24px;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        animation: fadeIn 0.6s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .logo {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--accent);
+        text-decoration: none;
+        letter-spacing: -0.05em;
+        display: inline-block;
+        margin-bottom: 24px;
+      }
+      h1 {
+        font-size: 72px;
+        font-weight: 800;
+        margin: 0 0 8px 0;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        color: var(--accent);
+      }
+      h2 {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0 0 16px 0;
+        color: var(--text-primary);
+      }
+      p {
+        font-size: 15px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        margin: 0 0 32px 0;
+      }
+      .btn {
+        display: inline-block;
+        background-color: var(--accent);
+        color: #ffffff;
+        text-decoration: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        transition: background-color 0.15s ease, transform 0.1s ease;
+      }
+      .btn:hover {
+        background-color: var(--accent-hover);
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <a href="/" class="logo">DesiredHub</a>
+      <h1>404</h1>
+      <h2>${escapeHtml(heading)}</h2>
+      <p>${escapeHtml(message)}</p>
+      <a href="/" class="btn">Back to Home</a>
+    </div>
+  </body>
+</html>`);
+  }
 
   function formatSeo(titleInput: string, descInput: string, currentUrl: string) {
     let title = titleInput.trim();
@@ -928,23 +1345,69 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       const slug = req.params.slug;
       
       const defaultCats = ["trending", "latest", "popular"];
+      const isDefaultCat = defaultCats.includes(slug.toLowerCase());
+
+      const cat = publicDataSnapshot.categories.find((c: any) => 
+        normalizeCat(c.slug) === normalizeCat(slug) || normalizeCat(c.name) === normalizeCat(slug)
+      );
+
+      // Return 404 for genuinely nonexistent category ONLY when categories are confirmed loaded and authoritative
+      if (!isDefaultCat && !cat) {
+        if (publicDataSnapshot.categories.length > 0) {
+          return render404(res, "404 - Category Not Found | DesiredHub", "Category Not Found", "The category you are looking for does not exist or has been removed.");
+        }
+        // If category snapshot is not yet loaded or temporarily unavailable,
+        // do NOT falsely classify valid categories as 404!
+        // Safely render fallback SEO page with HTTP 200 rather than 404
+        const fallbackName = slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, " ");
+        return renderSeoPage(
+          req,
+          res,
+          next,
+          `${fallbackName} Videos - DesiredHub`,
+          `Watch the best ${fallbackName.toLowerCase()} videos on DesiredHub.`,
+          `${SITE_URL}/category/${slug}`
+        );
+      }
+      
       let categoryName = "";
       let categoryDesc = "";
       
-      if (defaultCats.includes(slug.toLowerCase())) {
+      if (isDefaultCat) {
         categoryName = slug.charAt(0).toUpperCase() + slug.slice(1) + " Videos";
         categoryDesc = `Watch the best ${categoryName.toLowerCase()} on DesiredHub.`;
-      } else {
-        const cat = publicDataSnapshot.categories.find((c: any) => c.slug === slug);
-        if (cat) {
-          categoryName = cat.name;
-          categoryDesc = cat.seoDescription || `Watch the best ${categoryName} videos on DesiredHub.`;
-        } else {
-          categoryName = slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ');
-          categoryDesc = `Watch the best ${categoryName} videos on DesiredHub.`;
-        }
+      } else if (cat) {
+        categoryName = cat.name;
+        categoryDesc = cat.seoDescription || cat.description || `Watch the best ${categoryName} videos on DesiredHub.`;
       }
-      
+
+      // Filter matching videos deterministically from snapshot
+      let matchedVideos: any[] = [];
+      if (slug.toLowerCase() === "trending") {
+        matchedVideos = publicDataSnapshot.posts.filter((v: any) => v.trending === true);
+      } else if (slug.toLowerCase() === "latest") {
+        matchedVideos = [...publicDataSnapshot.posts].sort((a: any, b: any) => b._publishedAtMs - a._publishedAtMs);
+      } else if (slug.toLowerCase() === "popular") {
+        matchedVideos = [...publicDataSnapshot.posts].sort((a: any, b: any) => (b.views || 0) - (a.views || 0));
+      } else {
+        matchedVideos = publicDataSnapshot.posts.filter((v: any) => 
+          postMatchesCategory(v.categories, slug, publicDataSnapshot.categories)
+        );
+      }
+
+      const totalMatching = matchedVideos.length;
+      const page1Videos = matchedVideos.slice(0, 20);
+      const totalPages = Math.max(1, Math.ceil(totalMatching / 20));
+
+      const initialCategoryData = {
+        slug: slug,
+        name: categoryName,
+        description: categoryDesc,
+        videos: page1Videos,
+        total: totalMatching,
+        totalPages: totalPages
+      };
+
       const title = escapeHtml(`${categoryName} - DesiredHub`);
       const description = escapeHtml(categoryDesc);
       const currentUrl = escapeHtml(`${SITE_URL}/category/${slug}`);
@@ -991,9 +1454,51 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
         ${jsonLdScript}
       `;
       
-            const html = template.replace("<title>DesiredHub</title>", seoTags);
+      // Build crawlable semantic initial HTML for Googlebot and early rendering
+      let prerenderedCards = "";
+      if (page1Videos.length > 0) {
+        prerenderedCards = page1Videos.map((v: any) => `
+            <article class="flex flex-col group">
+              <a href="/video/${escapeHtml(v.slug)}" class="block relative aspect-video bg-neutral-900 rounded-xl overflow-hidden mb-3">
+                <img src="${escapeHtml(v.thumbnailUrl)}" alt="${escapeHtml(v.title)}" class="w-full h-full object-cover" loading="lazy" />
+                ${v.duration ? `<span class="absolute bottom-2 right-2 px-1.5 py-0.5 text-xs font-semibold bg-black/80 text-white rounded">${escapeHtml(v.duration)}</span>` : ''}
+              </a>
+              <h2 class="text-sm font-semibold text-neutral-200 line-clamp-2">
+                <a href="/video/${escapeHtml(v.slug)}" class="hover:text-primary transition-colors">${escapeHtml(v.title)}</a>
+              </h2>
+              ${v.views !== undefined ? `<span class="text-xs text-neutral-400 mt-1">${escapeHtml(Number(v.views).toLocaleString())} views</span>` : ''}
+            </article>
+        `).join("");
+      } else {
+        prerenderedCards = `
+          <div class="col-span-full text-center py-20 bg-neutral-900/30 rounded-2xl border border-neutral-800/50">
+            <h2 class="text-xl font-semibold text-white mb-2">No videos found</h2>
+            <p class="text-neutral-400 max-w-md mx-auto">There are currently no videos in this category. Check back later!</p>
+          </div>
+        `;
+      }
+
+      const prerenderedBody = `
+        <div class="min-h-screen bg-neutral-950 text-neutral-50 flex flex-col">
+          <main class="flex-1 pb-20 pt-8 sm:pt-10">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+              <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">${escapeHtml(categoryName)} Videos</h1>
+              ${categoryDesc ? `<p class="text-neutral-400 text-[15px] max-w-3xl leading-relaxed mb-8">${escapeHtml(categoryDesc)}</p>` : ''}
+              <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 xl:gap-10">
+                ${prerenderedCards}
+              </div>
+            </div>
+          </main>
+        </div>
+      `;
+
+      const initialDataScript = `<script>window.__INITIAL_CATEGORY_DATA__ = ${safeJsonForScript(initialCategoryData)};</script>`;
+
+      let html = template.replace("<title>DesiredHub</title>", seoTags);
+      html = html.replace('<div id="root"></div>', `<div id="root">${prerenderedBody}</div>${initialDataScript}`);
+
       res.status(200).set({ 
-        'Content-Type': 'text/html',
+        'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400'
       }).end(html);
     } catch (e) {
@@ -1014,107 +1519,21 @@ Sitemap: ${DYNAMIC_SITE_URL}/sitemap-main.xml`;
       if (cachedVideo) {
         video = cachedVideo;
         docId = cachedVideo.id;
+      } else if (publicDataSnapshot.posts.length > 0) {
+        return render404(res, "404 - Video Not Found | DesiredHub", "Video Not Found", "The video you are trying to watch does not exist, has been removed, or the link is broken.");
       } else {
-        res.status(404).set('Content-Type', 'text/html').send(`<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>404 - Page Not Found | DesiredHub</title>
-    <style>
-      :root {
-        --bg-color: #0a0a0a;
-        --text-primary: #ffffff;
-        --text-secondary: #a3a3a3;
-        --accent: #ef4444;
-        --accent-hover: #dc2626;
-        --card-bg: #171717;
-        --border: #262626;
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        background-color: var(--bg-color);
-        color: var(--text-primary);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        text-align: center;
-      }
-      .container {
-        max-width: 480px;
-        padding: 40px 24px;
-        background: var(--card-bg);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        animation: fadeIn 0.6s ease-out;
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .logo {
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--accent);
-        text-decoration: none;
-        letter-spacing: -0.05em;
-        display: inline-block;
-        margin-bottom: 24px;
-      }
-      h1 {
-        font-size: 72px;
-        font-weight: 800;
-        margin: 0 0 8px 0;
-        letter-spacing: -0.02em;
-        line-height: 1;
-        color: var(--accent);
-      }
-      h2 {
-        font-size: 20px;
-        font-weight: 600;
-        margin: 0 0 16px 0;
-        color: var(--text-primary);
-      }
-      p {
-        font-size: 15px;
-        line-height: 1.6;
-        color: var(--text-secondary);
-        margin: 0 0 32px 0;
-      }
-      .btn {
-        display: inline-block;
-        background-color: var(--accent);
-        color: #ffffff;
-        text-decoration: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 15px;
-        transition: background-color 0.15s ease, transform 0.1s ease;
-      }
-      .btn:hover {
-        background-color: var(--accent-hover);
-      }
-      .btn:active {
-        transform: scale(0.98);
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <a href="/" class="logo">DesiredHub</a>
-      <h1>404</h1>
-      <h2>Video Not Found</h2>
-      <p>The video you are trying to watch does not exist, has been removed, or the link is broken.</p>
-      <a href="/" class="btn">Back to Home</a>
-    </div>
-  </body>
-</html>`);
-        return;
+        // Fallback when snapshot is temporarily unavailable
+        try {
+          const qSnap = await getDocs(query(collection(db, 'posts'), where('slug', '==', slug), limit(1)));
+          if (!qSnap.empty) {
+            video = { id: qSnap.docs[0].id, ...qSnap.docs[0].data() };
+            docId = video.id;
+          } else {
+            return render404(res, "404 - Video Not Found | DesiredHub", "Video Not Found", "The video you are trying to watch does not exist, has been removed, or the link is broken.");
+          }
+        } catch (fbErr) {
+          return next();
+        }
       }
       
       let template = "";

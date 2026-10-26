@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { SEO } from "../../components/seo/SEO";
 import { CheckHistoryTab } from "./CheckHistoryTab";
+import { useAuth } from "../../contexts/AuthContext";
 
 type UrlStatus =
   | "pending"
@@ -55,6 +56,7 @@ interface ScanResult {
 }
 
 export function DeadUrls() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"scanner" | "history">("scanner");
   const [results, setResults] = useState<ScanResult[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -326,11 +328,39 @@ export function DeadUrls() {
     (r) => r.status !== "pending" && r.status !== "scanning",
   ).length;
   const totalCount = results.length;
-  const deadCount = results.filter((r) =>
-    ["dead", "timeout", "error"].includes(r.status),
+  const confirmedDeadList = results.filter((r) => r.status === "dead" || r.statusCode === 404 || r.statusCode === 410);
+  const confirmedDeadCount = confirmedDeadList.length;
+  const inconclusiveCount = results.filter((r) =>
+    ["error", "timeout"].includes(r.status) && r.statusCode !== 404 && r.statusCode !== 410,
   ).length;
+  const workingCount = results.filter((r) => r.status === "working" || r.status === "redirect").length;
   const progressPercent =
     totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
+
+  const handleRemoveConfirmedDead = async () => {
+    if (confirmedDeadCount === 0) return alert("No confirmed dead URLs (404/410) found to remove.");
+    if (!confirm(`Are you sure you want to remove ${confirmedDeadCount} confirmed dead video(s) using the tombstone mechanism? This will exclude them from all listings and sitemaps.`)) return;
+
+    let removed = 0;
+    for (const item of confirmedDeadList) {
+      try {
+        const token = user ? await user.getIdToken().catch(() => null) : null;
+        const res = await fetch(`/api/admin/posts/${encodeURIComponent(item.id)}`, {
+          method: "DELETE",
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          removed++;
+        }
+      } catch (err) {
+        console.error(`Failed to remove dead video ${item.id}:`, err);
+      }
+    }
+
+    alert(`Successfully removed ${removed} confirmed dead video(s). Snapshot updated.`);
+    // Reset or filter out removed videos
+    setResultsState(resultsRef.current.filter(r => !confirmedDeadList.some(d => d.id === r.id)));
+  };
 
   const getStatusIcon = (status: UrlStatus) => {
     switch (status) {
@@ -343,7 +373,7 @@ export function DeadUrls() {
       case "timeout":
         return <AlertTriangle className="w-5 h-5 text-orange-500" />;
       case "error":
-        return <XCircle className="w-5 h-5 text-red-500" />;
+        return <AlertTriangle className="w-5 h-5 text-orange-400" />;
       case "scanning":
         return <Activity className="w-5 h-5 text-blue-500 animate-pulse" />;
       default:
@@ -365,7 +395,7 @@ export function DeadUrls() {
         <div>
           <h1 className="text-2xl font-bold text-white">Dead URL Checker</h1>
           <p className="text-neutral-400 text-sm mt-1">
-            Scan your video database for broken or dead external links.
+            Scan your video database for broken or dead external source media links.
           </p>
         </div>
 
@@ -376,7 +406,7 @@ export function DeadUrls() {
               className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
             >
               <Play className="w-4 h-4" />
-              {hasLoaded ? "Start Scan" : "Load & Scan"}
+              {hasLoaded ? "Scan Dead Video URLs Now" : "Load & Scan Dead Video URLs Now"}
             </button>
           )}
 
@@ -466,35 +496,44 @@ export function DeadUrls() {
 
               <div className="flex flex-wrap gap-4 pt-2">
                 <div className="px-4 py-2 bg-neutral-800 rounded-lg">
-                  <div className="text-xs text-neutral-400">Working</div>
+                  <div className="text-xs text-neutral-400">Working (2xx/3xx)</div>
                   <div className="text-lg font-semibold text-green-500">
-                    {results.filter((r) => r.status === "working").length}
+                    {workingCount}
                   </div>
                 </div>
                 <div className="px-4 py-2 bg-neutral-800 rounded-lg">
-                  <div className="text-xs text-neutral-400">Dead / Error</div>
+                  <div className="text-xs text-neutral-400">Confirmed Dead (404/410)</div>
                   <div className="text-lg font-semibold text-red-500">
-                    {deadCount}
+                    {confirmedDeadCount}
                   </div>
                 </div>
                 <div className="px-4 py-2 bg-neutral-800 rounded-lg">
-                  <div className="text-xs text-neutral-400">Timeouts</div>
-                  <div className="text-lg font-semibold text-orange-500">
-                    {results.filter((r) => r.status === "timeout").length}
+                  <div className="text-xs text-neutral-400">Inconclusive / Errors (403, 429, 5xx)</div>
+                  <div className="text-lg font-semibold text-orange-400">
+                    {inconclusiveCount}
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {deadCount > 0 && !isScanning && (
-            <div className="flex items-center gap-2">
+          {!isScanning && (confirmedDeadCount > 0 || inconclusiveCount > 0) && (
+            <div className="flex items-center gap-3">
+              {confirmedDeadCount > 0 && (
+                <button
+                  onClick={handleRemoveConfirmedDead}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Remove Confirmed Dead Videos ({confirmedDeadCount})
+                </button>
+              )}
               <button
                 onClick={exportCSV}
                 className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-sm font-medium transition-colors"
               >
                 <Download className="w-4 h-4" />
-                Export Dead URLs
+                Export Dead/Inconclusive URLs
               </button>
             </div>
           )}
