@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 
 const rootDir = process.cwd();
 const serverBundlePath = path.resolve(rootDir, "dist/server.cjs");
@@ -10,7 +10,11 @@ if (!fs.existsSync(serverBundlePath) || !fs.existsSync(appHtmlPath)) {
   console.log(
     "[ensure-build] dist/server.cjs or dist/app.html not found. Running production build..."
   );
-  execSync("npm run build", { stdio: "inherit", cwd: rootDir });
+  const viteBin = path.resolve(rootDir, "node_modules/vite/bin/vite.js");
+  execFileSync(process.execPath, [viteBin, "build"], {
+    stdio: "inherit",
+    cwd: rootDir,
+  });
 }
 
 if (!fs.existsSync(serverBundlePath)) {

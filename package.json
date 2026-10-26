@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && node scripts/build-server.cjs",
+    "postinstall": "node scripts/postinstall-build.cjs",
     "prestart": "node scripts/ensure-build.cjs",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
