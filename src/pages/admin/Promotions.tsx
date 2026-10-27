@@ -29,15 +29,27 @@ export function Promotions() {
     fetchSettings();
   }, []);
 
+  const [statusMessage, setStatusMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
   const handleSubmit = async (e: import("react").FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setStatusMessage(null);
     try {
       await setDoc(doc(db, "settings", "advertisements"), formData);
-      alert("Advertisement settings saved successfully");
+      setStatusMessage({
+        type: "success",
+        text: "Advertisement settings saved successfully.",
+      });
     } catch (err) {
       console.error(err);
-      alert("Failed to save settings");
+      setStatusMessage({
+        type: "error",
+        text: "Failed to save advertisement settings.",
+      });
     } finally {
       setLoading(false);
     }
@@ -61,6 +73,19 @@ export function Promotions() {
         onSubmit={handleSubmit}
         className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 space-y-8"
       >
+        {statusMessage && (
+          <div
+            role="status"
+            className={`px-4 py-3 rounded-xl text-sm font-medium border ${
+              statusMessage.type === "success"
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                : "bg-red-500/10 border-red-500/30 text-red-400"
+            }`}
+          >
+            {statusMessage.text}
+          </div>
+        )}
+
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-white border-b border-neutral-800 pb-2">
             Ad Networks
@@ -111,7 +136,6 @@ export function Promotions() {
                 <div className="w-11 h-6 bg-neutral-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
               </label>
             </div>
-            \n{" "}
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-white font-medium">Native Banner</h3>

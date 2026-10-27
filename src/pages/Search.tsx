@@ -9,9 +9,15 @@ import {
   TrendingUp,
   ArrowLeft,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { usePaginationVideos, PaginationFilter } from "../hooks/useVideos";
 import { usePublicCategories } from "../hooks/useCategories";
+import {
+  useSearchSuggestions,
+  VideoSuggestion,
+  CategorySuggestion,
+  KeywordSuggestion,
+} from "../hooks/useSearchSuggestions";
+import { SearchSuggestionsList } from "../components/ui/SearchSuggestionsList";
 import { VideoCard } from "../components/ui/VideoCard";
 import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { SEO } from "../components/seo/SEO";
@@ -94,7 +100,7 @@ export function Search() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(queryText.trim());
-    }, 300);
+    }, 250);
     return () => clearTimeout(timer);
   }, [queryText]);
 
@@ -104,46 +110,8 @@ export function Search() {
     showSuggestionsOverlay,
   );
 
-  const { data: suggestions = [], isFetching: isFetchingSuggestions } =
-    useQuery({
-      queryKey: ["search-suggestions", debouncedQuery],
-      queryFn: async () => {
-        if (!debouncedQuery) return [];
-        const res = await fetch(
-          `/api/videos?q=${encodeURIComponent(debouncedQuery)}&limitCount=20`,
-        );
-        if (!res.ok) return [];
-        const data = await res.json();
-
-        const queryWords = debouncedQuery.toLowerCase().split(/\s+/);
-        const keywords = new Set<string>();
-
-        data.videos.forEach((v: any) => {
-          const titleMatches = queryWords.every(
-            (kw) => v.title && v.title.toLowerCase().includes(kw),
-          );
-          if (titleMatches && v.title) {
-            keywords.add(v.title);
-          }
-          v.tags?.forEach((t: string) => {
-            const tagMatches = queryWords.every((kw) =>
-              t.toLowerCase().includes(kw),
-            );
-            if (tagMatches) keywords.add(t);
-          });
-          v.categories?.forEach((c: string) => {
-            const catMatches = queryWords.every((kw) =>
-              c.toLowerCase().includes(kw),
-            );
-            if (catMatches) keywords.add(c);
-          });
-        });
-
-        return Array.from(keywords).slice(0, 8);
-      },
-      enabled: showSuggestionsOverlay && debouncedQuery.length > 0,
-      staleTime: 1000 * 60 * 5,
-    });
+  const { suggestions, isFetching: isFetchingSuggestions } =
+    useSearchSuggestions(debouncedQuery, showSuggestionsOverlay);
 
   const filter: PaginationFilter = useMemo(
     () => ({
@@ -167,6 +135,24 @@ export function Search() {
     setIsFocused(false);
     navigate(`/search?q=${encodeURIComponent(term)}`);
     inputRef.current?.blur();
+  };
+
+  const handleSelectVideo = (suggestion: VideoSuggestion) => {
+    saveRecentSearch(suggestion.title);
+    setIsFocused(false);
+    inputRef.current?.blur();
+    navigate(`/video/${encodeURIComponent(suggestion.slug)}`);
+  };
+
+  const handleSelectCategory = (suggestion: CategorySuggestion) => {
+    saveRecentSearch(suggestion.name);
+    setIsFocused(false);
+    inputRef.current?.blur();
+    navigate(`/category/${encodeURIComponent(suggestion.slug)}`);
+  };
+
+  const handleSelectKeyword = (suggestion: KeywordSuggestion) => {
+    handleSelect(suggestion.keyword);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -253,36 +239,14 @@ export function Search() {
           <div className="max-w-2xl mx-auto space-y-8 ">
             {queryText.trim() ? (
               <div className="bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden shadow-sm">
-                {isFetchingSuggestions && !suggestions.length ? (
-                  <div className="px-4 py-12 flex flex-col items-center justify-center text-sm text-neutral-500 gap-3">
-                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                    Searching...
-                  </div>
-                ) : suggestions.length > 0 ? (
-                  <ul className="divide-y divide-neutral-800">
-                    {suggestions.map((keyword: string, i: number) => (
-                      <li key={i}>
-                        <button
-                          type="button"
-                          onClick={() => handleSelect(keyword)}
-                          className="w-full text-left px-5 py-4 flex items-center gap-4 hover:bg-neutral-800 transition-colors group"
-                        >
-                          <SearchIcon className="w-5 h-5 text-neutral-500 shrink-0 group-hover:text-primary transition-colors" />
-                          <span className="text-[15px] font-medium text-neutral-100 line-clamp-1">
-                            {keyword}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="px-4 py-12 text-center text-[15px] text-neutral-500">
-                    No suggestions found for{" "}
-                    <span className="text-neutral-100 font-semibold">
-                      "{queryText}"
-                    </span>
-                  </div>
-                )}
+                <SearchSuggestionsList
+                  suggestions={suggestions}
+                  isFetching={isFetchingSuggestions}
+                  queryText={queryText.trim()}
+                  onSelectVideo={handleSelectVideo}
+                  onSelectCategory={handleSelectCategory}
+                  onSelectKeyword={handleSelectKeyword}
+                />
               </div>
             ) : (
               <div className="space-y-8">
@@ -339,7 +303,14 @@ export function Search() {
                         <button
                           key={`pop-${cat.id}`}
                           type="button"
-                          onClick={() => handleSelect(cat.name)}
+                          onClick={() =>
+                            handleSelectCategory({
+                              type: "category",
+                              key: `pop-${cat.id}`,
+                              name: cat.name,
+                              slug: cat.slug,
+                            })
+                          }
                           className="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-full text-sm font-medium text-neutral-300 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all shadow-sm"
                         >
                           <TrendingUp className="w-4 h-4 opacity-70" />

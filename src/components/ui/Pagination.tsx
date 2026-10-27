@@ -48,28 +48,35 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
   };
 
   return (
-    <div className="mt-10 sm:mt-16 flex flex-wrap justify-center items-center gap-1.5 sm:gap-2 px-2 max-w-full">
+    <nav
+      aria-label="Pagination"
+      className="mt-10 sm:mt-14 flex flex-wrap justify-center items-center gap-1.5 sm:gap-2 px-2 max-w-full tabular-nums"
+    >
       <Link
         to={currentPage > 1 ? createPageUrl(currentPage - 1) : "#"}
-        className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+        aria-disabled={currentPage <= 1}
+        tabIndex={currentPage <= 1 ? -1 : undefined}
+        className={`min-h-[40px] sm:min-h-[44px] px-3.5 sm:px-4 inline-flex items-center justify-center rounded-xl text-xs sm:text-sm font-semibold transition-colors border ${
           currentPage > 1
-            ? "bg-neutral-800 text-white hover:bg-neutral-700"
-            : "bg-neutral-900 text-neutral-600 cursor-not-allowed pointer-events-none"
+            ? "bg-neutral-900 border-white/[0.08] text-white hover:bg-neutral-800 hover:border-white/15"
+            : "bg-neutral-900/40 border-white/[0.04] text-neutral-600 cursor-not-allowed pointer-events-none"
         }`}
       >
         Previous
       </Link>
 
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex items-center gap-1 sm:gap-1.5">
         {getPageNumbers().map((page, idx) =>
           typeof page === "number" ? (
             <Link
               key={idx}
               to={createPageUrl(page)}
-              className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-xs sm:text-sm font-bold transition-colors ${
+              aria-label={`Page ${page}`}
+              aria-current={currentPage === page ? "page" : undefined}
+              className={`min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] px-2.5 flex items-center justify-center rounded-xl text-xs sm:text-sm font-bold transition-colors border ${
                 currentPage === page
-                  ? "bg-primary text-white"
-                  : "bg-neutral-800/80 text-neutral-300 hover:bg-neutral-700 hover:text-white"
+                  ? "bg-primary border-primary text-white shadow-sm"
+                  : "bg-neutral-900 border-white/[0.08] text-neutral-300 hover:bg-neutral-800 hover:text-white"
               }`}
             >
               {page}
@@ -77,7 +84,8 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
           ) : (
             <span
               key={idx}
-              className="w-6 sm:w-8 flex justify-center text-xs sm:text-sm text-neutral-500"
+              aria-hidden="true"
+              className="w-6 sm:w-8 flex justify-center text-xs sm:text-sm text-neutral-500 select-none"
             >
               ...
             </span>
@@ -87,14 +95,17 @@ export function Pagination({ currentPage, totalPages }: PaginationProps) {
 
       <Link
         to={currentPage < totalPages ? createPageUrl(currentPage + 1) : "#"}
-        className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+        aria-disabled={currentPage >= totalPages}
+        tabIndex={currentPage >= totalPages ? -1 : undefined}
+        className={`min-h-[40px] sm:min-h-[44px] px-3.5 sm:px-4 inline-flex items-center justify-center rounded-xl text-xs sm:text-sm font-semibold transition-colors border ${
           currentPage < totalPages
-            ? "bg-neutral-800 text-white hover:bg-neutral-700"
-            : "bg-neutral-900 text-neutral-600 cursor-not-allowed pointer-events-none"
+            ? "bg-neutral-900 border-white/[0.08] text-white hover:bg-neutral-800 hover:border-white/15"
+            : "bg-neutral-900/40 border-white/[0.04] text-neutral-600 cursor-not-allowed pointer-events-none"
         }`}
       >
         Next
       </Link>
-    </div>
+    </nav>
   );
 }
+

@@ -1,19 +1,19 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import {
   Play,
   Pause,
   Volume2,
   VolumeX,
-  Volume1,
   Maximize,
   Minimize,
   Settings,
   PictureInPicture,
-  Loader2,
   AlertCircle,
   RotateCcw,
 } from "lucide-react";
+import { useTimelinePreview } from "./useTimelinePreview";
+import { TimelinePreview } from "./TimelinePreview";
 
 interface VideoPlayerProps {
   videoId?: string;
@@ -27,9 +27,17 @@ interface VideoPlayerProps {
     width: number;
     height: number;
   };
+  previewVttUrl?: string;
 }
 
-export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboardUrl, previewStoryboardData }: VideoPlayerProps) {
+export function VideoPlayer({
+  videoUrl,
+  thumbnailUrl,
+  videoId,
+  previewStoryboardUrl,
+  previewStoryboardData,
+  previewVttUrl,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -46,7 +54,6 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     viewReported.current = false;
     triedProxyRef.current = false;
   }, [videoId, videoUrl, retryKey]);
-
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -68,9 +75,25 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
   const [dragPos, setDragPos] = useState(0); // 0 to 1
   const [hoverPos, setHoverPos] = useState(0); // 0 to 1
   const [isHovering, setIsHovering] = useState(false);
+  const [previewEnabled, setPreviewEnabled] = useState(false);
 
   const [hlsLevels, setHlsLevels] = useState<any[]>([]);
   const [currentLevel, setCurrentLevel] = useState<number>(-1); // -1 is Auto
+
+  const activePreviewPos = isDragging ? dragPos : hoverPos;
+  const isPreviewActive = (isDragging || isHovering) && duration > 0;
+  const activePreviewTime = activePreviewPos * duration;
+
+  const timelinePreview = useTimelinePreview({
+    videoUrl,
+    duration,
+    activeTime: activePreviewTime,
+    isActive: isPreviewActive,
+    enabled: previewEnabled && !showPoster && duration > 0,
+    previewStoryboardUrl,
+    previewStoryboardData,
+    previewVttUrl,
+  });
 
   // Setup HLS or Native player
   useEffect(() => {
@@ -79,12 +102,16 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     const video = videoRef.current;
     setError("");
     setLoading(true);
+    setPreviewEnabled(false);
 
     const isM3U8 = videoUrl.includes(".m3u8");
 
     const handleLoadedMetadata = () => {
       setLoading(false);
       setError("");
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        setDuration(video.duration);
+      }
       const savedTime = localStorage.getItem(`vid_time_${videoUrl}`);
       if (savedTime) {
         const parsed = parseFloat(savedTime);
@@ -97,6 +124,9 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     const handleCanPlay = () => {
       setLoading(false);
       setError("");
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        setDuration(video.duration);
+      }
     };
 
     const handleError = () => {
@@ -187,6 +217,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
         setIsPlaying(false);
       } else {
         try {
+          setPreviewEnabled(true);
           const playPromise = videoRef.current.play();
           if (playPromise !== undefined) {
             await playPromise;
@@ -199,12 +230,13 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     }
   };
 
-  
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const current = videoRef.current.currentTime;
       setCurrentTime(current);
-      setDuration(videoRef.current.duration);
+      if (Number.isFinite(videoRef.current.duration) && videoRef.current.duration > 0) {
+        setDuration(videoRef.current.duration);
+      }
 
       if (videoId && !viewReported.current && !videoRef.current.paused) {
         const diff = current - lastTimeRef.current;
@@ -213,31 +245,31 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
         }
         if (accumulatedPlayTime.current >= 4) {
           viewReported.current = true;
-          
+
           const storageKey = `viewed_${videoId}`;
           const lastViewedStr = localStorage.getItem(storageKey);
           const now = Date.now();
           let shouldReport = true;
           if (lastViewedStr) {
-             const lastViewed = parseInt(lastViewedStr, 10);
-             if (!isNaN(lastViewed) && (now - lastViewed < 24 * 60 * 60 * 1000)) {
-                 shouldReport = false;
-             }
+            const lastViewed = parseInt(lastViewedStr, 10);
+            if (!isNaN(lastViewed) && now - lastViewed < 24 * 60 * 60 * 1000) {
+              shouldReport = false;
+            }
           }
-          
+
           if (shouldReport) {
-             fetch(`/api/video/${videoId}/view`, { method: "POST" })
-               .then(res => {
-                   if (res.ok) {
-                       localStorage.setItem(storageKey, now.toString());
-                   } else {
-                       viewReported.current = false;
-                   }
-               })
-               .catch(err => {
-                   console.error("View reporting failed", err);
-                   viewReported.current = false;
-               });
+            fetch(`/api/video/${videoId}/view`, { method: "POST" })
+              .then((res) => {
+                if (res.ok) {
+                  localStorage.setItem(storageKey, now.toString());
+                } else {
+                  viewReported.current = false;
+                }
+              })
+              .catch((err) => {
+                console.error("View reporting failed", err);
+                viewReported.current = false;
+              });
           }
         }
       }
@@ -245,23 +277,34 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     }
   };
 
-  // Dragging logic
+  // Dragging & Hover logic on timeline
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (progressRef.current && videoRef.current) {
-      e.currentTarget.setPointerCapture(e.pointerId);
+      setPreviewEnabled(true);
+      setShowControls(true);
+      if (controlsTimeout.current) clearTimeout(controlsTimeout.current);
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // Ignore if pointer capture is not supported for synthetic events
+      }
       setIsDragging(true);
       const rect = progressRef.current.getBoundingClientRect();
       const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
       setDragPos(pos);
+      setHoverPos(pos);
     }
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (progressRef.current) {
+      setPreviewEnabled(true);
+      setShowControls(true);
       const rect = progressRef.current.getBoundingClientRect();
       const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
       if (isDragging) {
         setDragPos(pos);
+        setHoverPos(pos);
       } else {
         setHoverPos(pos);
         setIsHovering(true);
@@ -271,53 +314,56 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (isDragging && progressRef.current && videoRef.current) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // Ignore
+      }
       setIsDragging(false);
+      if (e.pointerType === "touch") {
+        setIsHovering(false);
+      }
       const rect = progressRef.current.getBoundingClientRect();
       const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
       const targetTime = pos * duration;
       if (Number.isFinite(targetTime) && targetTime >= 0) {
         videoRef.current.currentTime = targetTime;
+        setCurrentTime(targetTime);
       }
     }
   };
 
-  const handlePointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // Ignore
+      }
+      setIsDragging(false);
+    }
+    setIsHovering(false);
+  };
+
+  const handlePointerLeave = () => {
     if (!isDragging) {
       setIsHovering(false);
     }
   };
 
-  const getStoryboardStyles = () => {
-    if (!previewStoryboardData || !previewStoryboardUrl) return {};
-    const { interval, cols, rows, width, height } = previewStoryboardData;
-    const targetTime = (isDragging ? dragPos : hoverPos) * duration;
-    
-    // Clamp frame index
-    const totalFrames = cols * rows;
-    let frameIndex = Math.floor(targetTime / interval);
-    frameIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1));
-    
-    const r = Math.floor(frameIndex / cols);
-    const c = frameIndex % cols;
-    
-    return {
-      backgroundImage: `url(${previewStoryboardUrl})`,
-      backgroundPosition: `-${c * width}px -${r * height}px`,
-      width: `${width}px`,
-      height: `${height}px`,
-      backgroundSize: `${cols * width}px ${rows * height}px`
-    };
-  };
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only used as fallback now if needed, but Pointer events cover click
-  };
-
   const formatTime = (time: number) => {
-    if (isNaN(time)) return "0:00";
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
+    if (!Number.isFinite(time) || isNaN(time) || time < 0) return "0:00";
+    const totalSeconds = Math.floor(time);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return `${hours}:${minutes < 10 ? "0" : ""}${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+    }
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
@@ -383,18 +429,22 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     }
   };
 
-  let controlsTimeout = useRef<NodeJS.Timeout | null>(null);
+  const controlsTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const handleMouseMove = () => {
+    setPreviewEnabled(true);
     setShowControls(true);
     if (controlsTimeout.current) clearTimeout(controlsTimeout.current);
-    if (isPlaying) {
+    if (isPlaying && !isDragging && !isHovering) {
       controlsTimeout.current = setTimeout(() => setShowControls(false), 3000);
     }
   };
 
   const handleMouseLeave = () => {
-    if (isPlaying) setShowControls(false);
+    if (isPlaying && !isDragging) {
+      setIsHovering(false);
+      setShowControls(false);
+    }
   };
 
   useEffect(() => {
@@ -413,6 +463,14 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
     triedProxyRef.current = false;
     setRetryKey((prev) => prev + 1);
   };
+
+  const playbackProgressPercent =
+    duration > 0
+      ? Math.max(0, Math.min(100, (isDragging ? dragPos * 100 : (currentTime / duration) * 100)))
+      : 0;
+
+  const hoverGhostPercent =
+    isPreviewActive ? Math.max(0, Math.min(100, activePreviewPos * 100)) : 0;
 
   return (
     <div
@@ -476,7 +534,10 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
         ref={videoRef}
         className="w-full h-full"
         onTimeUpdate={handleTimeUpdate}
-        onPlay={() => setIsPlaying(true)}
+        onPlay={() => {
+          setIsPlaying(true);
+          setPreviewEnabled(true);
+        }}
         onPause={() => setIsPlaying(false)}
         onEnded={() => {
           setIsPlaying(false);
@@ -496,6 +557,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
             if (videoRef.current) {
               setPlayError(false);
               setError("");
+              setPreviewEnabled(true);
               try {
                 if (!videoRef.current.src) {
                   videoRef.current.src = videoUrl;
@@ -517,17 +579,17 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
             <img
               src={thumbnailUrl}
               alt="Video poster"
-              className="absolute inset-0 w-full h-full object-cover   ease-out group-hover/poster:scale-105"
+              className="absolute inset-0 w-full h-full object-cover ease-out group-hover/poster:scale-105"
               referrerPolicy="no-referrer"
             />
           )}
 
-          <div className="absolute inset-0 flex flex-col items-center justify-center scale-95 group-hover/poster:scale-100  ">
-            <div className="w-24 h-24 bg-primary/90 text-white rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(229,9,20,0.4)]   group-hover/poster:bg-primary group-hover/poster:shadow-[0_0_60px_rgba(229,9,20,0.6)] backdrop-blur-md border border-white/20">
+          <div className="absolute inset-0 flex flex-col items-center justify-center scale-95 group-hover/poster:scale-100">
+            <div className="w-24 h-24 bg-primary/90 text-white rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(229,9,20,0.4)] group-hover/poster:bg-primary group-hover/poster:shadow-[0_0_60px_rgba(229,9,20,0.6)] backdrop-blur-md border border-white/20">
               <Play className="w-12 h-12 ml-2" fill="currentColor" />
             </div>
             {playError && (
-              <div className="mt-6 px-6 py-2.5 bg-black/60 backdrop-blur-md text-white rounded-full font-medium border border-red-500/50  tracking-wide shadow-lg">
+              <div className="mt-6 px-6 py-2.5 bg-black/60 backdrop-blur-md text-white rounded-full font-medium border border-red-500/50 tracking-wide shadow-lg">
                 Tap to Play Again
               </div>
             )}
@@ -538,46 +600,74 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, videoId, previewStoryboard
       {/* Controls Overlay */}
       {!showPoster && (
         <div
-          className={`absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/90 via-transparent to-transparent   ${showControls ? "opacity-100" : "opacity-0 cursor-none"}`}
+          className={`absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/90 via-transparent to-transparent transition-opacity duration-200 ${
+            showControls || isDragging || isHovering ? "opacity-100" : "opacity-0 cursor-none"
+          }`}
         >
           <div className="p-4 sm:p-6 flex flex-col gap-3 w-full">
-            {/* Progress Bar */}
+            {/* Progress / Timeline Seek Bar */}
             <div
               ref={progressRef}
-              className="w-full h-1.5 sm:h-2 bg-neutral-600/40 rounded-full cursor-pointer group/progress relative overflow-visible hover:scale-y-125 touch-none"
+              role="slider"
+              aria-label="Seek timeline"
+              aria-valuemin={0}
+              aria-valuemax={Math.round(duration || 0)}
+              aria-valuenow={Math.round(currentTime || 0)}
+              aria-valuetext={formatTime(currentTime)}
+              className={`w-full bg-neutral-600/40 rounded-full cursor-pointer group/progress relative overflow-visible touch-none transition-all duration-150 ${
+                isDragging || isHovering ? "h-2.5" : "h-1.5 sm:h-2 hover:h-2.5"
+              }`}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerLeave={handlePointerLeave}
-              onPointerCancel={handlePointerUp}
+              onPointerCancel={handlePointerCancel}
             >
-              {/* Seek Preview */}
-              {(isDragging || isHovering) && (
+              {/* Invisible expanded touch/pointer hit area for smooth mobile & desktop scrubbing */}
+              <div className="absolute inset-x-0 -top-3.5 -bottom-3.5 z-10" />
+
+              {/* Floating YouTube-Style Timeline Thumbnail & Timestamp Preview */}
+              <TimelinePreview
+                visible={isPreviewActive}
+                positionRatio={activePreviewPos}
+                formattedTime={formatTime(activePreviewTime)}
+                spriteStyle={timelinePreview.spriteStyle}
+                cachedFrameUrl={timelinePreview.cachedFrameUrl}
+                isFrameReady={timelinePreview.isFrameReady}
+                isSeekingFrame={timelinePreview.isSeekingFrame}
+                videoFailed={timelinePreview.videoFailed}
+                useSpriteMode={timelinePreview.useSpriteMode}
+                bindVideoContainerRef={timelinePreview.bindVideoContainerRef}
+                previewWidth={timelinePreview.previewWidth}
+                previewHeight={timelinePreview.previewHeight}
+              />
+
+              {/* Base Track Background */}
+              <div className="absolute inset-0 bg-white/20 rounded-full" />
+
+              {/* YouTube-Style Ghost Hover Fill */}
+              {isPreviewActive && (
                 <div
-                  className="absolute bottom-full mb-3 -translate-x-1/2 flex flex-col items-center pointer-events-none z-30"
-                  style={{
-                    left: `clamp(${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px, ${(isDragging ? dragPos : hoverPos) * 100}%, calc(100% - ${previewStoryboardData ? previewStoryboardData.width / 2 : 25}px))`
-                  }}
-                >
-                  {previewStoryboardData && previewStoryboardUrl ? (
-                    <div className="rounded-lg overflow-hidden border border-white/20 shadow-2xl bg-black">
-                      <div style={getStoryboardStyles()} />
-                    </div>
-                  ) : null}
-                  <div className={`bg-black/80 backdrop-blur text-white text-xs font-medium px-2 py-1 rounded shadow-lg ${previewStoryboardData ? 'mt-1' : ''}`}>
-                    {formatTime((isDragging ? dragPos : hoverPos) * duration)}
-                  </div>
-                </div>
+                  className="absolute top-0 left-0 h-full bg-white/35 rounded-full pointer-events-none transition-[width] duration-75"
+                  style={{ width: `${hoverGhostPercent}%` }}
+                />
               )}
 
-              <div className="absolute inset-0 bg-white/20 rounded-full hover:bg-white/30 " />
+              {/* Active Playback / Scrub Fill */}
               <div
-                className="absolute top-0 left-0 h-full bg-primary rounded-full group-hover/progress:bg-red-500 "
+                className="absolute top-0 left-0 h-full bg-primary rounded-full group-hover/progress:bg-red-500 pointer-events-none"
                 style={{
-                  width: `${duration > 0 ? (isDragging ? dragPos * 100 : (currentTime / duration) * 100) : 0}%`,
+                  width: `${playbackProgressPercent}%`,
                 }}
               >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)] opacity-0 group-hover/progress:opacity-100 scale-50 group-hover/progress:scale-100" />
+                {/* Seek Handle Thumb */}
+                <div
+                  className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_rgba(0,0,0,0.6)] transition-transform duration-150 ${
+                    isDragging || isHovering
+                      ? "opacity-100 scale-100"
+                      : "opacity-0 scale-50 group-hover/progress:opacity-100 group-hover/progress:scale-100"
+                  }`}
+                />
               </div>
             </div>
 
